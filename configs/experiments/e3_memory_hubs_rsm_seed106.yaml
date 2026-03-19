@@ -1,0 +1,28 @@
+name: e3_memory_hubs_rsm_seed106
+bucket: exploit
+seed: 106
+output_dir: artifacts/experiments/e3_memory_hubs_rsm_seed106
+benchmark:
+  train_episodes: 180
+  val_episodes: 48
+  test_episodes: 48
+  curriculum_levels: [single_dynamic, multi_dynamic]
+  hidden_corridor:
+    seed: 106
+    packets_max: 4
+train:
+  batch_size: 24
+  eval_batch_size: 48
+  epochs: 7
+  device: cuda:0
+  bf16: true
+  rollout_eval_episodes: 16
+model:
+  d_model: 128
+  d_state: 16
+  inner_layers: 2
+  outer_steps: 3
+  router_variant: memory_hubs
+  final_step_only_loss: true
+  detach_warmup: true
+  penultimate_grad_prob: 0.25

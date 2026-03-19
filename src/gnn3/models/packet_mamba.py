@@ -40,6 +40,8 @@ class PacketMambaConfig:
     final_step_only_loss: bool = True
     detach_warmup: bool = False
     penultimate_grad_prob: float = 0.0
+    history_read: bool = False
+    max_history_steps: int = 8
 
 
 class DenseEdgeMixer(nn.Module):
@@ -218,6 +220,65 @@ class FeedForwardBlock(nn.Module):
         return x + self.dropout(self.ff(self.norm(x)))
 
 
+class OuterHistoryReader(nn.Module):
+    def __init__(self, d_model: int, dropout: float, max_history_steps: int) -> None:
+        super().__init__()
+        self.norm = nn.LayerNorm(d_model)
+        self.query_proj = nn.Linear(d_model, d_model)
+        self.key_proj = nn.Linear(d_model, d_model)
+        self.value_proj = nn.Linear(d_model, d_model)
+        self.out_proj = nn.Linear(d_model, d_model)
+        self.gate_proj = nn.Linear(2 * d_model, d_model)
+        self.round_embedding = nn.Embedding(max_history_steps, d_model)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(
+        self,
+        current_state: torch.Tensor,
+        history_states: list[torch.Tensor],
+        *,
+        node_mask: torch.Tensor,
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        if not history_states:
+            zero = current_state.new_tensor(0.0)
+            return current_state, {
+                "history_read_entropy": zero,
+                "history_latest_round_share": zero,
+            }
+
+        batch_size, num_nodes, d_model = current_state.shape
+        history_tensor = torch.stack(history_states[-self.round_embedding.num_embeddings :], dim=1)
+        history_steps = history_tensor.size(1)
+        step_ids = torch.arange(history_steps, device=current_state.device)
+        step_embed = self.round_embedding(step_ids)[None, :, None, :]
+        history_norm = self.norm(history_tensor)
+        memory = history_norm + step_embed
+        memory = memory.view(batch_size, history_steps * num_nodes, d_model)
+
+        query = self.query_proj(self.norm(current_state))
+        key = self.key_proj(memory)
+        value = self.value_proj(memory)
+
+        logits = torch.einsum("bid,bmd->bim", query, key) / math.sqrt(d_model)
+        history_mask = node_mask[:, None, :].expand(-1, history_steps, -1).reshape(batch_size, 1, -1)
+        pair_mask = node_mask[:, :, None] & history_mask
+        logits = logits.masked_fill(~pair_mask, -1e4)
+        weights = torch.softmax(logits, dim=-1)
+        weights = torch.where(pair_mask, weights, torch.zeros_like(weights))
+        message = torch.einsum("bim,bmd->bid", weights, value)
+        gate = torch.sigmoid(self.gate_proj(torch.cat([current_state, message], dim=-1)))
+        update = self.out_proj(gate * message)
+
+        entropy = -(weights * (weights + 1e-8).log()).sum(dim=-1).mean()
+        latest_slice = slice((history_steps - 1) * num_nodes, history_steps * num_nodes)
+        latest_share = weights[..., latest_slice].sum(dim=-1).mean()
+        diagnostics = {
+            "history_read_entropy": entropy,
+            "history_latest_round_share": latest_share,
+        }
+        return current_state + self.dropout(update), diagnostics
+
+
 class PacketMambaLayer(nn.Module):
     def __init__(self, config: PacketMambaConfig) -> None:
         super().__init__()
@@ -277,6 +338,11 @@ class PacketMambaModel(nn.Module):
             else None
         )
         self.commit_gate = nn.Linear(2 * config.d_model, config.d_model)
+        self.history_reader = (
+            OuterHistoryReader(config.d_model, config.dropout, config.max_history_steps)
+            if config.history_read
+            else None
+        )
         self.final_norm = nn.LayerNorm(config.d_model)
         self.action_head = nn.Sequential(
             nn.Linear(3 * config.d_model + config.edge_feature_dim, config.d_model),
@@ -313,6 +379,7 @@ class PacketMambaModel(nn.Module):
         per_step_logits: list[torch.Tensor] = []
         per_step_values: list[torch.Tensor] = []
         settling: list[torch.Tensor] = []
+        history_states: list[torch.Tensor] = []
         diagnostics: dict[str, torch.Tensor] = {}
 
         for outer_step in range(self.config.outer_steps):
@@ -344,12 +411,22 @@ class PacketMambaModel(nn.Module):
                     x = x.detach()
                     slow_state = slow_state.detach()
 
-            readout = self.final_norm(x + slow_state)
+            readout_state = x + slow_state
+            if self.history_reader is not None:
+                readout_state, history_diag = self.history_reader(
+                    readout_state,
+                    history_states,
+                    node_mask=batch["node_mask"],
+                )
+                router_diag_last = {**router_diag_last, **history_diag}
+
+            readout = self.final_norm(readout_state)
             node_logits, values, route_logits = self._readout(readout, batch)
             per_step_logits.append(node_logits)
             per_step_values.append(values)
             settling.append((readout - prev_state).norm(dim=-1).mean())
             diagnostics = router_diag_last
+            history_states.append(readout.detach())
 
         stacked_logits = torch.stack(per_step_logits, dim=1)
         stacked_values = torch.stack(per_step_values, dim=1)

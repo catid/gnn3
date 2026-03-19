@@ -1,0 +1,28 @@
+name: smoke_e3_ddp
+bucket: exploit
+seed: 301
+output_dir: artifacts/experiments/smoke_e3_ddp
+benchmark:
+  train_episodes: 16
+  val_episodes: 4
+  test_episodes: 4
+  curriculum_levels: [single_dynamic, multi_dynamic]
+  hidden_corridor:
+    seed: 301
+    packets_max: 3
+train:
+  batch_size: 4
+  eval_batch_size: 4
+  epochs: 1
+  device: auto
+  bf16: true
+  rollout_eval_episodes: 2
+model:
+  d_model: 64
+  d_state: 8
+  inner_layers: 1
+  outer_steps: 2
+  router_variant: memory_hubs
+  final_step_only_loss: true
+  detach_warmup: true
+  penultimate_grad_prob: 0.2

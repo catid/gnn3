@@ -18,7 +18,8 @@ def main() -> None:
     args = parse_args()
     config = load_experiment_config(args.config)
     summary = train_experiment(config)
-    print(json.dumps(summary, indent=2))
+    if summary is not None:
+        print(json.dumps(summary, indent=2))
 
 
 if __name__ == "__main__":

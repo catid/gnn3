@@ -98,6 +98,24 @@ def test_collate_and_model_forward() -> None:
     assert float(losses["loss"].detach()) > 0.0
 
 
+def test_history_read_forward_path() -> None:
+    cfg = HiddenCorridorConfig(seed=8)
+    dataset = HiddenCorridorDecisionDataset(config=cfg, num_episodes=2)
+    batch = collate_decisions([dataset[0], dataset[1]])
+    model = PacketMambaModel(
+        PacketMambaConfig(
+            node_feature_dim=batch["node_features"].shape[-1],
+            outer_steps=3,
+            inner_layers=2,
+            router_variant="selective_read",
+            history_read=True,
+            detach_warmup=True,
+        )
+    )
+    output = model(batch)
+    assert "history_read_entropy" in output["diagnostics"]
+
+
 def test_smoke_training_runs(tmp_path: Path) -> None:
     benchmark = BenchmarkConfig(
         train_episodes=8,

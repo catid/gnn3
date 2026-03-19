@@ -1,0 +1,30 @@
+name: x4_outer_round_history_short
+bucket: explore
+seed: 209
+output_dir: artifacts/experiments/x4_outer_round_history_short
+benchmark:
+  train_episodes: 80
+  val_episodes: 24
+  test_episodes: 24
+  curriculum_levels: [single_dynamic, multi_dynamic]
+  hidden_corridor:
+    seed: 209
+    packets_max: 4
+train:
+  batch_size: 16
+  eval_batch_size: 32
+  epochs: 3
+  device: cuda:0
+  bf16: true
+  rollout_eval_episodes: 8
+model:
+  d_model: 96
+  d_state: 12
+  inner_layers: 2
+  outer_steps: 3
+  router_variant: selective_read
+  final_step_only_loss: true
+  detach_warmup: true
+  penultimate_grad_prob: 0.2
+  history_read: true
+  max_history_steps: 8

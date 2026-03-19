@@ -1,0 +1,28 @@
+name: e2_selective_read_seed105
+bucket: exploit
+seed: 105
+output_dir: artifacts/experiments/e2_selective_read_seed105
+benchmark:
+  train_episodes: 160
+  val_episodes: 48
+  test_episodes: 48
+  curriculum_levels: [single_static, single_dynamic, multi_dynamic]
+  hidden_corridor:
+    seed: 105
+    packets_max: 4
+train:
+  batch_size: 28
+  eval_batch_size: 64
+  epochs: 6
+  device: cuda:0
+  bf16: true
+  rollout_eval_episodes: 16
+model:
+  d_model: 128
+  d_state: 16
+  inner_layers: 2
+  outer_steps: 1
+  router_variant: selective_read
+  final_step_only_loss: true
+  detach_warmup: false
+  penultimate_grad_prob: 0.0

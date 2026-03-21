@@ -41,6 +41,7 @@ class PacketMambaConfig:
     detach_warmup: bool = False
     penultimate_grad_prob: float = 0.0
     history_read: bool = False
+    history_read_mode: str = "dense_nodes"
     max_history_steps: int = 8
 
 
@@ -221,8 +222,9 @@ class FeedForwardBlock(nn.Module):
 
 
 class OuterHistoryReader(nn.Module):
-    def __init__(self, d_model: int, dropout: float, max_history_steps: int) -> None:
+    def __init__(self, d_model: int, dropout: float, max_history_steps: int, mode: str) -> None:
         super().__init__()
+        self.mode = mode
         self.norm = nn.LayerNorm(d_model)
         self.query_proj = nn.Linear(d_model, d_model)
         self.key_proj = nn.Linear(d_model, d_model)
@@ -230,22 +232,16 @@ class OuterHistoryReader(nn.Module):
         self.out_proj = nn.Linear(d_model, d_model)
         self.gate_proj = nn.Linear(2 * d_model, d_model)
         self.round_embedding = nn.Embedding(max_history_steps, d_model)
+        self.summary_type_embedding = nn.Embedding(3, d_model)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(
+    def _read_dense_nodes(
         self,
         current_state: torch.Tensor,
         history_states: list[torch.Tensor],
         *,
         node_mask: torch.Tensor,
     ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-        if not history_states:
-            zero = current_state.new_tensor(0.0)
-            return current_state, {
-                "history_read_entropy": zero,
-                "history_latest_round_share": zero,
-            }
-
         batch_size, num_nodes, d_model = current_state.shape
         history_tensor = torch.stack(history_states[-self.round_embedding.num_embeddings :], dim=1)
         history_steps = history_tensor.size(1)
@@ -275,8 +271,103 @@ class OuterHistoryReader(nn.Module):
         diagnostics = {
             "history_read_entropy": entropy,
             "history_latest_round_share": latest_share,
+            "history_hub_bank_share": current_state.new_tensor(0.0),
+            "history_monitor_bank_share": current_state.new_tensor(0.0),
+            "history_global_bank_share": current_state.new_tensor(0.0),
         }
         return current_state + self.dropout(update), diagnostics
+
+    @staticmethod
+    def _masked_mean(states: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        weights = mask.float()
+        denom = weights.sum(dim=-1, keepdim=True).clamp(min=1.0)
+        summary = torch.einsum("bhnd,bhn->bhd", states, weights) / denom
+        valid = weights.sum(dim=-1) > 0
+        return summary, valid
+
+    def _read_summary_bank(
+        self,
+        current_state: torch.Tensor,
+        history_states: list[torch.Tensor],
+        *,
+        node_mask: torch.Tensor,
+        node_roles: torch.Tensor,
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        batch_size, _num_nodes, d_model = current_state.shape
+        history_tensor = torch.stack(history_states[-self.round_embedding.num_embeddings :], dim=1)
+        history_steps = history_tensor.size(1)
+        history_norm = self.norm(history_tensor)
+
+        expanded_mask = node_mask[:, None, :].expand(-1, history_steps, -1)
+        hub_mask = expanded_mask & (node_roles[:, None, :] == ROLE_TO_ID["hub"])
+        monitor_mask = expanded_mask & (node_roles[:, None, :] == ROLE_TO_ID["monitor"])
+        global_mask = expanded_mask
+
+        hub_summary, hub_valid = self._masked_mean(history_norm, hub_mask)
+        monitor_summary, monitor_valid = self._masked_mean(history_norm, monitor_mask)
+        global_summary, global_valid = self._masked_mean(history_norm, global_mask)
+
+        summary_tensor = torch.stack([hub_summary, monitor_summary, global_summary], dim=2)
+        token_valid = torch.stack([hub_valid, monitor_valid, global_valid], dim=-1)
+
+        step_ids = torch.arange(history_steps, device=current_state.device)
+        round_embed = self.round_embedding(step_ids)[None, :, None, :]
+        type_embed = self.summary_type_embedding(torch.arange(3, device=current_state.device))[None, None, :, :]
+        memory = summary_tensor + round_embed + type_embed
+        memory = memory.view(batch_size, history_steps * 3, d_model)
+        memory_mask = token_valid.view(batch_size, history_steps * 3)
+
+        query = self.query_proj(self.norm(current_state))
+        key = self.key_proj(memory)
+        value = self.value_proj(memory)
+
+        logits = torch.einsum("bid,bmd->bim", query, key) / math.sqrt(d_model)
+        pair_mask = node_mask[:, :, None] & memory_mask[:, None, :]
+        logits = logits.masked_fill(~pair_mask, -1e4)
+        weights = torch.softmax(logits, dim=-1)
+        weights = torch.where(pair_mask, weights, torch.zeros_like(weights))
+        message = torch.einsum("bim,bmd->bid", weights, value)
+        gate = torch.sigmoid(self.gate_proj(torch.cat([current_state, message], dim=-1)))
+        update = self.out_proj(gate * message)
+
+        weights_by_type = weights.view(batch_size, current_state.size(1), history_steps, 3)
+        entropy = -(weights * (weights + 1e-8).log()).sum(dim=-1).mean()
+        latest_share = weights_by_type[:, :, -1, :].sum(dim=-1).mean()
+        diagnostics = {
+            "history_read_entropy": entropy,
+            "history_latest_round_share": latest_share,
+            "history_hub_bank_share": weights_by_type[..., 0].sum(dim=-1).mean(),
+            "history_monitor_bank_share": weights_by_type[..., 1].sum(dim=-1).mean(),
+            "history_global_bank_share": weights_by_type[..., 2].sum(dim=-1).mean(),
+        }
+        return current_state + self.dropout(update), diagnostics
+
+    def forward(
+        self,
+        current_state: torch.Tensor,
+        history_states: list[torch.Tensor],
+        *,
+        node_mask: torch.Tensor,
+        node_roles: torch.Tensor,
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        if not history_states:
+            zero = current_state.new_tensor(0.0)
+            return current_state, {
+                "history_read_entropy": zero,
+                "history_latest_round_share": zero,
+                "history_hub_bank_share": zero,
+                "history_monitor_bank_share": zero,
+                "history_global_bank_share": zero,
+            }
+
+        if self.mode == "summary_bank":
+            return self._read_summary_bank(
+                current_state,
+                history_states,
+                node_mask=node_mask,
+                node_roles=node_roles,
+            )
+        return self._read_dense_nodes(current_state, history_states, node_mask=node_mask)
 
 
 class PacketMambaLayer(nn.Module):
@@ -339,7 +430,7 @@ class PacketMambaModel(nn.Module):
         )
         self.commit_gate = nn.Linear(2 * config.d_model, config.d_model)
         self.history_reader = (
-            OuterHistoryReader(config.d_model, config.dropout, config.max_history_steps)
+            OuterHistoryReader(config.d_model, config.dropout, config.max_history_steps, config.history_read_mode)
             if config.history_read
             else None
         )
@@ -417,6 +508,7 @@ class PacketMambaModel(nn.Module):
                     readout_state,
                     history_states,
                     node_mask=batch["node_mask"],
+                    node_roles=batch["node_roles"],
                 )
                 router_diag_last = {**router_diag_last, **history_diag}
 

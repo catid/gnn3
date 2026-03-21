@@ -46,6 +46,8 @@ class ExperimentConfig:
     benchmark: BenchmarkConfig
     model: PacketMambaConfig
     train: TrainConfig
+    stage: str = "candidate"
+    notes: str = ""
 
 
 def _hidden_corridor_from_dict(data: dict[str, Any]) -> HiddenCorridorConfig:
@@ -80,6 +82,8 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
         bucket=str(raw["bucket"]),
         seed=int(raw["seed"]),
         output_dir=str(raw["output_dir"]),
+        stage=str(raw.get("stage", "candidate")),
+        notes=str(raw.get("notes", "")),
         benchmark=_benchmark_from_dict(raw.get("benchmark", {})),
         model=_model_from_dict(raw.get("model", {})),
         train=_train_from_dict(raw.get("train", {})),

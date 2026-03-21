@@ -116,6 +116,27 @@ def test_history_read_forward_path() -> None:
     assert "history_read_entropy" in output["diagnostics"]
 
 
+def test_history_summary_bank_forward_path() -> None:
+    cfg = HiddenCorridorConfig(seed=9)
+    dataset = HiddenCorridorDecisionDataset(config=cfg, num_episodes=2)
+    batch = collate_decisions([dataset[0], dataset[1]])
+    model = PacketMambaModel(
+        PacketMambaConfig(
+            node_feature_dim=batch["node_features"].shape[-1],
+            outer_steps=3,
+            inner_layers=2,
+            router_variant="memory_hubs",
+            history_read=True,
+            history_read_mode="summary_bank",
+            detach_warmup=True,
+        )
+    )
+    output = model(batch)
+    assert "history_hub_bank_share" in output["diagnostics"]
+    assert "history_monitor_bank_share" in output["diagnostics"]
+    assert "history_global_bank_share" in output["diagnostics"]
+
+
 def test_smoke_training_runs(tmp_path: Path) -> None:
     benchmark = BenchmarkConfig(
         train_episodes=8,
@@ -149,3 +170,6 @@ def test_smoke_training_runs(tmp_path: Path) -> None:
     summary = train_experiment(experiment)
     assert Path(summary["output_dir"]).exists()
     assert Path(summary["output_dir"], "summary.json").exists()
+    assert summary["stage"] == "candidate"
+    assert summary["git_branch"]
+    assert "device_placement" in summary

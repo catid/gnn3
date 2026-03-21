@@ -64,6 +64,20 @@ def _git_commit() -> str:
         return "unknown"
 
 
+def _git_branch() -> str:
+    try:
+        return (
+            subprocess.check_output(
+                ["git", "branch", "--show-current"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            )
+            .strip()
+        )
+    except Exception:
+        return "unknown"
+
+
 def _hardware_summary(device: torch.device) -> dict[str, Any]:
     if device.type != "cuda":
         return {"device": str(device), "cuda_devices": 0}
@@ -126,6 +140,14 @@ def evaluate_decision_dataset(
     if was_training:
         model.train()
     return {key: value / max(steps, 1) for key, value in totals.items()}
+
+
+def _device_placement(device: torch.device, world_size: int) -> str:
+    if device.type != "cuda":
+        return str(device)
+    if world_size > 1:
+        return ",".join(f"cuda:{rank}" for rank in range(world_size))
+    return str(device)
 
 
 def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
@@ -212,6 +234,10 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
         metadata = {
             "experiment": asdict(config),
             "git_commit": _git_commit(),
+            "git_branch": _git_branch(),
+            "run_stage": config.stage,
+            "run_notes": config.notes,
+            "device_placement": _device_placement(device, world_size),
             "hardware": {
                 **_hardware_summary(device),
                 "rank": rank,
@@ -351,6 +377,13 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
         gpu_hours = elapsed_seconds * world_size / 3600.0
 
     summary = {
+        "experiment": config.name,
+        "seed": config.seed,
+        "stage": config.stage,
+        "notes": config.notes,
+        "git_commit": _git_commit(),
+        "git_branch": _git_branch(),
+        "device_placement": _device_placement(device, world_size),
         "best_metric": best_metric,
         "world_size": world_size,
         "elapsed_seconds": elapsed_seconds,

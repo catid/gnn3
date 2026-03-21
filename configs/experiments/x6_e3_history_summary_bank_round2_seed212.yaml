@@ -1,0 +1,33 @@
+name: x6_e3_history_summary_bank_round2_seed212
+bucket: explore
+stage: candidate
+notes: second seed for e3 plus compressed outer-history summary bank
+output_dir: artifacts/experiments/x6_e3_history_summary_bank_round2_seed212
+seed: 212
+benchmark:
+  train_episodes: 180
+  val_episodes: 48
+  test_episodes: 48
+  curriculum_levels: [single_dynamic, multi_dynamic]
+  hidden_corridor:
+    seed: 212
+    packets_max: 4
+train:
+  batch_size: 24
+  eval_batch_size: 48
+  epochs: 7
+  device: cuda:1
+  bf16: true
+  rollout_eval_episodes: 16
+model:
+  d_model: 128
+  d_state: 16
+  inner_layers: 2
+  outer_steps: 3
+  router_variant: memory_hubs
+  final_step_only_loss: true
+  detach_warmup: true
+  penultimate_grad_prob: 0.25
+  history_read: true
+  history_read_mode: summary_bank
+  max_history_steps: 8

@@ -1,7 +1,7 @@
 # Next Best Actions
 
-1. Run one real 2-GPU DDP comparison for the current shortlist winner, which is `E3`, to confirm that scale-up behavior matches the single-GPU sweeps.
-2. Warm-start `X1` from `E2` and `E3` checkpoints and compare that against scratch training; the present variance still points to initialization sensitivity.
-3. Add one more `X4` seed or a warm-started `X4` run before deciding whether cross-round history reads deserve more budget.
-4. Do not spend more GPU time on `X2` until there is a concrete mechanism change; the current forward+read implementation is dominated by both `X1` and `E3`.
-5. Implement `X3` shared recurrent stem and `X5` settling-based halting / abstention next, because the current codebase now has the shared transition hooks, outer history path, and settling metrics they need.
+1. Promote `X6` compressed outer-history summary-bank reads to the next contender batch and run a third seed plus a matched-seed `E3` compare. The first two seeds averaged 97.20% test next-hop accuracy and 1.60 regret, which is the best continuation signal on this branch.
+2. Investigate same-config reproducibility drift in `E3` and `X1`. Both round-two replays were materially weaker than the archived best artifacts, so the next engineering pass should lock down data-loader RNG, deterministic settings, and checkpoint-selection sensitivity before any DDP scale-up claim.
+3. Keep `detach_warmup` in the exploit path. The no-detach ablation collapsed immediately, with 42.9% val accuracy and zero solved rollouts after the first epoch.
+4. Focus exploit-side work on regret and deadline robustness, not solved rate. `A1` showed that `E3` still solves the harder OOD suites, but cost calibration degrades sharply on deeper/heavier traffic.
+5. Defer `X2`, `X3`, `X5`, and `H_test` scaling until either `E3` or `X6` has stable 3-seed evidence on the continuation branch.

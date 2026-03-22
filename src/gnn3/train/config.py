@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +17,9 @@ class BenchmarkConfig:
     test_episodes: int = 64
     curriculum_levels: tuple[str, ...] = ("single_static", "single_dynamic", "multi_dynamic")
     packets_max_eval: int = 8
+    train_seed_offset: int = 0
+    val_seed_offset: int = 10_000
+    test_seed_offset: int = 20_000
     hidden_corridor: HiddenCorridorConfig = field(default_factory=HiddenCorridorConfig)
 
 
@@ -62,7 +65,24 @@ def _benchmark_from_dict(data: dict[str, Any]) -> BenchmarkConfig:
         test_episodes=int(data.get("test_episodes", 64)),
         curriculum_levels=tuple(data.get("curriculum_levels", ("single_static", "single_dynamic", "multi_dynamic"))),
         packets_max_eval=int(data.get("packets_max_eval", 8)),
+        train_seed_offset=int(data.get("train_seed_offset", 0)),
+        val_seed_offset=int(data.get("val_seed_offset", 10_000)),
+        test_seed_offset=int(data.get("test_seed_offset", 20_000)),
         hidden_corridor=hidden_corridor,
+    )
+
+
+def hidden_corridor_config_for_split(benchmark: BenchmarkConfig, split: str) -> HiddenCorridorConfig:
+    split_offsets = {
+        "train": benchmark.train_seed_offset,
+        "val": benchmark.val_seed_offset,
+        "test": benchmark.test_seed_offset,
+    }
+    if split not in split_offsets:
+        raise ValueError(f"Unknown benchmark split: {split}")
+    return replace(
+        benchmark.hidden_corridor,
+        seed=benchmark.hidden_corridor.seed + split_offsets[split],
     )
 
 

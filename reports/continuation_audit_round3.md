@@ -7,11 +7,12 @@
   - Variant selection is via `PacketMambaConfig` in [packet_mamba.py](/home/catid/gnn3/src/gnn3/models/packet_mamba.py).
 - Benchmark and dataset generation live in [hidden_corridor.py](/home/catid/gnn3/src/gnn3/data/hidden_corridor.py).
   - Episodes are generated on the fly from `HiddenCorridorConfig.seed`.
-  - There is currently no persisted train/val/test manifest, only implicit reproducibility from config + seed.
+  - Round three now persists split manifests to `dataset_manifests.json` and records manifest hashes in `metadata.json` and `summary.json`.
+  - Split-specific dataset seeds are now resolved in [config.py](/home/catid/gnn3/src/gnn3/train/config.py) so train, val, and test no longer alias the same generator stream.
   - Oracle supervision is the shortest-path / rollout path in `shortest_path()`, `make_decision_record()`, and `oracle_rollout()`.
 - Training and logging live in [trainer.py](/home/catid/gnn3/src/gnn3/train/trainer.py).
   - Current outputs already record git commit, git branch, stage, notes, hardware, and device placement.
-  - Best checkpoint selection still uses a mixed score dominated by next-hop accuracy and solved rate, with weaker pressure on regret/deadline terms.
+  - Best checkpoint selection now leans more toward regret and deadline behavior than it did in earlier rounds, but the final summary remains an end-of-training evaluation rather than a best-checkpoint eval.
 - Existing launchers are thin:
   - [run_train.py](/home/catid/gnn3/scripts/run_train.py)
   - [run_eval.py](/home/catid/gnn3/scripts/run_eval.py)
@@ -33,10 +34,12 @@
 
 - Dataset manifests and replay evidence:
   - [hidden_corridor.py](/home/catid/gnn3/src/gnn3/data/hidden_corridor.py)
+  - [config.py](/home/catid/gnn3/src/gnn3/train/config.py)
   - [trainer.py](/home/catid/gnn3/src/gnn3/train/trainer.py)
 - Robustness metrics and eval summaries:
   - [rollout.py](/home/catid/gnn3/src/gnn3/eval/rollout.py)
   - [trainer.py](/home/catid/gnn3/src/gnn3/train/trainer.py)
+  - [run_eval.py](/home/catid/gnn3/scripts/run_eval.py)
   - [run_eval_sweep.py](/home/catid/gnn3/scripts/run_eval_sweep.py)
 - Matched E3 vs X6 contender configs:
   - `configs/experiments/`
@@ -50,10 +53,11 @@
 
 ## Plausible Replay-Drift Sources
 
-- No persisted dataset manifests. The code regenerates datasets from config seeds each run, but does not save a hash or manifest proving train/val/test identity across experiments.
+- The archived-best `E3` artifact predates manifest tracking. It records the same nominal config seed as the later replay, but its decision counts differ (`2254/596/596` vs `2149/541/541`), so it was not trained/evaluated on the same dataset instance.
 - No deterministic training mode is enabled. Current training uses CUDA + bf16 autocast, dropout, and stochastic `penultimate_grad_prob` gating without deterministic-algorithm controls.
-- Checkpoint selection still optimizes a blended score with strong solved-rate and next-hop terms. When solved rate saturates, small validation fluctuations can still move checkpoint choice in ways that matter for regret.
-- Train, val, and test dataset seeds are all tied to `HiddenCorridorConfig.seed`. That keeps each split reproducible, but the code does not currently separate data-generation provenance from model-training randomness in metadata.
+- The archived-best `E3` run also predates branch/stage/runtime provenance. Its `git_commit` is `unknown`, so there is no direct code-state reconstruction target.
+- The checkpoint-selection policy changed after the archived-best run. That affects best-checkpoint evaluation and later OOD sweeps, although it does not by itself explain the final-summary replay gap.
+- Before this round, val and test were generated from the same seed and episode count, so they were identical datasets. That leak is now fixed with split seed offsets and persisted manifests.
 - The paired launcher does not enforce device isolation with `CUDA_VISIBLE_DEVICES`; it relies on per-config `train.device`. That is workable, but it is one more uncontrolled detail worth keeping explicit in matched runs.
 
 ## Planned Round-Three Split

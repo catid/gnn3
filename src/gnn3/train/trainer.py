@@ -20,7 +20,7 @@ from torch.utils.tensorboard import SummaryWriter
 from gnn3.data.hidden_corridor import HiddenCorridorDecisionDataset, collate_decisions
 from gnn3.eval.rollout import evaluate_rollouts
 from gnn3.models.packet_mamba import PacketMambaModel, compute_losses
-from gnn3.train.config import ExperimentConfig
+from gnn3.train.config import ExperimentConfig, hidden_corridor_config_for_split
 
 
 def _resolve_device(device_name: str) -> torch.device:
@@ -186,18 +186,21 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
 
     device, rank, local_rank, world_size, is_distributed = _setup_distributed(config.train.device)
     is_main_process = rank == 0
+    train_hidden_cfg = hidden_corridor_config_for_split(config.benchmark, "train")
+    val_hidden_cfg = hidden_corridor_config_for_split(config.benchmark, "val")
+    test_hidden_cfg = hidden_corridor_config_for_split(config.benchmark, "test")
     train_dataset = HiddenCorridorDecisionDataset(
-        config=config.benchmark.hidden_corridor,
+        config=train_hidden_cfg,
         num_episodes=config.benchmark.train_episodes,
         curriculum_levels=config.benchmark.curriculum_levels,
     )
     val_dataset = HiddenCorridorDecisionDataset(
-        config=config.benchmark.hidden_corridor,
+        config=val_hidden_cfg,
         num_episodes=config.benchmark.val_episodes,
         curriculum_levels=config.benchmark.curriculum_levels,
     )
     test_dataset = HiddenCorridorDecisionDataset(
-        config=config.benchmark.hidden_corridor,
+        config=test_hidden_cfg,
         num_episodes=config.benchmark.test_episodes,
         curriculum_levels=config.benchmark.curriculum_levels,
     )
@@ -279,6 +282,11 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                 "val": val_manifest["manifest_hash"],
                 "test": test_manifest["manifest_hash"],
             },
+            "split_config_seeds": {
+                "train": train_hidden_cfg.seed,
+                "val": val_hidden_cfg.seed,
+                "test": test_hidden_cfg.seed,
+            },
             "hardware": {
                 **_hardware_summary(device),
                 "rank": rank,
@@ -348,7 +356,7 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                 eval_model,
                 val_dataset.episodes[: config.train.rollout_eval_episodes],
                 device=device,
-                config=config.benchmark.hidden_corridor,
+                config=val_hidden_cfg,
             )
             selection_score = _selection_score(val_metrics, rollout_metrics)
 
@@ -415,7 +423,7 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
         eval_model,
         test_dataset.episodes[: config.train.rollout_eval_episodes],
         device=device,
-        config=config.benchmark.hidden_corridor,
+        config=test_hidden_cfg,
     )
     if writer is not None:
         writer.close()
@@ -437,6 +445,11 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
             "train": train_manifest["manifest_hash"],
             "val": val_manifest["manifest_hash"],
             "test": test_manifest["manifest_hash"],
+        },
+        "split_config_seeds": {
+            "train": train_hidden_cfg.seed,
+            "val": val_hidden_cfg.seed,
+            "test": test_hidden_cfg.seed,
         },
         "best_metric": best_metric,
         "world_size": world_size,

@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from gnn3.data.hidden_corridor import HiddenCorridorDecisionDataset, collate_decisions
 from gnn3.eval.rollout import evaluate_rollouts
 from gnn3.models.packet_mamba import PacketMambaModel
-from gnn3.train.config import load_experiment_config
+from gnn3.train.config import hidden_corridor_config_for_split, load_experiment_config
 from gnn3.train.trainer import _resolve_device, _rollout_metrics_to_dict, evaluate_decision_dataset
 
 
@@ -25,8 +25,9 @@ def main() -> None:
     args = parse_args()
     config = load_experiment_config(args.config)
     device = _resolve_device(config.train.device)
+    test_hidden_cfg = hidden_corridor_config_for_split(config.benchmark, "test")
     dataset = HiddenCorridorDecisionDataset(
-        config=config.benchmark.hidden_corridor,
+        config=test_hidden_cfg,
         num_episodes=config.benchmark.test_episodes,
         curriculum_levels=config.benchmark.curriculum_levels,
     )
@@ -52,7 +53,7 @@ def main() -> None:
         model,
         dataset.episodes[: config.train.rollout_eval_episodes],
         device=device,
-        config=config.benchmark.hidden_corridor,
+        config=test_hidden_cfg,
     )
     print(
         json.dumps(

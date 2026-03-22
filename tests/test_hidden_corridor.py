@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -14,7 +15,12 @@ from gnn3.data.hidden_corridor import (
     shortest_path,
 )
 from gnn3.models.packet_mamba import PacketMambaConfig, PacketMambaModel, compute_losses
-from gnn3.train.config import BenchmarkConfig, ExperimentConfig, TrainConfig
+from gnn3.train.config import (
+    BenchmarkConfig,
+    ExperimentConfig,
+    TrainConfig,
+    hidden_corridor_config_for_split,
+)
 from gnn3.train.trainer import train_experiment
 
 
@@ -144,6 +150,30 @@ def test_dataset_manifest_is_stable_for_same_seed() -> None:
     assert dataset_a.manifest()["manifest_hash"] == dataset_b.manifest()["manifest_hash"]
 
 
+def test_split_seed_offsets_make_val_and_test_manifests_distinct() -> None:
+    benchmark = BenchmarkConfig(
+        val_episodes=4,
+        test_episodes=4,
+        curriculum_levels=("single_dynamic",),
+        hidden_corridor=HiddenCorridorConfig(seed=11, packets_max=2),
+    )
+    val_cfg = hidden_corridor_config_for_split(benchmark, "val")
+    test_cfg = hidden_corridor_config_for_split(benchmark, "test")
+    assert val_cfg.seed != test_cfg.seed
+
+    val_dataset = HiddenCorridorDecisionDataset(
+        config=val_cfg,
+        num_episodes=benchmark.val_episodes,
+        curriculum_levels=benchmark.curriculum_levels,
+    )
+    test_dataset = HiddenCorridorDecisionDataset(
+        config=test_cfg,
+        num_episodes=benchmark.test_episodes,
+        curriculum_levels=benchmark.curriculum_levels,
+    )
+    assert val_dataset.manifest()["manifest_hash"] != test_dataset.manifest()["manifest_hash"]
+
+
 def test_smoke_training_runs(tmp_path: Path) -> None:
     benchmark = BenchmarkConfig(
         train_episodes=8,
@@ -182,5 +212,8 @@ def test_smoke_training_runs(tmp_path: Path) -> None:
     assert summary["git_branch"]
     assert "device_placement" in summary
     assert "manifest_hashes" in summary
+    assert "split_config_seeds" in summary
     assert "p95_regret" in summary["test_rollout"]
     assert "deadline_miss_rate" in summary["test_rollout"]
+    manifest_payload = json.loads(Path(summary["output_dir"], "dataset_manifests.json").read_text())
+    assert manifest_payload["val"]["manifest_hash"] != manifest_payload["test"]["manifest_hash"]

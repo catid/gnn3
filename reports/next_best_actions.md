@@ -1,7 +1,9 @@
 # Next Best Actions
 
-1. Promote `X6` compressed outer-history summary-bank reads to the next contender batch and run a third seed plus a matched-seed `E3` compare. The first two seeds averaged 97.20% test next-hop accuracy and 1.60 regret, which is the best continuation signal on this branch.
-2. Investigate same-config reproducibility drift in `E3` and `X1`. Both round-two replays were materially weaker than the archived best artifacts, so the next engineering pass should lock down data-loader RNG, deterministic settings, and checkpoint-selection sensitivity before any DDP scale-up claim.
-3. Keep `detach_warmup` in the exploit path. The no-detach ablation collapsed immediately, with 42.9% val accuracy and zero solved rollouts after the first epoch.
-4. Focus exploit-side work on regret and deadline robustness, not solved rate. `A1` showed that `E3` still solves the harder OOD suites, but cost calibration degrades sharply on deeper/heavier traffic.
-5. Defer `X2`, `X3`, `X5`, and `H_test` scaling until either `E3` or `X6` has stable 3-seed evidence on the continuation branch.
+1. Keep `E3` as the lead baseline. Do not promote full `X6` from round three: across the corrected three-seed matched batch it gained only `+0.25` percentage points in mean test next-hop accuracy, with identical mean regret, identical p95 regret, identical rollout accuracy, and identical deadline misses.
+2. Keep the split-manifest discipline from round three. Future runs should retain split-specific dataset seeds and persisted manifests; the earlier val/test aliasing problem materially changed the interpretation of the older results.
+3. Keep `detach_warmup` in every exploit-side shortlist. That remains the strongest causal architectural result.
+4. Treat deadline behavior on the corrected split as the primary blocker. Every matched contender and every scout in round three still had `100%` deadline miss rate, so benchmark/training-contract work now has higher leverage than more communication variants.
+5. If history reads are revisited, use the cheapest controls only. `X6 H1` and dense-history reads matched the full `X6` rollout regime on seed `211`, so the full summary-bank mechanism is not justified for this benchmark.
+6. If there is one exploit-side continuation bet worth another short batch, it is heavier multi-packet curriculum pressure. Run at least 2 more seeds, compare against matched `E3` on both in-distribution and OOD p95 regret, and stop immediately if the p95 / deadline metrics stay flat.
+7. Defer broader exploration (`X2`, `X3`, `X5`, `H_test` scaling) until the benchmark’s deadline regime is better calibrated and one exploit path can beat the current `E3` baseline on rollout quality, not just decision accuracy.

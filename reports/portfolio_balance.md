@@ -15,9 +15,17 @@
 | X1-R2-repro | explore | Reproduce the archived `X1` baseline on the continuation branch before promoting alternatives. | 0.05 | 0.0150 | completed | Weak replay: 93.81% test next-hop accuracy and 3.16 regret, consistent with prior variance concerns. |
 | X6-scout | explore | Test compressed outer-history summary-bank reads on top of the `E3` memory-hub backbone. | 0.15 | 0.1026 | completed | First scout was promising: 96.97% test next-hop accuracy and 2.68 regret. |
 | X6-seed212 | explore | Verify that the `X6` history-bank signal survives a second seed before promotion. | 0.15 | 0.1235 | completed | Strong replication: 97.44% test next-hop accuracy and 0.53 regret. |
+| E3-R3-contender | exploit | Fresh matched 3-seed `E3` baseline on the corrected split to settle `X6` fairly. | 0.30 | 0.2846 | completed | 3 corrected-split seeds; mean test next-hop accuracy 96.39%, mean regret 2.11, mean p95 regret 8.35, deadline miss 100%. |
+| X6-R3-contender | explore | Fresh matched 3-seed `X6` contender on the corrected split to test whether the round-two signal survives fair evaluation. | 0.36 | 0.3575 | completed | 3 corrected-split seeds; mean test next-hop accuracy 96.65%, but no rollout gain over `E3`; not promoted. |
+| A3-calibration | exploit | Test whether heavier value/route supervision improves regret and deadline calibration without architecture changes. | 0.12 | 0.1038 | completed | Negative in-distribution result: no rollout improvement, worse value MAE than matched `E3`. |
+| A3-calibration-ood | exploit | Check whether calibration-weight changes help under OOD traffic/depth stress. | 0.06 | 0.0552 | completed | Negative OOD result: regrets 6.02-7.08 with 100% deadline miss, effectively unchanged rollout metrics. |
+| B2-H1 | explore | Check whether only the latest history-bank round is needed for the residual `X6` signal. | 0.12 | 0.1118 | completed | Matched full `X6` rollout metrics exactly on seed 211; multi-round history depth unnecessary. |
+| B2-dense-history | explore | Check whether dense history reads recover the same behavior without summary-bank compression. | 0.11 | 0.1042 | completed | Matched full `X6` rollout metrics exactly on seed 211; summary-bank compression unnecessary. |
+| A3-multiheavy | exploit | Increase multi-packet curriculum pressure to test traffic robustness rather than solved-rate. | 0.16 | 0.1573 | completed | Slight mean-regret improvement versus matched `E3` seed 211, but worse p95 regret and no deadline improvement in-distribution. |
+| A3-multiheavy-ood | exploit | Test whether heavier curriculum pressure transfers to OOD traffic/depth stress. | 0.06 | 0.0535 | completed | OOD rollout metrics matched the calibration run almost exactly; no deadline or regret improvement under stress. |
 
 Current cumulative GPU-hours:
 
-- Exploit: `0.6143`
-- Explore: `0.6063`
-- Split: `50.3% / 49.7%`
+- Exploit: `1.2687`
+- Explore: `1.1798`
+- Split: `51.8% / 48.2%`

@@ -1,0 +1,9 @@
+experiment,bucket,gpu_hours
+E3-R3-contender,exploit,0.2846
+X6-R3-contender,explore,0.3575
+A3-calibration,exploit,0.1038
+A3-calibration-ood,exploit,0.0552
+B2-H1,explore,0.1118
+B2-dense-history,explore,0.1042
+A3-multiheavy,exploit,0.1573
+A3-multiheavy-ood,exploit,0.0535

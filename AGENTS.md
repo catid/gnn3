@@ -8,6 +8,7 @@ This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get sta
 - Keep all work on `main` unless the user explicitly asks for a different branch.
 - Before starting work, switch to `main` and keep it current with `git pull --rebase`.
 - Before handing off, make sure `main` contains the latest local commits.
+- Do not edit git configuration, remotes, tracking branches, or credential settings unless the user explicitly asks.
 
 ## Quick Reference
 

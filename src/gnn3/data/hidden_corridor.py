@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import heapq
+import json
 import math
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -87,6 +89,7 @@ class EpisodeRecord:
     packets: tuple[PacketSpec, ...]
     oracle_total_cost: float
     decision_count: int
+    curriculum_level: str
 
 
 @dataclass(frozen=True)
@@ -584,6 +587,7 @@ def oracle_rollout(
         packets=packets,
         oracle_total_cost=total_cost,
         decision_count=len(decisions),
+        curriculum_level=curriculum_level,
     )
 
 
@@ -643,6 +647,60 @@ class HiddenCorridorDecisionDataset(Dataset[DecisionRecord]):
 
     def __getitem__(self, index: int) -> DecisionRecord:
         return self._decisions[index]
+
+    @staticmethod
+    def _graph_hash(graph: GraphState) -> str:
+        hasher = hashlib.sha256()
+        hasher.update(graph.adj.tobytes())
+        hasher.update(graph.node_roles.tobytes())
+        hasher.update(graph.node_communities.tobytes())
+        hasher.update(graph.node_queue.tobytes())
+        hasher.update(graph.monitor_signal.tobytes())
+        hasher.update(graph.edge_nominal_latency.tobytes())
+        hasher.update(graph.edge_effective_latency.tobytes())
+        hasher.update(graph.edge_capacity.tobytes())
+        hasher.update(graph.edge_residual_capacity.tobytes())
+        hasher.update(graph.edge_is_fast.tobytes())
+        hasher.update(graph.edge_is_hidden_corridor.tobytes())
+        return hasher.hexdigest()
+
+    @staticmethod
+    def _packets_hash(packets: tuple[PacketSpec, ...]) -> str:
+        payload = [
+            {
+                "source": packet.source,
+                "destination": packet.destination,
+                "priority": packet.priority,
+                "deadline": packet.deadline,
+                "size": packet.size,
+            }
+            for packet in packets
+        ]
+        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+
+    def manifest(self) -> dict[str, object]:
+        episodes: list[dict[str, object]] = []
+        manifest_hasher = hashlib.sha256()
+        for index, episode in enumerate(self.episodes):
+            entry = {
+                "index": index,
+                "curriculum_level": episode.curriculum_level,
+                "decision_count": episode.decision_count,
+                "oracle_total_cost": episode.oracle_total_cost,
+                "packet_count": len(episode.packets),
+                "graph_hash": self._graph_hash(episode.graph),
+                "packets_hash": self._packets_hash(episode.packets),
+            }
+            manifest_hasher.update(json.dumps(entry, sort_keys=True).encode("utf-8"))
+            episodes.append(entry)
+        return {
+            "config_seed": self.config.seed,
+            "episode_count": len(self.episodes),
+            "decision_count": len(self._decisions),
+            "curriculum_levels": list(self.curriculum_levels),
+            "manifest_hash": manifest_hasher.hexdigest(),
+            "episodes": episodes,
+        }
 
 
 def collate_decisions(records: list[DecisionRecord]) -> dict[str, torch.Tensor]:

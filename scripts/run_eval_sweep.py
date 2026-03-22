@@ -78,16 +78,22 @@ def evaluate_config(config: ExperimentConfig, checkpoint_path: Path) -> dict[str
         "urgency_penalty": hidden_cfg.urgency_penalty,
         "decision_loss": decision_metrics["loss"],
         "test_next_hop_accuracy": decision_metrics["next_hop_accuracy"],
+        "value_mae": decision_metrics["value_mae"],
+        "value_rmse": decision_metrics["value_rmse"],
         "rollout_solved_rate": rollout_metrics.solved_rate,
         "rollout_next_hop_accuracy": rollout_metrics.next_hop_accuracy,
         "average_regret": rollout_metrics.average_regret,
+        "p95_regret": rollout_metrics.p95_regret,
+        "worst_regret": rollout_metrics.worst_regret,
         "deadline_violations": rollout_metrics.average_deadline_violations,
+        "deadline_miss_rate": rollout_metrics.deadline_miss_rate,
+        "p95_deadline_violations": rollout_metrics.p95_deadline_violations,
         "priority_delivered_regret": rollout_metrics.priority_delivered_regret,
     }
 
 
 def maybe_plot(df: pd.DataFrame, output_plot: Path) -> None:
-    fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+    fig, axes = plt.subplots(1, 4, figsize=(18, 4))
     axes[0].bar(df["experiment"], df["test_next_hop_accuracy"], color="#1f77b4")
     axes[0].set_title("OOD Next-Hop Accuracy")
     axes[0].set_ylim(0.0, 1.05)
@@ -101,6 +107,11 @@ def maybe_plot(df: pd.DataFrame, output_plot: Path) -> None:
     axes[2].bar(df["experiment"], df["average_regret"], color="#d62728")
     axes[2].set_title("OOD Average Regret")
     axes[2].tick_params(axis="x", rotation=20)
+
+    axes[3].bar(df["experiment"], df["deadline_miss_rate"], color="#9467bd")
+    axes[3].set_title("OOD Deadline Miss Rate")
+    axes[3].set_ylim(0.0, 1.05)
+    axes[3].tick_params(axis="x", rotation=20)
 
     fig.tight_layout()
     fig.savefig(output_plot, dpi=160)

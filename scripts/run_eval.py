@@ -11,7 +11,7 @@ from gnn3.data.hidden_corridor import HiddenCorridorDecisionDataset, collate_dec
 from gnn3.eval.rollout import evaluate_rollouts
 from gnn3.models.packet_mamba import PacketMambaModel
 from gnn3.train.config import load_experiment_config
-from gnn3.train.trainer import _resolve_device, evaluate_decision_dataset
+from gnn3.train.trainer import _resolve_device, _rollout_metrics_to_dict, evaluate_decision_dataset
 
 
 def parse_args() -> argparse.Namespace:
@@ -58,13 +58,7 @@ def main() -> None:
         json.dumps(
             {
                 "decision": decision_metrics,
-                "rollout": {
-                    "solved_rate": rollout_metrics.solved_rate,
-                    "next_hop_accuracy": rollout_metrics.next_hop_accuracy,
-                    "average_regret": rollout_metrics.average_regret,
-                    "average_deadline_violations": rollout_metrics.average_deadline_violations,
-                    "priority_delivered_regret": rollout_metrics.priority_delivered_regret,
-                },
+                "rollout": _rollout_metrics_to_dict(rollout_metrics),
             },
             indent=2,
         )

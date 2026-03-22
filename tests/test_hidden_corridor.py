@@ -137,6 +137,13 @@ def test_history_summary_bank_forward_path() -> None:
     assert "history_global_bank_share" in output["diagnostics"]
 
 
+def test_dataset_manifest_is_stable_for_same_seed() -> None:
+    cfg = HiddenCorridorConfig(seed=10)
+    dataset_a = HiddenCorridorDecisionDataset(config=cfg, num_episodes=4)
+    dataset_b = HiddenCorridorDecisionDataset(config=cfg, num_episodes=4)
+    assert dataset_a.manifest()["manifest_hash"] == dataset_b.manifest()["manifest_hash"]
+
+
 def test_smoke_training_runs(tmp_path: Path) -> None:
     benchmark = BenchmarkConfig(
         train_episodes=8,
@@ -170,6 +177,10 @@ def test_smoke_training_runs(tmp_path: Path) -> None:
     summary = train_experiment(experiment)
     assert Path(summary["output_dir"]).exists()
     assert Path(summary["output_dir"], "summary.json").exists()
+    assert Path(summary["output_dir"], "dataset_manifests.json").exists()
     assert summary["stage"] == "candidate"
     assert summary["git_branch"]
     assert "device_placement" in summary
+    assert "manifest_hashes" in summary
+    assert "p95_regret" in summary["test_rollout"]
+    assert "deadline_miss_rate" in summary["test_rollout"]

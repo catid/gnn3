@@ -94,12 +94,16 @@ def _move_batch(batch: dict[str, torch.Tensor], device: torch.device) -> dict[st
 
 def _selection_score(val_metrics: dict[str, float], rollout_metrics: Any) -> float:
     regret_score = 1.0 / (1.0 + max(float(rollout_metrics.average_regret), 0.0))
+    tail_regret_score = 1.0 / (1.0 + max(float(rollout_metrics.p95_regret), 0.0))
     deadline_score = 1.0 / (1.0 + max(float(rollout_metrics.average_deadline_violations), 0.0))
+    miss_score = 1.0 - max(min(float(rollout_metrics.deadline_miss_rate), 1.0), 0.0)
     return (
-        0.55 * float(val_metrics["next_hop_accuracy"])
-        + 0.55 * float(rollout_metrics.solved_rate)
-        + 0.15 * float(rollout_metrics.next_hop_accuracy)
-        + 0.10 * regret_score
+        0.35 * float(val_metrics["next_hop_accuracy"])
+        + 0.20 * float(rollout_metrics.solved_rate)
+        + 0.10 * float(rollout_metrics.next_hop_accuracy)
+        + 0.15 * regret_score
+        + 0.10 * tail_regret_score
+        + 0.05 * miss_score
         + 0.05 * deadline_score
     )
 
@@ -122,6 +126,8 @@ def evaluate_decision_dataset(
         "value_loss": 0.0,
         "route_loss": 0.0,
         "next_hop_accuracy": 0.0,
+        "value_mae": 0.0,
+        "value_rmse": 0.0,
     }
     steps = 0
     for batch in loader:
@@ -136,6 +142,9 @@ def evaluate_decision_dataset(
         )
         for key, value in losses.items():
             totals[key] += float(value.detach().cpu())
+        value_error = output["values"] - batch["cost_to_go"]
+        totals["value_mae"] += float(value_error.abs().mean().detach().cpu())
+        totals["value_rmse"] += float(torch.sqrt((value_error.square()).mean()).detach().cpu())
         steps += 1
     if was_training:
         model.train()
@@ -148,6 +157,22 @@ def _device_placement(device: torch.device, world_size: int) -> str:
     if world_size > 1:
         return ",".join(f"cuda:{rank}" for rank in range(world_size))
     return str(device)
+
+
+def _rollout_metrics_to_dict(rollout_metrics: Any) -> dict[str, float]:
+    return {
+        "solved_rate": float(rollout_metrics.solved_rate),
+        "next_hop_accuracy": float(rollout_metrics.next_hop_accuracy),
+        "average_regret": float(rollout_metrics.average_regret),
+        "p95_regret": float(rollout_metrics.p95_regret),
+        "worst_regret": float(rollout_metrics.worst_regret),
+        "average_deadline_violations": float(rollout_metrics.average_deadline_violations),
+        "deadline_miss_rate": float(rollout_metrics.deadline_miss_rate),
+        "p95_deadline_violations": float(rollout_metrics.p95_deadline_violations),
+        "priority_delivered_regret": float(rollout_metrics.priority_delivered_regret),
+        "average_oracle_cost": float(rollout_metrics.average_oracle_cost),
+        "average_model_cost": float(rollout_metrics.average_model_cost),
+    }
 
 
 def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
@@ -212,6 +237,9 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
         collate_fn=collate_decisions,
         pin_memory=device.type == "cuda",
     )
+    train_manifest = train_dataset.manifest()
+    val_manifest = val_dataset.manifest()
+    test_manifest = test_dataset.manifest()
 
     model = PacketMambaModel(config.model).to(device)
     if config.train.compile and hasattr(torch, "compile"):
@@ -226,11 +254,18 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
     writer = SummaryWriter(log_dir=str(output_dir / "tensorboard")) if is_main_process else None
     metrics_path = output_dir / "metrics.jsonl"
     metadata_path = output_dir / "metadata.json"
+    manifest_path = output_dir / "dataset_manifests.json"
     best_checkpoint = output_dir / "checkpoints" / "best.pt"
     use_autocast = device.type == "cuda" and config.train.bf16
     eval_model = model.module if isinstance(model, DDP) else model
 
     if is_main_process:
+        manifest_payload = {
+            "train": train_manifest,
+            "val": val_manifest,
+            "test": test_manifest,
+        }
+        manifest_path.write_text(json.dumps(manifest_payload, indent=2), encoding="utf-8")
         metadata = {
             "experiment": asdict(config),
             "git_commit": _git_commit(),
@@ -238,10 +273,23 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
             "run_stage": config.stage,
             "run_notes": config.notes,
             "device_placement": _device_placement(device, world_size),
+            "manifest_path": str(manifest_path),
+            "manifest_hashes": {
+                "train": train_manifest["manifest_hash"],
+                "val": val_manifest["manifest_hash"],
+                "test": test_manifest["manifest_hash"],
+            },
             "hardware": {
                 **_hardware_summary(device),
                 "rank": rank,
                 "world_size": world_size,
+            },
+            "runtime_flags": {
+                "bf16": config.train.bf16,
+                "compile": config.train.compile,
+                "torch_deterministic_algorithms": torch.are_deterministic_algorithms_enabled(),
+                "cudnn_benchmark": torch.backends.cudnn.benchmark,
+                "cudnn_deterministic": torch.backends.cudnn.deterministic,
             },
             "train_decisions": len(train_dataset),
             "val_decisions": len(val_dataset),
@@ -308,15 +356,14 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                 "epoch": epoch,
                 "elapsed_seconds": time.time() - start_time,
                 "selection_score": selection_score,
+                "manifest_hashes": {
+                    "train": train_manifest["manifest_hash"],
+                    "val": val_manifest["manifest_hash"],
+                    "test": test_manifest["manifest_hash"],
+                },
                 "train": train_metrics,
                 "val": val_metrics,
-                "rollout": {
-                    "solved_rate": rollout_metrics.solved_rate,
-                    "next_hop_accuracy": rollout_metrics.next_hop_accuracy,
-                    "average_regret": rollout_metrics.average_regret,
-                    "average_deadline_violations": rollout_metrics.average_deadline_violations,
-                    "priority_delivered_regret": rollout_metrics.priority_delivered_regret,
-                },
+                "rollout": _rollout_metrics_to_dict(rollout_metrics),
             }
             with metrics_path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(epoch_record) + "\n")
@@ -327,6 +374,8 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                     writer.add_scalar(f"{split_name}/{key}", value, epoch)
             writer.add_scalar("rollout/solved_rate", rollout_metrics.solved_rate, epoch)
             writer.add_scalar("rollout/average_regret", rollout_metrics.average_regret, epoch)
+            writer.add_scalar("rollout/p95_regret", rollout_metrics.p95_regret, epoch)
+            writer.add_scalar("rollout/deadline_miss_rate", rollout_metrics.deadline_miss_rate, epoch)
             writer.add_scalar(
                 "rollout/priority_delivered_regret",
                 rollout_metrics.priority_delivered_regret,
@@ -384,18 +433,17 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
         "git_commit": _git_commit(),
         "git_branch": _git_branch(),
         "device_placement": _device_placement(device, world_size),
+        "manifest_hashes": {
+            "train": train_manifest["manifest_hash"],
+            "val": val_manifest["manifest_hash"],
+            "test": test_manifest["manifest_hash"],
+        },
         "best_metric": best_metric,
         "world_size": world_size,
         "elapsed_seconds": elapsed_seconds,
         "gpu_hours": gpu_hours,
         "test": test_metrics,
-        "test_rollout": {
-            "solved_rate": test_rollout.solved_rate,
-            "next_hop_accuracy": test_rollout.next_hop_accuracy,
-            "average_regret": test_rollout.average_regret,
-            "average_deadline_violations": test_rollout.average_deadline_violations,
-            "priority_delivered_regret": test_rollout.priority_delivered_regret,
-        },
+        "test_rollout": _rollout_metrics_to_dict(test_rollout),
         "output_dir": str(output_dir),
         "bucket": config.bucket,
     }

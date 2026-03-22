@@ -22,8 +22,14 @@ class RolloutMetrics:
     solved_rate: float
     next_hop_accuracy: float
     average_regret: float
+    p95_regret: float
+    worst_regret: float
     average_deadline_violations: float
+    deadline_miss_rate: float
+    p95_deadline_violations: float
     priority_delivered_regret: float
+    average_oracle_cost: float
+    average_model_cost: float
 
 
 def _move_batch(batch: dict[str, torch.Tensor], device: torch.device) -> dict[str, torch.Tensor]:
@@ -130,8 +136,9 @@ def evaluate_rollouts(
     device: torch.device,
     config: HiddenCorridorConfig,
 ) -> RolloutMetrics:
-    oracle_totals: list[float] = []
-    model_totals: list[float] = []
+    oracle_costs: list[float] = []
+    model_costs: list[float] = []
+    deadline_counts: list[float] = []
     solved = 0
     total_steps = 0
     correct_steps = 0
@@ -157,8 +164,9 @@ def evaluate_rollouts(
         solved += int(episode_solved)
         total_steps += steps
         correct_steps += correct
-        oracle_totals.append(oracle_cost)
-        model_totals.append(model_cost)
+        oracle_costs.append(oracle_cost)
+        model_costs.append(model_cost)
+        deadline_counts.append(float(model_violations))
         deadline_violations += model_violations
         oracle_priority += oracle_delivered
         model_priority += model_delivered
@@ -167,10 +175,21 @@ def evaluate_rollouts(
         model.train()
 
     count = max(len(episodes), 1)
+    regrets = [model - oracle for model, oracle in zip(model_costs, oracle_costs, strict=True)]
+    regret_tensor = torch.tensor(regrets, dtype=torch.float32) if regrets else torch.tensor([0.0], dtype=torch.float32)
+    deadline_tensor = (
+        torch.tensor(deadline_counts, dtype=torch.float32) if deadline_counts else torch.tensor([0.0], dtype=torch.float32)
+    )
     return RolloutMetrics(
         solved_rate=solved / count,
         next_hop_accuracy=correct_steps / max(total_steps, 1),
-        average_regret=sum(model_totals) / count - sum(oracle_totals) / count,
+        average_regret=float(regret_tensor.mean().item()),
+        p95_regret=float(torch.quantile(regret_tensor, 0.95).item()),
+        worst_regret=float(regret_tensor.max().item()),
         average_deadline_violations=deadline_violations / count,
+        deadline_miss_rate=float((deadline_tensor > 0).float().mean().item()),
+        p95_deadline_violations=float(torch.quantile(deadline_tensor, 0.95).item()),
         priority_delivered_regret=(oracle_priority - model_priority) / count,
+        average_oracle_cost=sum(oracle_costs) / count,
+        average_model_cost=sum(model_costs) / count,
     )

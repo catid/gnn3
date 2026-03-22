@@ -2,6 +2,13 @@
 
 This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
 
+## Branch Policy
+
+- Do not create or use feature branches for routine work in this repo.
+- Keep all work on `main` unless the user explicitly asks for a different branch.
+- Before starting work, switch to `main` and keep it current with `git pull --rebase`.
+- Before handing off, make sure `main` contains the latest local commits.
+
 ## Quick Reference
 
 ```bash
@@ -37,4 +44,3 @@ bd sync               # Sync with git
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
-

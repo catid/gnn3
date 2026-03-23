@@ -117,6 +117,11 @@ def evaluate_decision_dataset(
     final_step_only: bool,
     value_weight: float,
     route_weight: float,
+    deadline_bce_weight: float,
+    slack_loss_weight: float,
+    quantile_loss_weight: float,
+    quantiles: tuple[float, ...],
+    verifier_aux_last_k_steps: int,
 ) -> dict[str, float]:
     was_training = model.training
     model.eval()
@@ -125,9 +130,16 @@ def evaluate_decision_dataset(
         "next_hop_loss": 0.0,
         "value_loss": 0.0,
         "route_loss": 0.0,
+        "on_time_loss": 0.0,
+        "slack_loss": 0.0,
+        "quantile_loss": 0.0,
         "next_hop_accuracy": 0.0,
+        "selection_accuracy": 0.0,
         "value_mae": 0.0,
         "value_rmse": 0.0,
+        "slack_mae": 0.0,
+        "on_time_brier": 0.0,
+        "quantile_median_mae": 0.0,
     }
     steps = 0
     for batch in loader:
@@ -139,12 +151,40 @@ def evaluate_decision_dataset(
             final_step_only=final_step_only,
             value_weight=value_weight,
             route_weight=route_weight,
+            deadline_bce_weight=deadline_bce_weight,
+            slack_weight=slack_loss_weight,
+            quantile_weight=quantile_loss_weight,
+            quantiles=quantiles,
+            verifier_aux_last_k_steps=verifier_aux_last_k_steps,
         )
         for key, value in losses.items():
             totals[key] += float(value.detach().cpu())
         value_error = output["values"] - batch["cost_to_go"]
         totals["value_mae"] += float(value_error.abs().mean().detach().cpu())
         totals["value_rmse"] += float(torch.sqrt((value_error.square()).mean()).detach().cpu())
+        valid_mask = batch["candidate_mask"] & batch["node_mask"]
+        if valid_mask.any() and output["candidate_on_time_logits"] is not None:
+            on_time_prob = torch.sigmoid(output["candidate_on_time_logits"][valid_mask])
+            on_time_target = batch["candidate_on_time"][valid_mask]
+            totals["on_time_brier"] += float(((on_time_prob - on_time_target) ** 2).mean().detach().cpu())
+            totals["slack_mae"] += float(
+                (output["candidate_slack"][valid_mask] - batch["candidate_slack"][valid_mask])
+                .abs()
+                .mean()
+                .detach()
+                .cpu()
+            )
+            median_index = len(quantiles) // 2
+            totals["quantile_median_mae"] += float(
+                (
+                    output["candidate_cost_quantiles"][valid_mask][:, median_index]
+                    - batch["candidate_cost_to_go"][valid_mask]
+                )
+                .abs()
+                .mean()
+                .detach()
+                .cpu()
+            )
         steps += 1
     if was_training:
         model.train()
@@ -317,7 +357,11 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
             "next_hop_loss": 0.0,
             "value_loss": 0.0,
             "route_loss": 0.0,
+            "on_time_loss": 0.0,
+            "slack_loss": 0.0,
+            "quantile_loss": 0.0,
             "next_hop_accuracy": 0.0,
+            "selection_accuracy": 0.0,
         }
         for batch in train_loader:
             step += 1
@@ -331,6 +375,11 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                     final_step_only=config.model.final_step_only_loss,
                     value_weight=config.train.value_weight,
                     route_weight=config.train.route_weight,
+                    deadline_bce_weight=config.train.deadline_bce_weight,
+                    slack_weight=config.train.slack_loss_weight,
+                    quantile_weight=config.train.quantile_loss_weight,
+                    quantiles=config.model.quantile_levels,
+                    verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
                 )
             losses["loss"].backward()
             nn.utils.clip_grad_norm_(model.parameters(), config.train.grad_clip_norm)
@@ -351,6 +400,11 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                 final_step_only=config.model.final_step_only_loss,
                 value_weight=config.train.value_weight,
                 route_weight=config.train.route_weight,
+                deadline_bce_weight=config.train.deadline_bce_weight,
+                slack_loss_weight=config.train.slack_loss_weight,
+                quantile_loss_weight=config.train.quantile_loss_weight,
+                quantiles=config.model.quantile_levels,
+                verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
             )
             rollout_metrics = evaluate_rollouts(
                 eval_model,
@@ -418,6 +472,11 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
         final_step_only=config.model.final_step_only_loss,
         value_weight=config.train.value_weight,
         route_weight=config.train.route_weight,
+        deadline_bce_weight=config.train.deadline_bce_weight,
+        slack_loss_weight=config.train.slack_loss_weight,
+        quantile_loss_weight=config.train.quantile_loss_weight,
+        quantiles=config.model.quantile_levels,
+        verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
     )
     test_rollout = evaluate_rollouts(
         eval_model,

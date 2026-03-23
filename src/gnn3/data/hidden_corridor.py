@@ -75,6 +75,9 @@ class DecisionRecord:
     candidate_mask: np.ndarray
     target_next_hop: int
     cost_to_go: float
+    candidate_cost_to_go: np.ndarray
+    candidate_slack: np.ndarray
+    candidate_on_time: np.ndarray
     route_relevance: np.ndarray
     packet_priority: float
     packet_deadline: float
@@ -112,6 +115,12 @@ class HiddenCorridorConfig:
     queue_penalty: float = 0.35
     capacity_penalty: float = 2.5
     urgency_penalty: float = 1.2
+    deadline_mode: str = "uniform"
+    deadline_min: float = 7.0
+    deadline_max: float = 18.0
+    deadline_slack_ratio_range: tuple[float, float] = (0.1, 0.3)
+    deadline_slack_abs_range: tuple[float, float] = (0.5, 2.0)
+    deadline_reference_budget: float = 1_000_000.0
     max_steps_multiplier: int = 4
 
 
@@ -342,9 +351,102 @@ def sample_packets(
         source = int(rng.choice(graph.leaf_nodes_by_community[src_comm]))
         destination = int(rng.choice(graph.leaf_nodes_by_community[dst_comm]))
         priority = float(rng.integers(1, 4))
-        deadline = float(rng.uniform(7.0, 18.0))
+        deadline = float(rng.uniform(config.deadline_min, config.deadline_max))
         packets.append(PacketSpec(source=source, destination=destination, priority=priority, deadline=deadline))
+    if config.deadline_mode == "oracle_calibrated":
+        return calibrate_packet_deadlines(rng, graph, tuple(packets), config)
     return tuple(packets)
+
+
+def calibrate_packet_deadlines(
+    rng: np.random.Generator,
+    graph: GraphState,
+    packets: tuple[PacketSpec, ...],
+    config: HiddenCorridorConfig,
+) -> tuple[PacketSpec, ...]:
+    working_graph = graph.copy()
+    calibrated = list(packets)
+    ordered_indices = sorted(range(len(calibrated)), key=lambda idx: (-calibrated[idx].priority, idx))
+    max_steps = working_graph.num_nodes * config.max_steps_multiplier
+
+    for packet_index in ordered_indices:
+        packet = calibrated[packet_index]
+        reference_packet = PacketSpec(
+            source=packet.source,
+            destination=packet.destination,
+            priority=packet.priority,
+            deadline=config.deadline_reference_budget,
+            size=packet.size,
+        )
+        _reference_path, reference_cost = shortest_path(
+            working_graph,
+            reference_packet,
+            start=packet.source,
+            remaining_deadline=reference_packet.deadline,
+            config=config,
+        )
+        if not math.isfinite(reference_cost):
+            continue
+
+        slack_ratio = float(rng.uniform(*config.deadline_slack_ratio_range))
+        slack_abs = float(rng.uniform(*config.deadline_slack_abs_range))
+        provisional_deadline = reference_cost * (1.0 + slack_ratio) + slack_abs
+        provisional_packet = PacketSpec(
+            source=packet.source,
+            destination=packet.destination,
+            priority=packet.priority,
+            deadline=provisional_deadline,
+            size=packet.size,
+        )
+        _provisional_path, calibrated_cost = shortest_path(
+            working_graph,
+            provisional_packet,
+            start=packet.source,
+            remaining_deadline=provisional_deadline,
+            config=config,
+        )
+        if math.isfinite(calibrated_cost):
+            provisional_deadline = max(
+                provisional_deadline,
+                calibrated_cost + 0.5 * slack_abs,
+            )
+        calibrated_packet = PacketSpec(
+            source=packet.source,
+            destination=packet.destination,
+            priority=packet.priority,
+            deadline=provisional_deadline,
+            size=packet.size,
+        )
+        calibrated[packet_index] = calibrated_packet
+
+        current = calibrated_packet.source
+        remaining_deadline = calibrated_packet.deadline
+        steps = 0
+        while current != calibrated_packet.destination and steps < max_steps:
+            path, _path_cost = shortest_path(
+                working_graph,
+                calibrated_packet,
+                start=current,
+                remaining_deadline=remaining_deadline,
+                config=config,
+            )
+            if len(path) < 2:
+                break
+            next_hop = path[1]
+            transition_cost = _edge_cost(
+                working_graph,
+                calibrated_packet,
+                current,
+                next_hop,
+                remaining_deadline=remaining_deadline,
+                config=config,
+            )
+            remaining_deadline = max(remaining_deadline - transition_cost, 0.0)
+            _apply_transition(working_graph, current, next_hop, calibrated_packet)
+            current = next_hop
+            steps += 1
+
+    return tuple(calibrated)
 
 
 def _edge_cost(
@@ -442,6 +544,7 @@ def make_decision_record(
     graph: GraphState,
     packet: PacketSpec,
     *,
+    config: HiddenCorridorConfig | None = None,
     current_node: int,
     target_next_hop: int,
     cost_to_go: float,
@@ -449,6 +552,7 @@ def make_decision_record(
     packet_index: int,
     packet_count: int,
     curriculum_level: str,
+    include_candidate_targets: bool = True,
 ) -> DecisionRecord:
     num_nodes = graph.num_nodes
     community_one_hot = np.zeros((num_nodes, 4), dtype=np.float32)
@@ -499,6 +603,49 @@ def make_decision_record(
     for node in route_nodes:
         route_relevance[int(node)] = 1.0
 
+    candidate_cost_to_go = np.zeros((num_nodes,), dtype=np.float32)
+    candidate_slack = np.zeros((num_nodes,), dtype=np.float32)
+    candidate_on_time = np.zeros((num_nodes,), dtype=np.float32)
+    if include_candidate_targets:
+        if config is None:
+            raise ValueError("config is required when include_candidate_targets=True")
+        for candidate in np.flatnonzero(graph.adj[current_node]):
+            candidate = int(candidate)
+            candidate_graph = graph.copy()
+            transition_cost = _edge_cost(
+                candidate_graph,
+                packet,
+                current_node,
+                candidate,
+                remaining_deadline=packet.deadline,
+                config=config,
+            )
+            remaining_deadline = max(packet.deadline - transition_cost, 0.0)
+            _apply_transition(candidate_graph, current_node, candidate, packet)
+            if candidate == packet.destination:
+                total_cost = transition_cost
+            else:
+                _candidate_path, downstream_cost = shortest_path(
+                    candidate_graph,
+                    packet,
+                    start=candidate,
+                    remaining_deadline=max(remaining_deadline, 1.0),
+                    config=config,
+                )
+                total_cost = (
+                    transition_cost + downstream_cost
+                    if math.isfinite(downstream_cost)
+                    else math.inf
+                )
+            if math.isfinite(total_cost):
+                candidate_cost_to_go[candidate] = float(total_cost)
+                candidate_slack[candidate] = float(packet.deadline - total_cost)
+                candidate_on_time[candidate] = float(total_cost <= packet.deadline)
+            else:
+                candidate_cost_to_go[candidate] = 1e6
+                candidate_slack[candidate] = -1e6
+                candidate_on_time[candidate] = 0.0
+
     return DecisionRecord(
         node_features=node_features,
         edge_features=edge_features,
@@ -513,6 +660,9 @@ def make_decision_record(
         candidate_mask=graph.adj[current_node].copy(),
         target_next_hop=target_next_hop,
         cost_to_go=cost_to_go,
+        candidate_cost_to_go=candidate_cost_to_go,
+        candidate_slack=candidate_slack,
+        candidate_on_time=candidate_on_time,
         route_relevance=route_relevance,
         packet_priority=packet.priority,
         packet_deadline=packet.deadline,
@@ -559,6 +709,7 @@ def oracle_rollout(
                 make_decision_record(
                     working_graph,
                     packet,
+                    config=config,
                     current_node=current,
                     target_next_hop=next_hop,
                     cost_to_go=path_cost,
@@ -728,6 +879,9 @@ def collate_decisions(records: list[DecisionRecord]) -> dict[str, torch.Tensor]:
     destination_node = torch.zeros((batch_size,), dtype=torch.long)
     target_next_hop = torch.zeros((batch_size,), dtype=torch.long)
     cost_to_go = torch.zeros((batch_size,), dtype=torch.float32)
+    candidate_cost_to_go = torch.zeros((batch_size, max_nodes), dtype=torch.float32)
+    candidate_slack = torch.zeros((batch_size, max_nodes), dtype=torch.float32)
+    candidate_on_time = torch.zeros((batch_size, max_nodes), dtype=torch.float32)
     packet_priority = torch.zeros((batch_size,), dtype=torch.float32)
     packet_deadline = torch.zeros((batch_size,), dtype=torch.float32)
     packet_index = torch.zeros((batch_size,), dtype=torch.long)
@@ -750,6 +904,9 @@ def collate_decisions(records: list[DecisionRecord]) -> dict[str, torch.Tensor]:
         destination_node[batch_index] = record.destination_node
         target_next_hop[batch_index] = record.target_next_hop
         cost_to_go[batch_index] = record.cost_to_go
+        candidate_cost_to_go[batch_index, :num_nodes] = torch.from_numpy(record.candidate_cost_to_go)
+        candidate_slack[batch_index, :num_nodes] = torch.from_numpy(record.candidate_slack)
+        candidate_on_time[batch_index, :num_nodes] = torch.from_numpy(record.candidate_on_time)
         packet_priority[batch_index] = record.packet_priority
         packet_deadline[batch_index] = record.packet_deadline
         packet_index[batch_index] = record.packet_index
@@ -771,6 +928,9 @@ def collate_decisions(records: list[DecisionRecord]) -> dict[str, torch.Tensor]:
         "destination_node": destination_node,
         "target_next_hop": target_next_hop,
         "cost_to_go": cost_to_go,
+        "candidate_cost_to_go": candidate_cost_to_go,
+        "candidate_slack": candidate_slack,
+        "candidate_on_time": candidate_on_time,
         "packet_priority": packet_priority,
         "packet_deadline": packet_deadline,
         "packet_index": packet_index,

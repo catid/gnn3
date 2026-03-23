@@ -1,0 +1,34 @@
+name: b1_e3_hazard_memory_round4_seed311
+bucket: explore
+seed: 311
+stage: scout
+notes: round4 exploration scout adding a structured hazard-memory side channel to hub and monitor slow state
+output_dir: artifacts/experiments/b1_e3_hazard_memory_round4_seed311
+benchmark:
+  train_episodes: 128
+  val_episodes: 32
+  test_episodes: 32
+  curriculum_levels: [single_dynamic, multi_dynamic]
+  hidden_corridor:
+    seed: 311
+    packets_max: 4
+    deadline_mode: oracle_calibrated
+    deadline_slack_ratio_range: [0.05, 0.15]
+    deadline_slack_abs_range: [0.25, 1.0]
+train:
+  batch_size: 24
+  eval_batch_size: 48
+  epochs: 5
+  device: cuda:1
+  bf16: true
+  rollout_eval_episodes: 12
+model:
+  d_model: 128
+  d_state: 16
+  inner_layers: 2
+  outer_steps: 3
+  router_variant: memory_hubs
+  final_step_only_loss: true
+  detach_warmup: true
+  penultimate_grad_prob: 0.25
+  hazard_memory: true

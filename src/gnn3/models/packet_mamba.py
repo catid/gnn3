@@ -43,6 +43,15 @@ class PacketMambaConfig:
     history_read: bool = False
     history_read_mode: str = "dense_nodes"
     max_history_steps: int = 8
+    deadline_head: bool = False
+    risk_aware_scoring: bool = False
+    quantile_levels: tuple[float, ...] = (0.1, 0.5, 0.9)
+    on_time_score_weight: float = 0.75
+    slack_score_weight: float = 0.25
+    tail_score_weight: float = 0.5
+    verifier_aux_last_k_steps: int = 1
+    hazard_memory: bool = False
+    hazard_memory_dim: int = 16
 
 
 class DenseEdgeMixer(nn.Module):
@@ -435,8 +444,9 @@ class PacketMambaModel(nn.Module):
             else None
         )
         self.final_norm = nn.LayerNorm(config.d_model)
+        action_input_dim = 3 * config.d_model + config.edge_feature_dim
         self.action_head = nn.Sequential(
-            nn.Linear(3 * config.d_model + config.edge_feature_dim, config.d_model),
+            nn.Linear(action_input_dim, config.d_model),
             nn.GELU(),
             nn.Linear(config.d_model, 1),
         )
@@ -450,6 +460,73 @@ class PacketMambaModel(nn.Module):
             nn.GELU(),
             nn.Linear(config.d_model, 1),
         )
+        self.deadline_head = (
+            nn.Sequential(
+                nn.Linear(action_input_dim, config.d_model),
+                nn.GELU(),
+                nn.Linear(config.d_model, 1),
+            )
+            if config.deadline_head
+            else None
+        )
+        self.slack_head = (
+            nn.Sequential(
+                nn.Linear(action_input_dim, config.d_model),
+                nn.GELU(),
+                nn.Linear(config.d_model, 1),
+            )
+            if config.deadline_head
+            else None
+        )
+        self.quantile_head = (
+            nn.Sequential(
+                nn.Linear(action_input_dim, config.d_model),
+                nn.GELU(),
+                nn.Linear(config.d_model, len(config.quantile_levels)),
+            )
+            if config.deadline_head
+            else None
+        )
+        self.hazard_encoder = (
+            nn.Sequential(
+                nn.Linear(7, config.hazard_memory_dim),
+                nn.GELU(),
+                nn.Linear(config.hazard_memory_dim, config.d_model),
+            )
+            if config.hazard_memory
+            else None
+        )
+
+    def _hazard_summary(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
+        node_mask = batch["node_mask"].float()
+        denom = node_mask.sum(dim=-1, keepdim=True).clamp(min=1.0)
+        queue_mean = (batch["node_features"][..., 0] * node_mask).sum(dim=-1, keepdim=True) / denom
+        blocked_mean = (batch["node_features"][..., 2] * node_mask).sum(dim=-1, keepdim=True) / denom
+        hidden_edge_mask = batch["edge_features"][..., 3]
+        residual_ratio = batch["edge_features"][..., 1]
+        hidden_edge_denom = hidden_edge_mask.sum(dim=(1, 2), keepdim=True).clamp(min=1.0)
+        hidden_pressure = (((1.0 - residual_ratio) * hidden_edge_mask).sum(dim=(1, 2), keepdim=True) / hidden_edge_denom)
+        hidden_pressure = hidden_pressure.squeeze(-1)
+        candidate_degree = batch["candidate_mask"].float().sum(dim=-1, keepdim=True) / batch["node_mask"].sum(
+            dim=-1,
+            keepdim=True,
+        ).clamp(min=1)
+        packet_priority = (batch["packet_priority"] / 3.0).unsqueeze(-1)
+        packet_deadline = (batch["packet_deadline"] / 64.0).unsqueeze(-1)
+        packet_count = (batch["packet_count"].float() / 8.0).unsqueeze(-1)
+        summary = torch.cat(
+            [
+                queue_mean,
+                blocked_mean,
+                hidden_pressure,
+                candidate_degree,
+                packet_priority,
+                packet_deadline,
+                packet_count,
+            ],
+            dim=-1,
+        )
+        return summary
 
     def _transition_layers(self, step: int) -> nn.ModuleList:
         if self.config.shared_transition:
@@ -469,6 +546,9 @@ class PacketMambaModel(nn.Module):
         slow_state = torch.zeros_like(x)
         per_step_logits: list[torch.Tensor] = []
         per_step_values: list[torch.Tensor] = []
+        per_step_on_time_logits: list[torch.Tensor] = []
+        per_step_slack: list[torch.Tensor] = []
+        per_step_cost_quantiles: list[torch.Tensor] = []
         settling: list[torch.Tensor] = []
         history_states: list[torch.Tensor] = []
         diagnostics: dict[str, torch.Tensor] = {}
@@ -476,6 +556,13 @@ class PacketMambaModel(nn.Module):
         for outer_step in range(self.config.outer_steps):
             prev_state = x
             transition_input = x + slow_state
+            if self.hazard_encoder is not None:
+                hazard_summary = self.hazard_encoder(self._hazard_summary(batch))
+                hazard_summary = hazard_summary[:, None, :]
+                hazard_mask = (
+                    (batch["node_roles"] == ROLE_TO_ID["hub"]) | (batch["node_roles"] == ROLE_TO_ID["monitor"])
+                ).unsqueeze(-1)
+                transition_input = transition_input + hazard_mask * hazard_summary
             router_diag_last: dict[str, torch.Tensor] = {}
             for layer in self._transition_layers(outer_step):
                 transition_input, router_diag_last = layer(
@@ -513,22 +600,37 @@ class PacketMambaModel(nn.Module):
                 router_diag_last = {**router_diag_last, **history_diag}
 
             readout = self.final_norm(readout_state)
-            node_logits, values, route_logits = self._readout(readout, batch)
-            per_step_logits.append(node_logits)
-            per_step_values.append(values)
+            readout_outputs = self._readout(readout, batch)
+            per_step_logits.append(readout_outputs["node_logits"])
+            per_step_values.append(readout_outputs["values"])
+            if self.config.deadline_head:
+                per_step_on_time_logits.append(readout_outputs["candidate_on_time_logits"])
+                per_step_slack.append(readout_outputs["candidate_slack"])
+                per_step_cost_quantiles.append(readout_outputs["candidate_cost_quantiles"])
             settling.append((readout - prev_state).norm(dim=-1).mean())
             diagnostics = router_diag_last
             history_states.append(readout.detach())
 
         stacked_logits = torch.stack(per_step_logits, dim=1)
         stacked_values = torch.stack(per_step_values, dim=1)
-        route_logits = route_logits
+        final_outputs = readout_outputs
         return {
-            "node_logits": stacked_logits[:, -1],
+            "node_logits": final_outputs["node_logits"],
+            "selection_scores": final_outputs["selection_scores"],
             "per_step_logits": stacked_logits,
-            "values": stacked_values[:, -1],
+            "values": final_outputs["values"],
             "per_step_values": stacked_values,
-            "route_logits": route_logits,
+            "route_logits": final_outputs["route_logits"],
+            "candidate_on_time_logits": final_outputs["candidate_on_time_logits"],
+            "candidate_slack": final_outputs["candidate_slack"],
+            "candidate_cost_quantiles": final_outputs["candidate_cost_quantiles"],
+            "per_step_candidate_on_time_logits": (
+                torch.stack(per_step_on_time_logits, dim=1) if per_step_on_time_logits else None
+            ),
+            "per_step_candidate_slack": torch.stack(per_step_slack, dim=1) if per_step_slack else None,
+            "per_step_candidate_cost_quantiles": (
+                torch.stack(per_step_cost_quantiles, dim=1) if per_step_cost_quantiles else None
+            ),
             "settling_curve": torch.stack(settling, dim=0),
             "diagnostics": diagnostics,
         }
@@ -537,7 +639,7 @@ class PacketMambaModel(nn.Module):
         self,
         state: torch.Tensor,
         batch: dict[str, torch.Tensor],
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         batch_size, num_nodes, _ = state.shape
         current_repr = batched_index_select(state, batch["current_node"])
         destination_repr = batched_index_select(state, batch["destination_node"])
@@ -558,7 +660,79 @@ class PacketMambaModel(nn.Module):
         route_input = torch.cat([current_expand, destination_expand, state], dim=-1)
         route_logits = self.route_head(route_input).squeeze(-1)
         route_logits = route_logits.masked_fill(~batch["node_mask"], -1e9)
-        return node_logits, values, route_logits
+        candidate_on_time_logits = None
+        candidate_slack = None
+        candidate_cost_quantiles = None
+        selection_scores = node_logits
+        if self.deadline_head is not None and self.slack_head is not None and self.quantile_head is not None:
+            candidate_on_time_logits = self.deadline_head(action_input).squeeze(-1)
+            candidate_slack = self.slack_head(action_input).squeeze(-1)
+            candidate_cost_quantiles = self.quantile_head(action_input)
+
+            candidate_invalid = ~(batch["candidate_mask"] & batch["node_mask"])
+            candidate_on_time_logits = candidate_on_time_logits.masked_fill(candidate_invalid, -1e9)
+            candidate_slack = candidate_slack.masked_fill(candidate_invalid, 0.0)
+            candidate_cost_quantiles = candidate_cost_quantiles.masked_fill(candidate_invalid.unsqueeze(-1), 0.0)
+
+            if self.config.risk_aware_scoring:
+                deadline_scale = batch["packet_deadline"][:, None].clamp(min=1.0)
+                on_time_bonus = self.config.on_time_score_weight * F.logsigmoid(candidate_on_time_logits)
+                slack_bonus = self.config.slack_score_weight * torch.tanh(candidate_slack / deadline_scale)
+                tail_penalty = self.config.tail_score_weight * (
+                    candidate_cost_quantiles[..., -1] / deadline_scale
+                )
+                selection_scores = node_logits + on_time_bonus + slack_bonus - tail_penalty
+                selection_scores = selection_scores.masked_fill(candidate_invalid, -1e9)
+
+        return {
+            "node_logits": node_logits,
+            "selection_scores": selection_scores,
+            "values": values,
+            "route_logits": route_logits,
+            "candidate_on_time_logits": candidate_on_time_logits,
+            "candidate_slack": candidate_slack,
+            "candidate_cost_quantiles": candidate_cost_quantiles,
+        }
+
+
+def _pinball_loss(
+    prediction: torch.Tensor,
+    target: torch.Tensor,
+    quantiles: tuple[float, ...],
+) -> torch.Tensor:
+    losses = []
+    for index, quantile in enumerate(quantiles):
+        error = target - prediction[:, index]
+        losses.append(torch.maximum((quantile - 1.0) * error, quantile * error))
+    return torch.stack(losses, dim=-1).mean()
+
+
+def _candidate_aux_losses(
+    *,
+    on_time_logits: torch.Tensor,
+    slack_prediction: torch.Tensor,
+    quantile_prediction: torch.Tensor,
+    batch: dict[str, torch.Tensor],
+    quantiles: tuple[float, ...],
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    valid_mask = batch["candidate_mask"] & batch["node_mask"]
+    if not valid_mask.any():
+        zero = on_time_logits.new_tensor(0.0)
+        return zero, zero, zero
+    on_time_loss = F.binary_cross_entropy_with_logits(
+        on_time_logits[valid_mask],
+        batch["candidate_on_time"][valid_mask],
+    )
+    slack_loss = F.smooth_l1_loss(
+        slack_prediction[valid_mask],
+        batch["candidate_slack"][valid_mask],
+    )
+    quantile_loss = _pinball_loss(
+        quantile_prediction[valid_mask],
+        batch["candidate_cost_to_go"][valid_mask],
+        quantiles,
+    )
+    return on_time_loss, slack_loss, quantile_loss
 
 
 def compute_losses(
@@ -568,6 +742,11 @@ def compute_losses(
     final_step_only: bool,
     value_weight: float = 0.2,
     route_weight: float = 0.1,
+    deadline_bce_weight: float = 0.0,
+    slack_weight: float = 0.0,
+    quantile_weight: float = 0.0,
+    quantiles: tuple[float, ...] = (0.1, 0.5, 0.9),
+    verifier_aux_last_k_steps: int = 1,
 ) -> dict[str, torch.Tensor]:
     target = batch["target_next_hop"]
     if final_step_only:
@@ -583,13 +762,60 @@ def compute_losses(
     route_logits = output["route_logits"][batch["node_mask"]]
     route_targets = batch["route_relevance"][batch["node_mask"]]
     route_loss = F.binary_cross_entropy_with_logits(route_logits, route_targets)
-    total_loss = ce_loss + value_weight * value_loss + route_weight * route_loss
+    on_time_loss = output["node_logits"].new_tensor(0.0)
+    slack_loss = output["node_logits"].new_tensor(0.0)
+    quantile_loss = output["node_logits"].new_tensor(0.0)
+    if deadline_bce_weight > 0.0 or slack_weight > 0.0 or quantile_weight > 0.0:
+        per_step_on_time = output.get("per_step_candidate_on_time_logits")
+        per_step_slack = output.get("per_step_candidate_slack")
+        per_step_quantiles = output.get("per_step_candidate_cost_quantiles")
+        if (
+            verifier_aux_last_k_steps > 1
+            and per_step_on_time is not None
+            and per_step_slack is not None
+            and per_step_quantiles is not None
+        ):
+            last_k = min(verifier_aux_last_k_steps, per_step_on_time.size(1))
+            aux_losses = [
+                _candidate_aux_losses(
+                    on_time_logits=per_step_on_time[:, step_index],
+                    slack_prediction=per_step_slack[:, step_index],
+                    quantile_prediction=per_step_quantiles[:, step_index],
+                    batch=batch,
+                    quantiles=quantiles,
+                )
+                for step_index in range(per_step_on_time.size(1) - last_k, per_step_on_time.size(1))
+            ]
+            on_time_loss = torch.stack([entry[0] for entry in aux_losses]).mean()
+            slack_loss = torch.stack([entry[1] for entry in aux_losses]).mean()
+            quantile_loss = torch.stack([entry[2] for entry in aux_losses]).mean()
+        else:
+            on_time_loss, slack_loss, quantile_loss = _candidate_aux_losses(
+                on_time_logits=output["candidate_on_time_logits"],
+                slack_prediction=output["candidate_slack"],
+                quantile_prediction=output["candidate_cost_quantiles"],
+                batch=batch,
+                quantiles=quantiles,
+            )
+    total_loss = (
+        ce_loss
+        + value_weight * value_loss
+        + route_weight * route_loss
+        + deadline_bce_weight * on_time_loss
+        + slack_weight * slack_loss
+        + quantile_weight * quantile_loss
+    )
     with torch.no_grad():
         accuracy = (output["node_logits"].argmax(dim=-1) == target).float().mean()
+        selection_accuracy = (output["selection_scores"].argmax(dim=-1) == target).float().mean()
     return {
         "loss": total_loss,
         "next_hop_loss": ce_loss.detach(),
         "value_loss": value_loss.detach(),
         "route_loss": route_loss.detach(),
+        "on_time_loss": on_time_loss.detach(),
+        "slack_loss": slack_loss.detach(),
+        "quantile_loss": quantile_loss.detach(),
         "next_hop_accuracy": accuracy.detach(),
+        "selection_accuracy": selection_accuracy.detach(),
     }

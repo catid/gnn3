@@ -1,0 +1,320 @@
+{
+  "summary": [
+    {
+      "suite": "a0_e3_ood_branching3_round4_eval",
+      "packet_count": 271,
+      "mean_packet_count": 4.6900369003690034,
+      "mean_tree_depth": 2.92619926199262,
+      "oracle_deadline_miss_rate": 0.23616236162361623,
+      "on_time_feasible_fraction": 0.9446494464944649,
+      "oracle_initial_slack_p50": 1.5443034098818913,
+      "oracle_initial_slack_p95": 3.8539432452677396,
+      "oracle_cost_p50": 28.615668831555872,
+      "oracle_cost_p95": 35.59123794649672,
+      "fully_feasible_episode_fraction": 0.8125,
+      "any_feasible_episode_fraction": 1.0,
+      "oracle_episode_miss_rate": 0.71875,
+      "config_path": "configs/experiments/a0_e3_ood_branching3_round4_eval.yaml",
+      "split": "test",
+      "manifest_hash": "7a04360cf4a1fc3b1e6025b7f324fa8c4c422787c1363857ab88cd963812dff8"
+    },
+    {
+      "suite": "a0_e3_ood_deeper_packets6_round4_eval",
+      "packet_count": 251,
+      "mean_packet_count": 4.45816733067729,
+      "mean_tree_depth": 3.9641434262948207,
+      "oracle_deadline_miss_rate": 0.24701195219123506,
+      "on_time_feasible_fraction": 0.9322709163346613,
+      "oracle_initial_slack_p50": 2.0853446175222636,
+      "oracle_initial_slack_p95": 5.373448333603378,
+      "oracle_cost_p50": 33.38098927326145,
+      "oracle_cost_p95": 42.852337755392654,
+      "fully_feasible_episode_fraction": 0.796875,
+      "any_feasible_episode_fraction": 1.0,
+      "oracle_episode_miss_rate": 0.71875,
+      "config_path": "configs/experiments/a0_e3_ood_deeper_packets6_round4_eval.yaml",
+      "split": "test",
+      "manifest_hash": "6137b4f2df378f2712d361d9f15b28e1093559d9cb2328938128b8931796de4f"
+    },
+    {
+      "suite": "a0_e3_ood_heavy_dynamic_round4_eval",
+      "packet_count": 332,
+      "mean_packet_count": 5.963855421686747,
+      "mean_tree_depth": 3.9427710843373496,
+      "oracle_deadline_miss_rate": 0.34036144578313254,
+      "on_time_feasible_fraction": 0.9006024096385542,
+      "oracle_initial_slack_p50": 2.1248150390938214,
+      "oracle_initial_slack_p95": 5.59353711130732,
+      "oracle_cost_p50": 45.839988430420156,
+      "oracle_cost_p95": 57.72995948730572,
+      "fully_feasible_episode_fraction": 0.578125,
+      "any_feasible_episode_fraction": 1.0,
+      "oracle_episode_miss_rate": 0.890625,
+      "config_path": "configs/experiments/a0_e3_ood_heavy_dynamic_round4_eval.yaml",
+      "split": "test",
+      "manifest_hash": "f3e613939e676beb3211f4c6b176ecb8c5a50b62bc61fc18de725f42a4987c8c"
+    },
+    {
+      "suite": "e3_memory_hubs_rsm_round4_seed311",
+      "packet_count": 83,
+      "mean_packet_count": 2.4216867469879517,
+      "mean_tree_depth": 2.9397590361445785,
+      "oracle_deadline_miss_rate": 0.1566265060240964,
+      "on_time_feasible_fraction": 0.9759036144578314,
+      "oracle_initial_slack_p50": 1.437737435636226,
+      "oracle_initial_slack_p95": 5.2596566493717285,
+      "oracle_cost_p50": 22.5977334110436,
+      "oracle_cost_p95": 27.014812568681435,
+      "fully_feasible_episode_fraction": 0.9583333333333334,
+      "any_feasible_episode_fraction": 1.0,
+      "oracle_episode_miss_rate": 0.22916666666666666,
+      "config_path": "configs/experiments/e3_memory_hubs_rsm_round4_seed311.yaml",
+      "split": "test",
+      "manifest_hash": "4e3ce7636e1c0900cf975a4e3c6e845f07c4e38eb63b1eb90affe983be0f63bc"
+    }
+  ],
+  "traffic_breakdown": [
+    {
+      "suite": "a0_e3_ood_branching3_round4_eval",
+      "packet_count": 21,
+      "oracle_deadline_miss_rate": 0.2857142857142857,
+      "on_time_feasible_fraction": 0.9047619047619048,
+      "oracle_initial_slack_mean": 1.525872972275471,
+      "oracle_cost_mean": 28.57047080707404
+    },
+    {
+      "suite": "a0_e3_ood_branching3_round4_eval",
+      "packet_count": 22,
+      "oracle_deadline_miss_rate": 0.18181818181818182,
+      "on_time_feasible_fraction": 1.0,
+      "oracle_initial_slack_mean": 1.193000726656062,
+      "oracle_cost_mean": 24.04650010898198
+    },
+    {
+      "suite": "a0_e3_ood_branching3_round4_eval",
+      "packet_count": 60,
+      "oracle_deadline_miss_rate": 0.2833333333333333,
+      "on_time_feasible_fraction": 0.9,
+      "oracle_initial_slack_mean": 1.542956679164954,
+      "oracle_cost_mean": 28.854622747322242
+    },
+    {
+      "suite": "a0_e3_ood_branching3_round4_eval",
+      "packet_count": 72,
+      "oracle_deadline_miss_rate": 0.16666666666666666,
+      "on_time_feasible_fraction": 0.9722222222222222,
+      "oracle_initial_slack_mean": 1.7553744933324968,
+      "oracle_cost_mean": 28.120622880900086
+    },
+    {
+      "suite": "a0_e3_ood_branching3_round4_eval",
+      "packet_count": 96,
+      "oracle_deadline_miss_rate": 0.2604166666666667,
+      "on_time_feasible_fraction": 0.9479166666666666,
+      "oracle_initial_slack_mean": 1.700269243725666,
+      "oracle_cost_mean": 29.960177224702193
+    },
+    {
+      "suite": "a0_e3_ood_deeper_packets6_round4_eval",
+      "packet_count": 26,
+      "oracle_deadline_miss_rate": 0.2692307692307692,
+      "on_time_feasible_fraction": 1.0,
+      "oracle_initial_slack_mean": 2.320837619505977,
+      "oracle_cost_mean": 31.581405923594346
+    },
+    {
+      "suite": "a0_e3_ood_deeper_packets6_round4_eval",
+      "packet_count": 28,
+      "oracle_deadline_miss_rate": 0.32142857142857145,
+      "on_time_feasible_fraction": 0.9642857142857143,
+      "oracle_initial_slack_mean": 2.1325229496830427,
+      "oracle_cost_mean": 33.78622969009724
+    },
+    {
+      "suite": "a0_e3_ood_deeper_packets6_round4_eval",
+      "packet_count": 54,
+      "oracle_deadline_miss_rate": 0.24074074074074073,
+      "on_time_feasible_fraction": 0.9629629629629629,
+      "oracle_initial_slack_mean": 2.143638549163389,
+      "oracle_cost_mean": 31.30614303644068
+    },
+    {
+      "suite": "a0_e3_ood_deeper_packets6_round4_eval",
+      "packet_count": 65,
+      "oracle_deadline_miss_rate": 0.24615384615384617,
+      "on_time_feasible_fraction": 0.9076923076923077,
+      "oracle_initial_slack_mean": 2.227249367395264,
+      "oracle_cost_mean": 34.55949203370301
+    },
+    {
+      "suite": "a0_e3_ood_deeper_packets6_round4_eval",
+      "packet_count": 78,
+      "oracle_deadline_miss_rate": 0.21794871794871795,
+      "on_time_feasible_fraction": 0.8974358974358975,
+      "oracle_initial_slack_mean": 2.2714762103720467,
+      "oracle_cost_mean": 35.30246445913375
+    },
+    {
+      "suite": "a0_e3_ood_heavy_dynamic_round4_eval",
+      "packet_count": 18,
+      "oracle_deadline_miss_rate": 0.6111111111111112,
+      "on_time_feasible_fraction": 0.9444444444444444,
+      "oracle_initial_slack_mean": 1.02270256887189,
+      "oracle_cost_mean": 41.67430296595067
+    },
+    {
+      "suite": "a0_e3_ood_heavy_dynamic_round4_eval",
+      "packet_count": 21,
+      "oracle_deadline_miss_rate": 0.2857142857142857,
+      "on_time_feasible_fraction": 0.9523809523809523,
+      "oracle_initial_slack_mean": 1.6499427214804065,
+      "oracle_cost_mean": 40.92190710805737
+    },
+    {
+      "suite": "a0_e3_ood_heavy_dynamic_round4_eval",
+      "packet_count": 32,
+      "oracle_deadline_miss_rate": 0.375,
+      "on_time_feasible_fraction": 0.875,
+      "oracle_initial_slack_mean": 2.074694612800002,
+      "oracle_cost_mean": 45.73908669254856
+    },
+    {
+      "suite": "a0_e3_ood_heavy_dynamic_round4_eval",
+      "packet_count": 35,
+      "oracle_deadline_miss_rate": 0.22857142857142856,
+      "on_time_feasible_fraction": 0.9142857142857143,
+      "oracle_initial_slack_mean": 2.696162212610561,
+      "oracle_cost_mean": 50.63785099505516
+    },
+    {
+      "suite": "a0_e3_ood_heavy_dynamic_round4_eval",
+      "packet_count": 40,
+      "oracle_deadline_miss_rate": 0.3,
+      "on_time_feasible_fraction": 0.925,
+      "oracle_initial_slack_mean": 2.2640986928329623,
+      "oracle_cost_mean": 47.456339588229
+    },
+    {
+      "suite": "a0_e3_ood_heavy_dynamic_round4_eval",
+      "packet_count": 90,
+      "oracle_deadline_miss_rate": 0.3333333333333333,
+      "on_time_feasible_fraction": 0.8888888888888888,
+      "oracle_initial_slack_mean": 2.0655960689907458,
+      "oracle_cost_mean": 45.681644915201275
+    },
+    {
+      "suite": "a0_e3_ood_heavy_dynamic_round4_eval",
+      "packet_count": 96,
+      "oracle_deadline_miss_rate": 0.3541666666666667,
+      "on_time_feasible_fraction": 0.8854166666666666,
+      "oracle_initial_slack_mean": 2.09491625420702,
+      "oracle_cost_mean": 46.51559040968318
+    },
+    {
+      "suite": "e3_memory_hubs_rsm_round4_seed311",
+      "packet_count": 9,
+      "oracle_deadline_miss_rate": 0.4444444444444444,
+      "on_time_feasible_fraction": 0.8888888888888888,
+      "oracle_initial_slack_mean": 1.1718720366245745,
+      "oracle_cost_mean": 26.504773361687302
+    },
+    {
+      "suite": "e3_memory_hubs_rsm_round4_seed311",
+      "packet_count": 16,
+      "oracle_deadline_miss_rate": 0.125,
+      "on_time_feasible_fraction": 1.0,
+      "oracle_initial_slack_mean": 2.8235591741181,
+      "oracle_cost_mean": 21.832700001138832
+    },
+    {
+      "suite": "e3_memory_hubs_rsm_round4_seed311",
+      "packet_count": 28,
+      "oracle_deadline_miss_rate": 0.07142857142857142,
+      "on_time_feasible_fraction": 0.9642857142857143,
+      "oracle_initial_slack_mean": 2.2670657752235135,
+      "oracle_cost_mean": 22.324991864729082
+    },
+    {
+      "suite": "e3_memory_hubs_rsm_round4_seed311",
+      "packet_count": 30,
+      "oracle_deadline_miss_rate": 0.16666666666666666,
+      "on_time_feasible_fraction": 1.0,
+      "oracle_initial_slack_mean": 1.6407801555480586,
+      "oracle_cost_mean": 22.232519806258264
+    }
+  ],
+  "depth_breakdown": [
+    {
+      "suite": "a0_e3_ood_branching3_round4_eval",
+      "max_tree_depth": 2,
+      "packet_count": 20,
+      "oracle_deadline_miss_rate": 0.25,
+      "on_time_feasible_fraction": 0.95,
+      "oracle_initial_slack_mean": 1.403762270168037,
+      "oracle_cost_mean": 25.404882227350747
+    },
+    {
+      "suite": "a0_e3_ood_branching3_round4_eval",
+      "max_tree_depth": 3,
+      "packet_count": 251,
+      "oracle_deadline_miss_rate": 0.2350597609561753,
+      "on_time_feasible_fraction": 0.9442231075697212,
+      "oracle_initial_slack_mean": 1.6430450783599937,
+      "oracle_cost_mean": 28.896591516472885
+    },
+    {
+      "suite": "a0_e3_ood_deeper_packets6_round4_eval",
+      "max_tree_depth": 3,
+      "packet_count": 9,
+      "oracle_deadline_miss_rate": 0.4444444444444444,
+      "on_time_feasible_fraction": 0.8888888888888888,
+      "oracle_initial_slack_mean": 1.606589374514904,
+      "oracle_cost_mean": 30.642769372953403
+    },
+    {
+      "suite": "a0_e3_ood_deeper_packets6_round4_eval",
+      "max_tree_depth": 4,
+      "packet_count": 242,
+      "oracle_deadline_miss_rate": 0.2396694214876033,
+      "on_time_feasible_fraction": 0.9338842975206612,
+      "oracle_initial_slack_mean": 2.2450245920338068,
+      "oracle_cost_mean": 33.80924378078727
+    },
+    {
+      "suite": "a0_e3_ood_heavy_dynamic_round4_eval",
+      "max_tree_depth": 3,
+      "packet_count": 19,
+      "oracle_deadline_miss_rate": 0.42105263157894735,
+      "on_time_feasible_fraction": 0.9473684210526315,
+      "oracle_initial_slack_mean": 1.4021262877985723,
+      "oracle_cost_mean": 40.67100231880878
+    },
+    {
+      "suite": "a0_e3_ood_heavy_dynamic_round4_eval",
+      "max_tree_depth": 4,
+      "packet_count": 313,
+      "oracle_deadline_miss_rate": 0.3354632587859425,
+      "on_time_feasible_fraction": 0.8977635782747604,
+      "oracle_initial_slack_mean": 2.1238099146962903,
+      "oracle_cost_mean": 46.47866556809679
+    },
+    {
+      "suite": "e3_memory_hubs_rsm_round4_seed311",
+      "max_tree_depth": 2,
+      "packet_count": 5,
+      "oracle_deadline_miss_rate": 0.0,
+      "on_time_feasible_fraction": 1.0,
+      "oracle_initial_slack_mean": 2.5454583236578214,
+      "oracle_cost_mean": 20.873399445496855
+    },
+    {
+      "suite": "e3_memory_hubs_rsm_round4_seed311",
+      "max_tree_depth": 3,
+      "packet_count": 78,
+      "oracle_deadline_miss_rate": 0.16666666666666666,
+      "on_time_feasible_fraction": 0.9743589743589743,
+      "oracle_initial_slack_mean": 1.9961249983323308,
+      "oracle_cost_mean": 22.76377601853955
+    }
+  ]
+}

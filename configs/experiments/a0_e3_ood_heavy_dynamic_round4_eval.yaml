@@ -1,0 +1,37 @@
+name: a0_e3_ood_heavy_dynamic_round4_eval
+bucket: exploit
+stage: scout
+notes: round4 oracle-feasible OOD stress for E3 on deeper queues and stronger congestion penalties
+seed: 403
+output_dir: artifacts/experiments/a0_e3_ood_heavy_dynamic_round4_eval
+benchmark:
+  val_episodes: 64
+  test_episodes: 64
+  curriculum_levels: [multi_dynamic]
+  hidden_corridor:
+    seed: 403
+    tree_depth_min: 3
+    tree_depth_max: 4
+    packets_min: 2
+    packets_max: 8
+    community_base_queue: [2.5, 8.0]
+    queue_penalty: 0.45
+    capacity_penalty: 3.0
+    urgency_penalty: 1.4
+    deadline_mode: oracle_calibrated
+    deadline_slack_ratio_range: [0.03, 0.12]
+    deadline_slack_abs_range: [0.25, 1.0]
+train:
+  eval_batch_size: 24
+  device: cuda:0
+  bf16: true
+  rollout_eval_episodes: 16
+model:
+  d_model: 128
+  d_state: 16
+  inner_layers: 2
+  outer_steps: 3
+  router_variant: memory_hubs
+  final_step_only_loss: true
+  detach_warmup: true
+  penultimate_grad_prob: 0.25

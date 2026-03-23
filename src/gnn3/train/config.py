@@ -37,6 +37,9 @@ class TrainConfig:
     device: str = "auto"
     value_weight: float = 0.2
     route_weight: float = 0.1
+    deadline_bce_weight: float = 0.0
+    slack_loss_weight: float = 0.0
+    quantile_loss_weight: float = 0.0
     rollout_eval_episodes: int = 16
 
 

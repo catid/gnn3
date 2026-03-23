@@ -14,6 +14,7 @@ from gnn3.data.hidden_corridor import (
     collate_decisions,
     shortest_path,
 )
+from gnn3.eval.oracle_analysis import audit_oracle_deadlines
 from gnn3.models.packet_mamba import PacketMambaConfig, PacketMambaModel, compute_losses
 from gnn3.train.config import (
     BenchmarkConfig,
@@ -143,6 +144,62 @@ def test_history_summary_bank_forward_path() -> None:
     assert "history_global_bank_share" in output["diagnostics"]
 
 
+def test_deadline_head_forward_and_loss() -> None:
+    cfg = HiddenCorridorConfig(
+        seed=13,
+        deadline_mode="oracle_calibrated",
+    )
+    dataset = HiddenCorridorDecisionDataset(config=cfg, num_episodes=2)
+    batch = collate_decisions([dataset[0], dataset[1]])
+    model = PacketMambaModel(
+        PacketMambaConfig(
+            node_feature_dim=batch["node_features"].shape[-1],
+            outer_steps=2,
+            inner_layers=2,
+            router_variant="memory_hubs",
+            detach_warmup=True,
+            deadline_head=True,
+            risk_aware_scoring=True,
+        )
+    )
+    output = model(batch)
+    losses = compute_losses(
+        output,
+        batch,
+        final_step_only=True,
+        deadline_bce_weight=0.2,
+        slack_weight=0.1,
+        quantile_weight=0.1,
+        quantiles=model.config.quantile_levels,
+        verifier_aux_last_k_steps=model.config.verifier_aux_last_k_steps,
+    )
+    assert output["selection_scores"].shape == output["node_logits"].shape
+    assert output["candidate_on_time_logits"].shape == output["node_logits"].shape
+    assert output["candidate_cost_quantiles"].shape[-1] == len(model.config.quantile_levels)
+    assert float(losses["on_time_loss"].detach()) >= 0.0
+
+
+def test_hazard_memory_forward_path() -> None:
+    cfg = HiddenCorridorConfig(
+        seed=14,
+        deadline_mode="oracle_calibrated",
+    )
+    dataset = HiddenCorridorDecisionDataset(config=cfg, num_episodes=2)
+    batch = collate_decisions([dataset[0], dataset[1]])
+    model = PacketMambaModel(
+        PacketMambaConfig(
+            node_feature_dim=batch["node_features"].shape[-1],
+            outer_steps=2,
+            inner_layers=2,
+            router_variant="memory_hubs",
+            detach_warmup=True,
+            hazard_memory=True,
+        )
+    )
+    output = model(batch)
+    assert output["node_logits"].shape[0] == 2
+
+
 def test_dataset_manifest_is_stable_for_same_seed() -> None:
     cfg = HiddenCorridorConfig(seed=10)
     dataset_a = HiddenCorridorDecisionDataset(config=cfg, num_episodes=4)
@@ -172,6 +229,23 @@ def test_split_seed_offsets_make_val_and_test_manifests_distinct() -> None:
         curriculum_levels=benchmark.curriculum_levels,
     )
     assert val_dataset.manifest()["manifest_hash"] != test_dataset.manifest()["manifest_hash"]
+
+
+def test_oracle_calibrated_deadlines_restore_feasible_routes() -> None:
+    cfg = HiddenCorridorConfig(
+        seed=12,
+        deadline_mode="oracle_calibrated",
+    )
+    dataset = HiddenCorridorDecisionDataset(
+        config=cfg,
+        num_episodes=8,
+        curriculum_levels=("single_dynamic", "multi_dynamic"),
+    )
+    audits = audit_oracle_deadlines(dataset.episodes, config=cfg)
+    feasible_fraction = sum(audit.has_on_time_feasible_route for audit in audits) / len(audits)
+    miss_fraction = sum(audit.oracle_deadline_missed for audit in audits) / len(audits)
+    assert feasible_fraction > 0.9
+    assert miss_fraction < 0.5
 
 
 def test_smoke_training_runs(tmp_path: Path) -> None:

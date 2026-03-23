@@ -44,7 +44,7 @@ def _predict_next_hop(
 ) -> int:
     batch = _move_batch(collate_decisions([record]), device)
     output = model(batch)
-    return int(output["node_logits"].argmax(dim=-1).item())
+    return int(output["selection_scores"].argmax(dim=-1).item())
 
 
 def _rollout_episode(
@@ -90,6 +90,7 @@ def _rollout_episode(
                 record = make_decision_record(
                     working_graph,
                     packet,
+                    config=config,
                     current_node=current,
                     target_next_hop=oracle_next_hop,
                     cost_to_go=path_cost,
@@ -97,6 +98,7 @@ def _rollout_episode(
                     packet_index=packet_index,
                     packet_count=len(episode.packets),
                     curriculum_level="eval",
+                    include_candidate_targets=False,
                 )
                 chosen_next_hop = _predict_next_hop(model, record, device)
             total_steps += 1

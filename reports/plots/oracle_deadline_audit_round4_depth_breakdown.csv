@@ -1,0 +1,9 @@
+suite,max_tree_depth,packet_count,oracle_deadline_miss_rate,on_time_feasible_fraction,oracle_initial_slack_mean,oracle_cost_mean
+a1_e3_ood_branching3_eval,2,5,1.0,0.0,-32.14050494746507,44.8071060894999
+a1_e3_ood_branching3_eval,3,258,1.0,0.0,-31.145274604568826,44.00862609806996
+a1_e3_ood_deeper_packets6_eval,3,5,1.0,0.0,-39.2274918115743,54.49442103340173
+a1_e3_ood_deeper_packets6_eval,4,246,1.0,0.0,-40.90461652644409,54.28818426901143
+a1_e3_ood_heavy_dynamic_eval,3,27,1.0,0.0,-52.76128284023294,64.70490817970683
+a1_e3_ood_heavy_dynamic_eval,4,322,1.0,0.0,-57.089682507034354,70.88297031522008
+e3_memory_hubs_rsm_round3_seed211,2,1,1.0,0.0,-6.907498201752878,17.203663646194013
+e3_memory_hubs_rsm_round3_seed211,3,88,1.0,0.0,-22.37405840719034,35.720525031619545

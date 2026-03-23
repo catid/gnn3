@@ -26,6 +26,10 @@ Key artifact bundle:
 - [round4_multiheavy_path_reranker_vs_e3.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_vs_e3.png)
 - [round4_multiheavy_path_reranker_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_vs_multiheavy.csv)
 - [round4_multiheavy_path_reranker_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_vs_multiheavy.png)
+- [round4_combined_deadline_head_vs_combined.csv](/home/catid/gnn3/reports/plots/round4_combined_deadline_head_vs_combined.csv)
+- [round4_combined_deadline_head_vs_combined.png](/home/catid/gnn3/reports/plots/round4_combined_deadline_head_vs_combined.png)
+- [round4_multiheavy_path_reranker_ood_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_ood_vs_multiheavy.csv)
+- [round4_multiheavy_path_reranker_ood_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_ood_vs_multiheavy.png)
 - [portfolio_usage_round4.csv](/home/catid/gnn3/reports/plots/portfolio_usage_round4.csv)
 - [portfolio_usage_round4.png](/home/catid/gnn3/reports/plots/portfolio_usage_round4.png)
 
@@ -290,25 +294,103 @@ Per-seed direction against plain multiheavy:
 
 Decision:
 
-- the combined multiheavy plus reranker recipe is now the lead exploit contender in the repo
-- its gain over plain multiheavy is modest but consistent and comes at low additional GPU cost
-- the standalone reranker signal is too unstable to prioritize separately, but the add-on is worthwhile on top of multiheavy
+- the combined multiheavy plus reranker recipe is the lead **in-distribution** exploit contender in the repo
+- its gain over plain multiheavy is modest but consistent on the matched baseline suites
+- the standalone reranker signal is too unstable to prioritize separately, but the add-on is still worth stress-testing before promotion
+
+### Combined Deadline-Head Add-On
+
+Artifacts:
+
+- [round4_combined_deadline_head_vs_combined.csv](/home/catid/gnn3/reports/plots/round4_combined_deadline_head_vs_combined.csv)
+- [round4_combined_deadline_head_vs_combined.png](/home/catid/gnn3/reports/plots/round4_combined_deadline_head_vs_combined.png)
+
+I ran the smallest calibration-style follow-up on top of the combined leader: keep multiheavy plus reranking intact, then add the candidate-level on-time / slack / quantile heads with the existing risk-aware scoring path.
+
+Seed `311` result against the combined baseline:
+
+- combined baseline:
+  - `1.37` regret
+  - `5.71` p95
+  - `37.5%` miss
+- combined + deadline head:
+  - `1.37` regret
+  - `5.71` p95
+  - `37.5%` miss
+
+What changed:
+
+- auxiliary metrics improved and the training curve found a better mid-training validation rollout (`1.19` regret, `4.28` p95) than the plain combined model
+- the selected test-time checkpoint did **not** improve the actual held-out rollout
+
+Decision:
+
+- this add-on is **not promoted**
+- it remains a calibration-positive but rollout-flat scout on the real test split
+- if auxiliary heads are revisited again, they should be tested against the plain multiheavy baseline or under stronger checkpoint-selection discipline
+
+### OOD Stress Follow-Up
+
+Artifacts:
+
+- [round4_multiheavy_path_reranker_ood_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_ood_vs_multiheavy.csv)
+- [round4_multiheavy_path_reranker_ood_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_ood_vs_multiheavy.png)
+
+I then stress-tested the combined model against plain multiheavy on the rebalanced OOD suites.
+
+Mean OOD result across seeds `311/312/313` and suites:
+
+- multiheavy:
+  - mean regret: `6.45`
+  - mean p95 regret: `17.81`
+  - mean deadline miss rate: `95.8%`
+  - mean rollout next-hop accuracy: `93.4%`
+- combined:
+  - mean regret: `74.34`
+  - mean p95 regret: `300.64`
+  - mean deadline miss rate: `93.8%`
+  - mean rollout next-hop accuracy: `91.7%`
+
+Suite-wise mean comparison:
+
+- branching3:
+  - multiheavy: `6.89` regret, `15.54` p95
+  - combined: `5.04` regret, `12.85` p95
+- deeper_packets6:
+  - multiheavy: `3.77` regret, `10.03` p95
+  - combined: `204.19` regret, `820.68` p95
+- heavy_dynamic:
+  - multiheavy: `8.69` regret, `27.85` p95
+  - combined: `13.80` regret, `68.38` p95
+
+Interpretation:
+
+- the reranker helps on the easier branching OOD suite
+- it is catastrophically unstable on deeper-packets OOD for seeds `311` and `312`
+- it is also worse than plain multiheavy on the heavy-dynamic suite on average
+
+Decision:
+
+- the combined reranker recipe is **not** the robust exploit default
+- plain multiheavy remains the correct exploit baseline for hard OOD work
+- the combined model should now be treated as an in-distribution contender that requires OOD stabilization before any broader promotion
 
 ## Recommendation
 
 1. Keep the rebalanced `oracle_calibrated` suites as the only valid deadline-robustness ranking target.
-2. Promote the combined multiheavy plus reranker recipe to the current lead exploit contender on these suites.
-3. Keep plain multiheavy as the simpler fallback baseline. It already gives most of the gain and remains the cleaner ablation anchor.
-4. Do not promote the standalone reranker path. Its third matched seed failed, so it should now be treated as an additive module, not a separate branch.
-5. Demote `A2`, `A4`, and `B1` behind the new exploit winners. `A2` still matters as a calibration tool, but it no longer has the best direct path to rollout improvement.
-6. Keep `detach_warmup` untouched.
+2. Keep plain multiheavy as the **robust exploit default**. It remains clearly better than fresh `E3` and it does not show the reranker’s deep-OOD blow-up.
+3. Keep the combined multiheavy plus reranker recipe as an **in-distribution contender**, not a promoted default. It wins on the matched baseline suites but fails the hard OOD stress check.
+4. Do not promote the standalone reranker path. Its third matched seed failed, and the add-on only makes sense inside the combined recipe.
+5. Do not promote the combined deadline-head add-on. On the real test rollout it matched the combined baseline exactly.
+6. Demote `A2`, `A4`, and `B1` behind the current exploit winners. If auxiliary heads are revisited, do so against plain multiheavy or as an OOD regularizer for the reranker.
+7. Keep `detach_warmup` untouched.
 
 ## Portfolio
 
 - round-four exploit GPU-hours before follow-up closeout: `0.5628`
 - round-four explore GPU-hours: `0.2646`
-- round-four follow-up exploit GPU-hours: `0.5459`
-- round-four-plus-follow-up split: `80.7% exploit / 19.3% explore`
+- round-four follow-up exploit GPU-hours: `0.9853`
+- round-four-plus-follow-up split: `85.4% exploit / 14.6% explore`
 
 This overshoots the original round-four `70/30` target because the only remaining open issues after the first report were exploit-side contender closeout tasks.
 
@@ -325,9 +407,11 @@ Definition-of-done checklist:
 - multiheavy exploit follow-up completed across 3 matched seeds: complete
 - standalone candidate-path reranker checked through the negative third seed: complete
 - combined multiheavy plus reranker contender completed across 3 matched seeds: complete
+- combined deadline-head add-on checked on the lead in-distribution recipe: complete
+- combined versus multiheavy OOD stress batch completed across 3 matched seeds: complete
 
 Round-four conclusion:
 
 - the main new knowledge is that the benchmark deadline contract needed recalibration before model work could be trusted
-- after that fix, the combined multiheavy plus reranker recipe became the current lead exploit contender over both plain `E3` and plain multiheavy
-- the path-level extension is useful as a bounded add-on, not as a standalone architectural branch
+- after that fix, plain multiheavy became the robust exploit default and the combined reranker recipe became a narrower in-distribution contender
+- the path-level extension is useful as a bounded add-on, not as a standalone architectural branch, but it still needs deep/heavy OOD stabilization

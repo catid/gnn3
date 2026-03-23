@@ -232,6 +232,8 @@ def _portfolio_frame() -> pd.DataFrame:
         {"experiment": "A3-path-reranker", "bucket": "exploit", "gpu_hours": 0.10660791357358296, "status": "completed"},
         {"experiment": "A3-path-reranker-seed313", "bucket": "exploit", "gpu_hours": 0.028074771033393637, "status": "killed-early"},
         {"experiment": "A3-combined-multiheavy-reranker", "bucket": "exploit", "gpu_hours": 0.18660099433528052, "status": "completed"},
+        {"experiment": "A2-combined-deadline-head", "bucket": "exploit", "gpu_hours": 0.06111519972483317, "status": "completed"},
+        {"experiment": "A3-combined-ood-stress", "bucket": "exploit", "gpu_hours": 0.37833333333333335, "status": "completed"},
         {"experiment": "B1-hazard-memory", "bucket": "explore", "gpu_hours": 0.26461411317189536, "status": "completed"},
     ]
     frame = pd.DataFrame(rows)
@@ -326,6 +328,109 @@ def _plot_variant_compare(frame: pd.DataFrame, *, title_prefix: str, output_name
     axes[2].bar([idx + width / 2 for idx in x], variant["deadline_miss_rate"], width=width, color="#ff7f0e")
     axes[2].set_title(f"{title_prefix} Deadline Miss")
     axes[2].set_xticks(list(x), seeds)
+    axes[2].set_ylim(0.0, 1.0)
+    axes[0].legend()
+
+    fig.tight_layout()
+    fig.savefig(PLOTS_DIR / output_name, dpi=160)
+    plt.close(fig)
+
+
+def _suite_label(experiment_name: str) -> str:
+    if "branching3" in experiment_name:
+        return "branching3"
+    if "deeper_packets6" in experiment_name:
+        return "deeper_packets6"
+    if "heavy_dynamic" in experiment_name:
+        return "heavy_dynamic"
+    return experiment_name
+
+
+def _ood_compare_frame() -> pd.DataFrame:
+    rows: list[dict[str, float | int | str]] = []
+    specs = [
+        (311, "round4_multiheavy_ood_seed311.csv", "round4_multiheavy_path_reranker_ood_seed311.csv"),
+        (312, "round4_multiheavy_ood_seed312.csv", "round4_multiheavy_path_reranker_ood_seed312.csv"),
+        (313, "round4_multiheavy_ood_seed313.csv", "round4_multiheavy_path_reranker_ood_seed313.csv"),
+    ]
+    for seed, baseline_name, variant_name in specs:
+        baseline_path = PLOTS_DIR / baseline_name
+        variant_path = PLOTS_DIR / variant_name
+        if not baseline_path.exists() or not variant_path.exists():
+            continue
+        baseline_df = pd.read_csv(baseline_path).copy()
+        variant_df = pd.read_csv(variant_path).copy()
+        for variant_label, frame in (("Multiheavy", baseline_df), ("Multiheavy+PathReranker", variant_df)):
+            frame["suite"] = frame["experiment"].map(_suite_label)
+            for _, row in frame.iterrows():
+                rows.append(
+                    {
+                        "seed": seed,
+                        "suite": row["suite"],
+                        "variant": variant_label,
+                        "average_regret": row["average_regret"],
+                        "p95_regret": row["p95_regret"],
+                        "deadline_miss_rate": row["deadline_miss_rate"],
+                        "rollout_next_hop_accuracy": row["rollout_next_hop_accuracy"],
+                    }
+                )
+    frame = pd.DataFrame(rows)
+    if frame.empty:
+        return frame
+    mean_rows: list[dict[str, float | int | str]] = []
+    for (suite, variant), suite_frame in frame.groupby(["suite", "variant"]):
+        mean_rows.append(
+            {
+                "seed": "mean",
+                "suite": suite,
+                "variant": variant,
+                "average_regret": suite_frame["average_regret"].mean(),
+                "p95_regret": suite_frame["p95_regret"].mean(),
+                "deadline_miss_rate": suite_frame["deadline_miss_rate"].mean(),
+                "rollout_next_hop_accuracy": suite_frame["rollout_next_hop_accuracy"].mean(),
+            }
+        )
+    for variant, variant_frame in frame.groupby("variant"):
+        mean_rows.append(
+            {
+                "seed": "mean",
+                "suite": "overall",
+                "variant": variant,
+                "average_regret": variant_frame["average_regret"].mean(),
+                "p95_regret": variant_frame["p95_regret"].mean(),
+                "deadline_miss_rate": variant_frame["deadline_miss_rate"].mean(),
+                "rollout_next_hop_accuracy": variant_frame["rollout_next_hop_accuracy"].mean(),
+            }
+        )
+    return pd.concat([frame, pd.DataFrame(mean_rows)], ignore_index=True)
+
+
+def _plot_ood_compare(frame: pd.DataFrame, *, output_name: str) -> None:
+    plot_df = frame[frame["seed"] == "mean"].copy()
+    if plot_df.empty:
+        return
+    plot_df = plot_df[plot_df["suite"] != "overall"].copy()
+    suites = list(dict.fromkeys(plot_df["suite"]))
+    x = range(len(suites))
+    width = 0.35
+    baseline = plot_df[plot_df["variant"] == "Multiheavy"].set_index("suite").loc[suites]
+    variant = plot_df[plot_df["variant"] == "Multiheavy+PathReranker"].set_index("suite").loc[suites]
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    axes[0].bar([idx - width / 2 for idx in x], baseline["average_regret"], width=width, label="Multiheavy", color="#1f77b4")
+    axes[0].bar([idx + width / 2 for idx in x], variant["average_regret"], width=width, label="Multiheavy+PathReranker", color="#ff7f0e")
+    axes[0].set_title("OOD Regret")
+    axes[0].set_xticks(list(x), suites)
+
+    axes[1].bar([idx - width / 2 for idx in x], baseline["p95_regret"], width=width, color="#1f77b4")
+    axes[1].bar([idx + width / 2 for idx in x], variant["p95_regret"], width=width, color="#ff7f0e")
+    axes[1].set_title("OOD p95")
+    axes[1].set_xticks(list(x), suites)
+
+    axes[2].bar([idx - width / 2 for idx in x], baseline["deadline_miss_rate"], width=width, color="#1f77b4")
+    axes[2].bar([idx + width / 2 for idx in x], variant["deadline_miss_rate"], width=width, color="#ff7f0e")
+    axes[2].set_title("OOD Deadline Miss")
+    axes[2].set_xticks(list(x), suites)
     axes[2].set_ylim(0.0, 1.0)
     axes[0].legend()
 
@@ -432,6 +537,36 @@ def main() -> None:
         title_prefix="Multiheavy+Path Reranker vs Multiheavy",
         output_name="round4_multiheavy_path_reranker_vs_multiheavy.png",
     )
+
+    combined_deadline_head_summary = ARTIFACTS_DIR / "a2_e3_multiheavy_path_reranker_deadline_head_round4_seed311" / "summary.json"
+    if combined_deadline_head_summary.exists():
+        combined_deadline_head = _variant_compare_frame(
+            [
+                (311, "a3_e3_multiheavy_path_reranker_round4_seed311", "a2_e3_multiheavy_path_reranker_deadline_head_round4_seed311"),
+            ]
+        )
+        combined_deadline_head["variant"] = combined_deadline_head["variant"].replace(
+            {"E3": "Multiheavy+PathReranker", "variant": "Multiheavy+PathReranker+DeadlineHead"}
+        )
+        combined_deadline_head.loc[
+            (combined_deadline_head["seed"] == "mean") & (combined_deadline_head["variant"] == "Multiheavy+PathReranker"),
+            "experiment",
+        ] = "Multiheavy+PathReranker-mean"
+        combined_deadline_head.loc[
+            (combined_deadline_head["seed"] == "mean") & (combined_deadline_head["variant"] == "Multiheavy+PathReranker+DeadlineHead"),
+            "experiment",
+        ] = "Multiheavy+PathReranker+DeadlineHead-mean"
+        combined_deadline_head.to_csv(PLOTS_DIR / "round4_combined_deadline_head_vs_combined.csv", index=False)
+        _plot_variant_compare(
+            combined_deadline_head,
+            title_prefix="Combined Deadline Head vs Combined",
+            output_name="round4_combined_deadline_head_vs_combined.png",
+        )
+
+    ood_compare = _ood_compare_frame()
+    if not ood_compare.empty:
+        ood_compare.to_csv(PLOTS_DIR / "round4_multiheavy_path_reranker_ood_vs_multiheavy.csv", index=False)
+        _plot_ood_compare(ood_compare, output_name="round4_multiheavy_path_reranker_ood_vs_multiheavy.png")
 
     portfolio = _portfolio_frame()
     portfolio.to_csv(PLOTS_DIR / "portfolio_usage_round4.csv", index=False)

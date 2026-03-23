@@ -1,0 +1,5 @@
+seed,variant,experiment,test_next_hop_accuracy,average_regret,p95_regret,deadline_miss_rate,gpu_hours
+311,Multiheavy+PathReranker,a3_e3_multiheavy_path_reranker_round4_seed311,0.9534313854049233,1.3653582334518433,5.706894874572754,0.375,0.06248185488912794
+311,Multiheavy+PathReranker+DeadlineHead,a2_e3_multiheavy_path_reranker_deadline_head_round4_seed311,0.9534313854049233,1.3653582334518433,5.706894874572754,0.375,0.06111519972483317
+mean,Multiheavy+PathReranker,Multiheavy+PathReranker-mean,0.9534313854049233,1.3653582334518433,5.706894874572754,0.375,0.06248185488912794
+mean,Multiheavy+PathReranker+DeadlineHead,Multiheavy+PathReranker+DeadlineHead-mean,0.9534313854049233,1.3653582334518433,5.706894874572754,0.375,0.06111519972483317

@@ -32,12 +32,14 @@
 | A3-R4-path-reranker | exploit | Implement and scout the lightweight candidate-path reranker on matched rebalanced suites. | 0.12 | 0.1066 | completed | 2 seeds beat matched `E3`: mean regret 1.79 vs 2.24, mean p95 9.38 vs 10.41, mean deadline miss 43.8% vs 50.0%. |
 | A3-R4-path-reranker-seed313 | exploit | Finish the third matched reranker seed before deciding whether the standalone reranker deserves promotion. | 0.06 | 0.0281 | killed-early | Negative third seed plateaued at 2.47 regret, 9.20 p95, and 68.8% miss, so standalone reranking was not promoted. |
 | A3-R4-multiheavy-reranker-combined | exploit | Test whether the lightweight reranker adds value on top of the new lead multiheavy curriculum rather than as a standalone branch. | 0.20 | 0.1866 | completed | 3 matched seeds slightly beat multiheavy and clearly beat `E3`: mean regret 1.23, mean p95 4.69, mean miss 39.6%. |
+| A2-R4-combined-deadline-head | exploit | Test the existing deadline/slack/quantile head on top of the combined multiheavy plus reranker recipe. | 0.08 | 0.0611 | completed | Improved auxiliary calibration metrics, but the held-out test rollout matched the combined baseline exactly on seed 311. |
+| A3-R4-combined-ood-stress | exploit | Stress-test the combined reranker recipe against plain multiheavy on the rebalanced hard OOD suites. | 0.40 | 0.3783 | completed | Negative OOD result: combined mean regret 74.34 vs 6.45 for multiheavy, driven by catastrophic deeper-packets failures on seeds 311 and 312. |
 
 Current cumulative GPU-hours:
 
-- Round-four-plus-follow-up exploit: `1.1087`
+- Round-four-plus-follow-up exploit: `1.5481`
 - Round-four-plus-follow-up explore: `0.2646`
-- Round-four-plus-follow-up split: `80.7% / 19.3%`
-- Overall exploit: `2.3774`
+- Round-four-plus-follow-up split: `85.4% / 14.6%`
+- Overall exploit: `2.8168`
 - Overall explore: `1.4444`
-- Overall split: `62.2% / 37.8%`
+- Overall split: `66.1% / 33.9%`

@@ -56,6 +56,11 @@ def evaluate_config(config: ExperimentConfig, checkpoint_path: Path) -> dict[str
         final_step_only=config.model.final_step_only_loss,
         value_weight=config.train.value_weight,
         route_weight=config.train.route_weight,
+        deadline_bce_weight=config.train.deadline_bce_weight,
+        slack_loss_weight=config.train.slack_loss_weight,
+        quantile_loss_weight=config.train.quantile_loss_weight,
+        quantiles=config.model.quantile_levels,
+        verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
     )
     rollout_metrics = evaluate_rollouts(
         model,

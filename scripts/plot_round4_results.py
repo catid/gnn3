@@ -230,6 +230,8 @@ def _portfolio_frame() -> pd.DataFrame:
         {"experiment": "A4-verifier-refine", "bucket": "exploit", "gpu_hours": 0.07911762999163734, "status": "completed"},
         {"experiment": "A3-multiheavy-followup", "bucket": "exploit", "gpu_hours": 0.22461334804693855, "status": "completed"},
         {"experiment": "A3-path-reranker", "bucket": "exploit", "gpu_hours": 0.10660791357358296, "status": "completed"},
+        {"experiment": "A3-path-reranker-seed313", "bucket": "exploit", "gpu_hours": 0.028074771033393637, "status": "killed-early"},
+        {"experiment": "A3-combined-multiheavy-reranker", "bucket": "exploit", "gpu_hours": 0.18660099433528052, "status": "completed"},
         {"experiment": "B1-hazard-memory", "bucket": "explore", "gpu_hours": 0.26461411317189536, "status": "completed"},
     ]
     frame = pd.DataFrame(rows)
@@ -303,22 +305,24 @@ def _plot_variant_compare(frame: pd.DataFrame, *, title_prefix: str, output_name
     x = range(len(seeds))
     width = 0.35
 
-    e3 = plot_df[plot_df["variant"] == "E3"].set_index("seed").loc[seeds]
-    variant_name = next(name for name in plot_df["variant"].unique() if name != "E3")
+    variant_names = list(dict.fromkeys(plot_df["variant"]))
+    baseline_name = variant_names[0]
+    variant_name = variant_names[1]
+    baseline = plot_df[plot_df["variant"] == baseline_name].set_index("seed").loc[seeds]
     variant = plot_df[plot_df["variant"] == variant_name].set_index("seed").loc[seeds]
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 4))
-    axes[0].bar([idx - width / 2 for idx in x], e3["average_regret"], width=width, label="E3", color="#1f77b4")
+    axes[0].bar([idx - width / 2 for idx in x], baseline["average_regret"], width=width, label=baseline_name, color="#1f77b4")
     axes[0].bar([idx + width / 2 for idx in x], variant["average_regret"], width=width, label=variant_name, color="#ff7f0e")
     axes[0].set_title(f"{title_prefix} Regret")
     axes[0].set_xticks(list(x), seeds)
 
-    axes[1].bar([idx - width / 2 for idx in x], e3["p95_regret"], width=width, color="#1f77b4")
+    axes[1].bar([idx - width / 2 for idx in x], baseline["p95_regret"], width=width, color="#1f77b4")
     axes[1].bar([idx + width / 2 for idx in x], variant["p95_regret"], width=width, color="#ff7f0e")
     axes[1].set_title(f"{title_prefix} p95")
     axes[1].set_xticks(list(x), seeds)
 
-    axes[2].bar([idx - width / 2 for idx in x], e3["deadline_miss_rate"], width=width, color="#1f77b4")
+    axes[2].bar([idx - width / 2 for idx in x], baseline["deadline_miss_rate"], width=width, color="#1f77b4")
     axes[2].bar([idx + width / 2 for idx in x], variant["deadline_miss_rate"], width=width, color="#ff7f0e")
     axes[2].set_title(f"{title_prefix} Deadline Miss")
     axes[2].set_xticks(list(x), seeds)
@@ -381,6 +385,7 @@ def main() -> None:
         ]
     )
     multiheavy["variant"] = multiheavy["variant"].replace({"variant": "Multiheavy"})
+    multiheavy.loc[(multiheavy["seed"] == "mean") & (multiheavy["variant"] == "Multiheavy"), "experiment"] = "Multiheavy-mean"
     multiheavy.to_csv(PLOTS_DIR / "round4_multiheavy_vs_e3.csv", index=False)
     _plot_variant_compare(multiheavy, title_prefix="Multiheavy vs E3", output_name="round4_multiheavy_vs_e3.png")
 
@@ -391,8 +396,42 @@ def main() -> None:
         ]
     )
     reranker["variant"] = reranker["variant"].replace({"variant": "PathReranker"})
+    reranker.loc[(reranker["seed"] == "mean") & (reranker["variant"] == "PathReranker"), "experiment"] = "PathReranker-mean"
     reranker.to_csv(PLOTS_DIR / "round4_path_reranker_vs_e3.csv", index=False)
     _plot_variant_compare(reranker, title_prefix="Path Reranker vs E3", output_name="round4_path_reranker_vs_e3.png")
+
+    combined_e3 = _variant_compare_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_seed311", "a3_e3_multiheavy_path_reranker_round4_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_seed312", "a3_e3_multiheavy_path_reranker_round4_seed312"),
+            (313, "e3_memory_hubs_rsm_round4_seed313", "a3_e3_multiheavy_path_reranker_round4_seed313"),
+        ]
+    )
+    combined_e3["variant"] = combined_e3["variant"].replace({"variant": "Multiheavy+PathReranker"})
+    combined_e3.loc[(combined_e3["seed"] == "mean") & (combined_e3["variant"] == "Multiheavy+PathReranker"), "experiment"] = "Multiheavy+PathReranker-mean"
+    combined_e3.to_csv(PLOTS_DIR / "round4_multiheavy_path_reranker_vs_e3.csv", index=False)
+    _plot_variant_compare(
+        combined_e3,
+        title_prefix="Multiheavy+Path Reranker vs E3",
+        output_name="round4_multiheavy_path_reranker_vs_e3.png",
+    )
+
+    combined_multiheavy = _variant_compare_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "a3_e3_multiheavy_path_reranker_round4_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "a3_e3_multiheavy_path_reranker_round4_seed312"),
+            (313, "e3_memory_hubs_rsm_round4_multiheavy_seed313", "a3_e3_multiheavy_path_reranker_round4_seed313"),
+        ]
+    )
+    combined_multiheavy["variant"] = combined_multiheavy["variant"].replace({"E3": "Multiheavy", "variant": "Multiheavy+PathReranker"})
+    combined_multiheavy.loc[(combined_multiheavy["seed"] == "mean") & (combined_multiheavy["variant"] == "Multiheavy"), "experiment"] = "Multiheavy-mean"
+    combined_multiheavy.loc[(combined_multiheavy["seed"] == "mean") & (combined_multiheavy["variant"] == "Multiheavy+PathReranker"), "experiment"] = "Multiheavy+PathReranker-mean"
+    combined_multiheavy.to_csv(PLOTS_DIR / "round4_multiheavy_path_reranker_vs_multiheavy.csv", index=False)
+    _plot_variant_compare(
+        combined_multiheavy,
+        title_prefix="Multiheavy+Path Reranker vs Multiheavy",
+        output_name="round4_multiheavy_path_reranker_vs_multiheavy.png",
+    )
 
     portfolio = _portfolio_frame()
     portfolio.to_csv(PLOTS_DIR / "portfolio_usage_round4.csv", index=False)

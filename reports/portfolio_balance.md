@@ -30,12 +30,14 @@
 | B1-R4-hazard-memory | explore | Test one narrow structured hazard-memory side channel instead of a new generic communication family. | 0.30 | 0.2646 | completed | 3-seed scout produced positive standalone signal, but matched best-checkpoint rollout was identical to `E3` on seeds 311/312/313. |
 | A3-R4-multiheavy-followup | exploit | Close the open multiheavy curriculum question on the rebalanced feasible suites with a real 3-seed batch. | 0.24 | 0.2246 | completed | 3 matched seeds beat `E3`: mean regret 1.32 vs 2.25, mean p95 4.77 vs 10.48, mean deadline miss 41.7% vs 54.2%. |
 | A3-R4-path-reranker | exploit | Implement and scout the lightweight candidate-path reranker on matched rebalanced suites. | 0.12 | 0.1066 | completed | 2 seeds beat matched `E3`: mean regret 1.79 vs 2.24, mean p95 9.38 vs 10.41, mean deadline miss 43.8% vs 50.0%. |
+| A3-R4-path-reranker-seed313 | exploit | Finish the third matched reranker seed before deciding whether the standalone reranker deserves promotion. | 0.06 | 0.0281 | killed-early | Negative third seed plateaued at 2.47 regret, 9.20 p95, and 68.8% miss, so standalone reranking was not promoted. |
+| A3-R4-multiheavy-reranker-combined | exploit | Test whether the lightweight reranker adds value on top of the new lead multiheavy curriculum rather than as a standalone branch. | 0.20 | 0.1866 | completed | 3 matched seeds slightly beat multiheavy and clearly beat `E3`: mean regret 1.23, mean p95 4.69, mean miss 39.6%. |
 
 Current cumulative GPU-hours:
 
-- Round-four-plus-follow-up exploit: `0.8940`
+- Round-four-plus-follow-up exploit: `1.1087`
 - Round-four-plus-follow-up explore: `0.2646`
-- Round-four-plus-follow-up split: `77.2% / 22.8%`
-- Overall exploit: `2.1627`
+- Round-four-plus-follow-up split: `80.7% / 19.3%`
+- Overall exploit: `2.3774`
 - Overall explore: `1.4444`
-- Overall split: `60.0% / 40.0%`
+- Overall split: `62.2% / 37.8%`

@@ -22,6 +22,10 @@ Key artifact bundle:
 - [round4_multiheavy_vs_e3.png](/home/catid/gnn3/reports/plots/round4_multiheavy_vs_e3.png)
 - [round4_path_reranker_vs_e3.csv](/home/catid/gnn3/reports/plots/round4_path_reranker_vs_e3.csv)
 - [round4_path_reranker_vs_e3.png](/home/catid/gnn3/reports/plots/round4_path_reranker_vs_e3.png)
+- [round4_multiheavy_path_reranker_vs_e3.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_vs_e3.csv)
+- [round4_multiheavy_path_reranker_vs_e3.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_vs_e3.png)
+- [round4_multiheavy_path_reranker_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_vs_multiheavy.csv)
+- [round4_multiheavy_path_reranker_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_vs_multiheavy.png)
 - [portfolio_usage_round4.csv](/home/catid/gnn3/reports/plots/portfolio_usage_round4.csv)
 - [portfolio_usage_round4.png](/home/catid/gnn3/reports/plots/portfolio_usage_round4.png)
 
@@ -241,24 +245,72 @@ Two-seed mean:
 
 Decision:
 
-- the reranker is now implemented, validated, and positively scoped
-- it is not yet a promoted baseline because it only has 2 seeds so far
-- it is the next exploit-side contender batch to run
+- the reranker implementation is valid and does help in some seeds
+- it did not earn standalone promotion
+- the third matched seed was a clean negative and was killed early after plateauing at `2.47` regret, `9.20` p95, and `68.8%` miss
+
+### Combined Multiheavy + Candidate-Path Reranker
+
+Artifacts:
+
+- [round4_multiheavy_path_reranker_vs_e3.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_vs_e3.csv)
+- [round4_multiheavy_path_reranker_vs_e3.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_vs_e3.png)
+- [round4_multiheavy_path_reranker_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_vs_multiheavy.csv)
+- [round4_multiheavy_path_reranker_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_vs_multiheavy.png)
+
+I then ran the actual additive test: keep the rebalanced multiheavy curriculum and add the lightweight reranker on top.
+
+Matched result versus fresh `E3`:
+
+- `E3` mean test next-hop accuracy: `95.57%`
+- combined mean test next-hop accuracy: `95.87%`
+- `E3` mean regret: `2.25`
+- combined mean regret: `1.23`
+- `E3` mean p95 regret: `10.48`
+- combined mean p95 regret: `4.69`
+- `E3` mean deadline miss rate: `54.2%`
+- combined mean deadline miss rate: `39.6%`
+
+Direct comparison versus plain multiheavy:
+
+- multiheavy mean test next-hop accuracy: `95.82%`
+- combined mean test next-hop accuracy: `95.87%`
+- multiheavy mean regret: `1.32`
+- combined mean regret: `1.23`
+- multiheavy mean p95 regret: `4.77`
+- combined mean p95 regret: `4.69`
+- multiheavy mean deadline miss rate: `41.7%`
+- combined mean deadline miss rate: `39.6%`
+
+Per-seed direction against plain multiheavy:
+
+- seed `311`: combined improved regret (`1.37` vs `1.50`), p95 (`5.71` vs `5.96`), and miss (`37.5%` vs `43.8%`)
+- seed `312`: combined improved regret (`1.78` vs `1.92`) while matching p95 (`5.45`) and miss (`43.8%`)
+- seed `313`: combined matched multiheavy exactly on rollout (`0.55` regret, `2.90` p95, `37.5%` miss)
+
+Decision:
+
+- the combined multiheavy plus reranker recipe is now the lead exploit contender in the repo
+- its gain over plain multiheavy is modest but consistent and comes at low additional GPU cost
+- the standalone reranker signal is too unstable to prioritize separately, but the add-on is worthwhile on top of multiheavy
 
 ## Recommendation
 
 1. Keep the rebalanced `oracle_calibrated` suites as the only valid deadline-robustness ranking target.
-2. Promote the multiheavy curriculum from follow-up scout to the current lead exploit recipe on these suites.
-3. Promote the path reranker to the next contender issue and run a third matched seed before combining it with multiheavy.
-4. Demote `A2`, `A4`, and `B1` behind the new exploit winners. `A2` still matters as a calibration tool, but it no longer has the best direct path to rollout improvement.
-5. Keep `detach_warmup` untouched.
+2. Promote the combined multiheavy plus reranker recipe to the current lead exploit contender on these suites.
+3. Keep plain multiheavy as the simpler fallback baseline. It already gives most of the gain and remains the cleaner ablation anchor.
+4. Do not promote the standalone reranker path. Its third matched seed failed, so it should now be treated as an additive module, not a separate branch.
+5. Demote `A2`, `A4`, and `B1` behind the new exploit winners. `A2` still matters as a calibration tool, but it no longer has the best direct path to rollout improvement.
+6. Keep `detach_warmup` untouched.
 
 ## Portfolio
 
 - round-four exploit GPU-hours before follow-up closeout: `0.5628`
 - round-four explore GPU-hours: `0.2646`
-- round-four follow-up exploit GPU-hours: `0.3312`
-- round-four-plus-follow-up split: `77.2% exploit / 22.8% explore`
+- round-four follow-up exploit GPU-hours: `0.5459`
+- round-four-plus-follow-up split: `80.7% exploit / 19.3% explore`
+
+This overshoots the original round-four `70/30` target because the only remaining open issues after the first report were exploit-side contender closeout tasks.
 
 ## Final Status
 
@@ -271,10 +323,11 @@ Definition-of-done checklist:
 - verifier-backed refinement implemented and evaluated: complete
 - single exploration scout implemented and cleanly not promoted: complete
 - multiheavy exploit follow-up completed across 3 matched seeds: complete
-- candidate-path reranker implemented and evaluated on 2 matched seeds: complete
+- standalone candidate-path reranker checked through the negative third seed: complete
+- combined multiheavy plus reranker contender completed across 3 matched seeds: complete
 
 Round-four conclusion:
 
 - the main new knowledge is that the benchmark deadline contract needed recalibration before model work could be trusted
-- after that fix, the multiheavy curriculum became the current lead exploit recipe over plain `E3`
-- the best next architecture-adjacent contender is now the lightweight path reranker, not the deadline/slack head
+- after that fix, the combined multiheavy plus reranker recipe became the current lead exploit contender over both plain `E3` and plain multiheavy
+- the path-level extension is useful as a bounded add-on, not as a standalone architectural branch

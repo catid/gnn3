@@ -23,9 +23,17 @@
 | B2-dense-history | explore | Check whether dense history reads recover the same behavior without summary-bank compression. | 0.11 | 0.1042 | completed | Matched full `X6` rollout metrics exactly on seed 211; summary-bank compression unnecessary. |
 | A3-multiheavy | exploit | Increase multi-packet curriculum pressure to test traffic robustness rather than solved-rate. | 0.16 | 0.1573 | completed | Slight mean-regret improvement versus matched `E3` seed 211, but worse p95 regret and no deadline improvement in-distribution. |
 | A3-multiheavy-ood | exploit | Test whether heavier curriculum pressure transfers to OOD traffic/depth stress. | 0.06 | 0.0535 | completed | OOD rollout metrics matched the calibration run almost exactly; no deadline or regret improvement under stress. |
+| A0-R4-audit | exploit | Audit oracle deadline feasibility before scoring more model changes. | 0.02 | 0.0000 | completed | Original corrected deadline suites were oracle-impossible; added `oracle_calibrated` deadlines and rebalanced round-four suites. |
+| A1-R4-baseline | exploit | Fresh 3-seed `E3` baseline on the rebalanced feasible deadline suites. | 0.45 | 0.3659 | completed | 3 seeds; mean test next-hop accuracy 95.57%, mean regret 2.25, mean p95 regret 10.48, mean deadline miss 54.2%. |
+| A2-R4-deadline-head | exploit | Add a deadline/slack/quantile head to `E3` and test risk-aware scoring. | 0.15 | 0.1177 | completed | Improved calibration metrics and showed a stronger mid-training validation checkpoint, but best-checkpoint common-suite rollout matched `E3` exactly on seed 311. |
+| A4-R4-verifier-refine | exploit | Add verifier-backed auxiliary supervision on the last outer refinement steps. | 0.10 | 0.0791 | completed | Scout improved on its own small split but matched `E3` exactly on the shared seed-311 best-checkpoint rollout. |
+| B1-R4-hazard-memory | explore | Test one narrow structured hazard-memory side channel instead of a new generic communication family. | 0.30 | 0.2646 | completed | 3-seed scout produced positive standalone signal, but matched best-checkpoint rollout was identical to `E3` on seeds 311/312/313. |
 
 Current cumulative GPU-hours:
 
-- Exploit: `1.2687`
-- Explore: `1.1798`
-- Split: `51.8% / 48.2%`
+- Round four exploit: `0.5628`
+- Round four explore: `0.2646`
+- Round four split: `68.0% / 32.0%`
+- Overall exploit: `1.8315`
+- Overall explore: `1.4444`
+- Overall split: `55.9% / 44.1%`

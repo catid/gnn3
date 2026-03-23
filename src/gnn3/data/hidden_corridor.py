@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import heapq
+import itertools
 import json
 import math
 from collections.abc import Iterable
@@ -78,6 +79,9 @@ class DecisionRecord:
     candidate_cost_to_go: np.ndarray
     candidate_slack: np.ndarray
     candidate_on_time: np.ndarray
+    candidate_path_nodes: np.ndarray
+    candidate_path_mask: np.ndarray
+    candidate_path_features: np.ndarray
     route_relevance: np.ndarray
     packet_priority: float
     packet_deadline: float
@@ -122,6 +126,33 @@ class HiddenCorridorConfig:
     deadline_slack_abs_range: tuple[float, float] = (0.5, 2.0)
     deadline_reference_budget: float = 1_000_000.0
     max_steps_multiplier: int = 4
+
+
+def _path_summary_features(graph: GraphState, path: list[int]) -> np.ndarray:
+    if len(path) < 2:
+        return np.zeros((5,), dtype=np.float32)
+    edges = list(itertools.pairwise(path))
+    residual_ratios = []
+    hidden_flags = []
+    fast_flags = []
+    for u, v in edges:
+        capacity = max(float(graph.edge_capacity[u, v]), 1e-3)
+        residual_ratios.append(float(graph.edge_residual_capacity[u, v]) / capacity)
+        hidden_flags.append(float(graph.edge_is_hidden_corridor[u, v]))
+        fast_flags.append(float(graph.edge_is_fast[u, v]))
+    queues = [float(graph.node_queue[node]) for node in path]
+    roles = [ROLE_NAMES[int(graph.node_roles[node])] for node in path]
+    hub_monitor_fraction = sum(role in {"hub", "monitor"} for role in roles) / len(roles)
+    return np.asarray(
+        [
+            (len(path) - 1) / max(graph.num_nodes, 1),
+            float(np.mean(queues)) / 10.0,
+            float(np.max(queues)) / 10.0,
+            float(np.mean(residual_ratios)),
+            0.5 * float(np.mean(hidden_flags)) + 0.25 * float(np.mean(fast_flags)) + 0.25 * hub_monitor_fraction,
+        ],
+        dtype=np.float32,
+    )
 
 
 def _connect_undirected(
@@ -606,6 +637,40 @@ def make_decision_record(
     candidate_cost_to_go = np.zeros((num_nodes,), dtype=np.float32)
     candidate_slack = np.zeros((num_nodes,), dtype=np.float32)
     candidate_on_time = np.zeros((num_nodes,), dtype=np.float32)
+    candidate_path_nodes = np.full((num_nodes, num_nodes), fill_value=-1, dtype=np.int64)
+    candidate_path_mask = np.zeros((num_nodes, num_nodes), dtype=bool)
+    candidate_path_features = np.zeros((num_nodes, 5), dtype=np.float32)
+    if config is not None:
+        for candidate in np.flatnonzero(graph.adj[current_node]):
+            candidate = int(candidate)
+            candidate_graph = graph.copy()
+            transition_cost = _edge_cost(
+                candidate_graph,
+                packet,
+                current_node,
+                candidate,
+                remaining_deadline=packet.deadline,
+                config=config,
+            )
+            remaining_deadline = max(packet.deadline - transition_cost, 0.0)
+            _apply_transition(candidate_graph, current_node, candidate, packet)
+            if candidate == packet.destination:
+                full_path = [current_node, candidate]
+                path_valid = True
+            else:
+                downstream_path, downstream_cost = shortest_path(
+                    candidate_graph,
+                    packet,
+                    start=candidate,
+                    remaining_deadline=max(remaining_deadline, 1.0),
+                    config=config,
+                )
+                path_valid = len(downstream_path) >= 1 and math.isfinite(downstream_cost)
+                full_path = [current_node, *downstream_path] if path_valid else [current_node, candidate]
+            path_len = min(len(full_path), num_nodes)
+            candidate_path_nodes[candidate, :path_len] = np.asarray(full_path[:path_len], dtype=np.int64)
+            candidate_path_mask[candidate, :path_len] = path_valid
+            candidate_path_features[candidate] = _path_summary_features(graph, full_path)
     if include_candidate_targets:
         if config is None:
             raise ValueError("config is required when include_candidate_targets=True")
@@ -663,6 +728,9 @@ def make_decision_record(
         candidate_cost_to_go=candidate_cost_to_go,
         candidate_slack=candidate_slack,
         candidate_on_time=candidate_on_time,
+        candidate_path_nodes=candidate_path_nodes,
+        candidate_path_mask=candidate_path_mask,
+        candidate_path_features=candidate_path_features,
         route_relevance=route_relevance,
         packet_priority=packet.priority,
         packet_deadline=packet.deadline,
@@ -882,6 +950,9 @@ def collate_decisions(records: list[DecisionRecord]) -> dict[str, torch.Tensor]:
     candidate_cost_to_go = torch.zeros((batch_size, max_nodes), dtype=torch.float32)
     candidate_slack = torch.zeros((batch_size, max_nodes), dtype=torch.float32)
     candidate_on_time = torch.zeros((batch_size, max_nodes), dtype=torch.float32)
+    candidate_path_nodes = torch.full((batch_size, max_nodes, max_nodes), fill_value=-1, dtype=torch.long)
+    candidate_path_mask = torch.zeros((batch_size, max_nodes, max_nodes), dtype=torch.bool)
+    candidate_path_features = torch.zeros((batch_size, max_nodes, 5), dtype=torch.float32)
     packet_priority = torch.zeros((batch_size,), dtype=torch.float32)
     packet_deadline = torch.zeros((batch_size,), dtype=torch.float32)
     packet_index = torch.zeros((batch_size,), dtype=torch.long)
@@ -907,6 +978,9 @@ def collate_decisions(records: list[DecisionRecord]) -> dict[str, torch.Tensor]:
         candidate_cost_to_go[batch_index, :num_nodes] = torch.from_numpy(record.candidate_cost_to_go)
         candidate_slack[batch_index, :num_nodes] = torch.from_numpy(record.candidate_slack)
         candidate_on_time[batch_index, :num_nodes] = torch.from_numpy(record.candidate_on_time)
+        candidate_path_nodes[batch_index, :num_nodes, :num_nodes] = torch.from_numpy(record.candidate_path_nodes)
+        candidate_path_mask[batch_index, :num_nodes, :num_nodes] = torch.from_numpy(record.candidate_path_mask)
+        candidate_path_features[batch_index, :num_nodes] = torch.from_numpy(record.candidate_path_features)
         packet_priority[batch_index] = record.packet_priority
         packet_deadline[batch_index] = record.packet_deadline
         packet_index[batch_index] = record.packet_index
@@ -931,6 +1005,9 @@ def collate_decisions(records: list[DecisionRecord]) -> dict[str, torch.Tensor]:
         "candidate_cost_to_go": candidate_cost_to_go,
         "candidate_slack": candidate_slack,
         "candidate_on_time": candidate_on_time,
+        "candidate_path_nodes": candidate_path_nodes,
+        "candidate_path_mask": candidate_path_mask,
+        "candidate_path_features": candidate_path_features,
         "packet_priority": packet_priority,
         "packet_deadline": packet_deadline,
         "packet_index": packet_index,

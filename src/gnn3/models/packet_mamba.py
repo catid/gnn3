@@ -52,6 +52,8 @@ class PacketMambaConfig:
     verifier_aux_last_k_steps: int = 1
     hazard_memory: bool = False
     hazard_memory_dim: int = 16
+    path_reranker: bool = False
+    path_reranker_weight: float = 1.0
 
 
 class DenseEdgeMixer(nn.Module):
@@ -487,6 +489,15 @@ class PacketMambaModel(nn.Module):
             if config.deadline_head
             else None
         )
+        self.path_reranker_head = (
+            nn.Sequential(
+                nn.Linear(4 * config.d_model + 5, config.d_model),
+                nn.GELU(),
+                nn.Linear(config.d_model, 1),
+            )
+            if config.path_reranker
+            else None
+        )
         self.hazard_encoder = (
             nn.Sequential(
                 nn.Linear(7, config.hazard_memory_dim),
@@ -624,6 +635,7 @@ class PacketMambaModel(nn.Module):
             "candidate_on_time_logits": final_outputs["candidate_on_time_logits"],
             "candidate_slack": final_outputs["candidate_slack"],
             "candidate_cost_quantiles": final_outputs["candidate_cost_quantiles"],
+            "path_scores": final_outputs["path_scores"],
             "per_step_candidate_on_time_logits": (
                 torch.stack(per_step_on_time_logits, dim=1) if per_step_on_time_logits else None
             ),
@@ -663,6 +675,7 @@ class PacketMambaModel(nn.Module):
         candidate_on_time_logits = None
         candidate_slack = None
         candidate_cost_quantiles = None
+        path_scores = None
         selection_scores = node_logits
         if self.deadline_head is not None and self.slack_head is not None and self.quantile_head is not None:
             candidate_on_time_logits = self.deadline_head(action_input).squeeze(-1)
@@ -683,6 +696,31 @@ class PacketMambaModel(nn.Module):
                 )
                 selection_scores = node_logits + on_time_bonus + slack_bonus - tail_penalty
                 selection_scores = selection_scores.masked_fill(candidate_invalid, -1e9)
+        if self.path_reranker_head is not None:
+            safe_path_nodes = batch["candidate_path_nodes"].clamp(min=0)
+            path_state = torch.gather(
+                state[:, None, :, :].expand(-1, num_nodes, -1, -1),
+                2,
+                safe_path_nodes.unsqueeze(-1).expand(-1, -1, -1, state.size(-1)),
+            )
+            path_mask = batch["candidate_path_mask"].unsqueeze(-1)
+            path_denom = path_mask.float().sum(dim=2).clamp(min=1.0)
+            path_mean = (path_state * path_mask.float()).sum(dim=2) / path_denom
+            path_valid = batch["candidate_path_mask"].any(dim=-1) & batch["candidate_mask"] & batch["node_mask"]
+            path_input = torch.cat(
+                [
+                    current_expand,
+                    destination_expand,
+                    state,
+                    path_mean,
+                    batch["candidate_path_features"],
+                ],
+                dim=-1,
+            )
+            path_scores = self.path_reranker_head(path_input).squeeze(-1)
+            path_scores = path_scores.masked_fill(~path_valid, -1e9)
+            selection_scores = selection_scores + self.config.path_reranker_weight * path_scores
+            selection_scores = selection_scores.masked_fill(~path_valid, -1e9)
 
         return {
             "node_logits": node_logits,
@@ -692,6 +730,7 @@ class PacketMambaModel(nn.Module):
             "candidate_on_time_logits": candidate_on_time_logits,
             "candidate_slack": candidate_slack,
             "candidate_cost_quantiles": candidate_cost_quantiles,
+            "path_scores": path_scores,
         }
 
 
@@ -750,7 +789,7 @@ def compute_losses(
 ) -> dict[str, torch.Tensor]:
     target = batch["target_next_hop"]
     if final_step_only:
-        logits = output["node_logits"]
+        logits = output["selection_scores"]
         ce_loss = F.cross_entropy(logits, target)
         value_loss = F.mse_loss(output["values"], batch["cost_to_go"])
     else:
@@ -762,9 +801,9 @@ def compute_losses(
     route_logits = output["route_logits"][batch["node_mask"]]
     route_targets = batch["route_relevance"][batch["node_mask"]]
     route_loss = F.binary_cross_entropy_with_logits(route_logits, route_targets)
-    on_time_loss = output["node_logits"].new_tensor(0.0)
-    slack_loss = output["node_logits"].new_tensor(0.0)
-    quantile_loss = output["node_logits"].new_tensor(0.0)
+    on_time_loss = output["selection_scores"].new_tensor(0.0)
+    slack_loss = output["selection_scores"].new_tensor(0.0)
+    quantile_loss = output["selection_scores"].new_tensor(0.0)
     if deadline_bce_weight > 0.0 or slack_weight > 0.0 or quantile_weight > 0.0:
         per_step_on_time = output.get("per_step_candidate_on_time_logits")
         per_step_slack = output.get("per_step_candidate_slack")
@@ -806,7 +845,7 @@ def compute_losses(
         + quantile_weight * quantile_loss
     )
     with torch.no_grad():
-        accuracy = (output["node_logits"].argmax(dim=-1) == target).float().mean()
+        accuracy = (output["selection_scores"].argmax(dim=-1) == target).float().mean()
         selection_accuracy = (output["selection_scores"].argmax(dim=-1) == target).float().mean()
     return {
         "loss": total_loss,

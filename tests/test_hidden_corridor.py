@@ -200,6 +200,30 @@ def test_hazard_memory_forward_path() -> None:
     assert output["node_logits"].shape[0] == 2
 
 
+def test_candidate_path_reranker_forward_and_loss() -> None:
+    cfg = HiddenCorridorConfig(
+        seed=15,
+        deadline_mode="oracle_calibrated",
+    )
+    dataset = HiddenCorridorDecisionDataset(config=cfg, num_episodes=2)
+    batch = collate_decisions([dataset[0], dataset[1]])
+    model = PacketMambaModel(
+        PacketMambaConfig(
+            node_feature_dim=batch["node_features"].shape[-1],
+            outer_steps=2,
+            inner_layers=2,
+            router_variant="memory_hubs",
+            detach_warmup=True,
+            path_reranker=True,
+        )
+    )
+    output = model(batch)
+    losses = compute_losses(output, batch, final_step_only=True)
+    assert output["path_scores"].shape == output["node_logits"].shape
+    assert output["selection_scores"].shape == output["node_logits"].shape
+    assert float(losses["loss"].detach()) > 0.0
+
+
 def test_dataset_manifest_is_stable_for_same_seed() -> None:
     cfg = HiddenCorridorConfig(seed=10)
     dataset_a = HiddenCorridorDecisionDataset(config=cfg, num_episodes=4)

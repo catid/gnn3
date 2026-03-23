@@ -28,12 +28,14 @@
 | A2-R4-deadline-head | exploit | Add a deadline/slack/quantile head to `E3` and test risk-aware scoring. | 0.15 | 0.1177 | completed | Improved calibration metrics and showed a stronger mid-training validation checkpoint, but best-checkpoint common-suite rollout matched `E3` exactly on seed 311. |
 | A4-R4-verifier-refine | exploit | Add verifier-backed auxiliary supervision on the last outer refinement steps. | 0.10 | 0.0791 | completed | Scout improved on its own small split but matched `E3` exactly on the shared seed-311 best-checkpoint rollout. |
 | B1-R4-hazard-memory | explore | Test one narrow structured hazard-memory side channel instead of a new generic communication family. | 0.30 | 0.2646 | completed | 3-seed scout produced positive standalone signal, but matched best-checkpoint rollout was identical to `E3` on seeds 311/312/313. |
+| A3-R4-multiheavy-followup | exploit | Close the open multiheavy curriculum question on the rebalanced feasible suites with a real 3-seed batch. | 0.24 | 0.2246 | completed | 3 matched seeds beat `E3`: mean regret 1.32 vs 2.25, mean p95 4.77 vs 10.48, mean deadline miss 41.7% vs 54.2%. |
+| A3-R4-path-reranker | exploit | Implement and scout the lightweight candidate-path reranker on matched rebalanced suites. | 0.12 | 0.1066 | completed | 2 seeds beat matched `E3`: mean regret 1.79 vs 2.24, mean p95 9.38 vs 10.41, mean deadline miss 43.8% vs 50.0%. |
 
 Current cumulative GPU-hours:
 
-- Round four exploit: `0.5628`
-- Round four explore: `0.2646`
-- Round four split: `68.0% / 32.0%`
-- Overall exploit: `1.8315`
+- Round-four-plus-follow-up exploit: `0.8940`
+- Round-four-plus-follow-up explore: `0.2646`
+- Round-four-plus-follow-up split: `77.2% / 22.8%`
+- Overall exploit: `2.1627`
 - Overall explore: `1.4444`
-- Overall split: `55.9% / 44.1%`
+- Overall split: `60.0% / 40.0%`

@@ -18,6 +18,10 @@ Key artifact bundle:
 - [round4_deadline_p95_compare.png](/home/catid/gnn3/reports/plots/round4_deadline_p95_compare.png)
 - [round4_b1_vs_e3_matched.csv](/home/catid/gnn3/reports/plots/round4_b1_vs_e3_matched.csv)
 - [round4_b1_vs_e3_matched.png](/home/catid/gnn3/reports/plots/round4_b1_vs_e3_matched.png)
+- [round4_multiheavy_vs_e3.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_vs_e3.csv)
+- [round4_multiheavy_vs_e3.png](/home/catid/gnn3/reports/plots/round4_multiheavy_vs_e3.png)
+- [round4_path_reranker_vs_e3.csv](/home/catid/gnn3/reports/plots/round4_path_reranker_vs_e3.csv)
+- [round4_path_reranker_vs_e3.png](/home/catid/gnn3/reports/plots/round4_path_reranker_vs_e3.png)
 - [portfolio_usage_round4.csv](/home/catid/gnn3/reports/plots/portfolio_usage_round4.csv)
 - [portfolio_usage_round4.png](/home/catid/gnn3/reports/plots/portfolio_usage_round4.png)
 
@@ -173,29 +177,88 @@ Decision:
 - `B1` stays a scoped scout, not a promoted branch
 - it is the right level of exploratory complexity if exploration resumes, but there is no evidence to spend more architecture budget on it now
 
-## Candidate-Path Reranking Status
+## Post-Round Exploit Follow-Up
 
-The candidate-path reranker was not implemented in this round. The verifier-backed refinement branch (`A4`) satisfied the round requirement to evaluate at least one bounded path-level or verifier-level extension, and the stronger immediate bottleneck turned out to be benchmark feasibility plus exploit-side calibration conversion.
+After the original round-four report was written, I finished the two remaining open exploit-side tasks on the same rebalanced suite family.
 
-The reranker remains open as a follow-up because the unresolved failure mode is still path-level deadline choice under load.
+### Multiheavy Follow-Up
+
+Artifacts:
+
+- [round4_multiheavy_vs_e3.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_vs_e3.csv)
+- [round4_multiheavy_vs_e3.png](/home/catid/gnn3/reports/plots/round4_multiheavy_vs_e3.png)
+
+This closed the older open question about heavier multi-packet curriculum pressure using a real 3-seed batch on the rebalanced suites.
+
+Matched result versus fresh `E3`:
+
+- `E3` mean test next-hop accuracy: `95.57%`
+- multiheavy mean test next-hop accuracy: `95.82%`
+- `E3` mean regret: `2.25`
+- multiheavy mean regret: `1.32`
+- `E3` mean p95 regret: `10.48`
+- multiheavy mean p95 regret: `4.77`
+- `E3` mean deadline miss rate: `54.2%`
+- multiheavy mean deadline miss rate: `41.7%`
+
+Per-seed direction:
+
+- seed `311`: regret worsened slightly (`1.50` vs `1.26`) but p95 improved (`5.96` vs `7.50`) and miss rate improved (`43.8%` vs `50.0%`)
+- seed `312`: strong win (`1.92` vs `3.22`, `5.45` vs `13.31`, `43.8%` vs `50.0%`)
+- seed `313`: strong win (`0.55` vs `2.27`, `2.90` vs `10.63`, `37.5%` vs `62.5%`)
+
+Decision:
+
+- the rebalanced multiheavy curriculum is now the current lead exploit training recipe
+- the earlier “mixed at best” multiheavy interpretation from round three does not survive the better deadline contract
+
+### Candidate-Path Reranker
+
+Artifacts:
+
+- [round4_path_reranker_vs_e3.csv](/home/catid/gnn3/reports/plots/round4_path_reranker_vs_e3.csv)
+- [round4_path_reranker_vs_e3.png](/home/catid/gnn3/reports/plots/round4_path_reranker_vs_e3.png)
+
+I implemented the bounded path-level extension that was deferred from the first round-four pass. It uses one candidate path per feasible next hop from the existing shortest-path machinery, aggregates path structure into the current `E3` readout, and reranks next hops additively rather than replacing the model family.
+
+Two matched scout seeds against fresh `E3`:
+
+- seed `311`:
+  - `E3`: `1.26` regret, `7.50` p95, `50.0%` miss
+  - reranker: `1.10` regret, `7.50` p95, `43.8%` miss
+- seed `312`:
+  - `E3`: `3.22` regret, `13.31` p95, `50.0%` miss
+  - reranker: `2.48` regret, `11.25` p95, `43.8%` miss
+
+Two-seed mean:
+
+- matched `E3` mean regret: `2.24`
+- reranker mean regret: `1.79`
+- matched `E3` mean p95 regret: `10.41`
+- reranker mean p95 regret: `9.38`
+- matched `E3` mean deadline miss rate: `50.0%`
+- reranker mean deadline miss rate: `43.8%`
+
+Decision:
+
+- the reranker is now implemented, validated, and positively scoped
+- it is not yet a promoted baseline because it only has 2 seeds so far
+- it is the next exploit-side contender batch to run
 
 ## Recommendation
 
-1. Keep `E3` as the lead baseline and keep the rebalanced `oracle_calibrated` suites as the only valid deadline-robustness ranking target.
-2. Keep `A2` as the main exploit continuation bet, but do not call it an improvement yet. The evidence supports calibration gains, not rollout gains.
-3. If exploit work continues next, target the conversion problem directly:
-   - checkpoint selection on miss-rate / p95-aware metrics
-   - final-step feasibility/slack objectives
-   - path-level reranking rather than more communication
-4. Do not promote `A4` or `B1` from round four.
+1. Keep the rebalanced `oracle_calibrated` suites as the only valid deadline-robustness ranking target.
+2. Promote the multiheavy curriculum from follow-up scout to the current lead exploit recipe on these suites.
+3. Promote the path reranker to the next contender issue and run a third matched seed before combining it with multiheavy.
+4. Demote `A2`, `A4`, and `B1` behind the new exploit winners. `A2` still matters as a calibration tool, but it no longer has the best direct path to rollout improvement.
 5. Keep `detach_warmup` untouched.
 
 ## Portfolio
 
-- round-four exploit GPU-hours: `0.5628`
+- round-four exploit GPU-hours before follow-up closeout: `0.5628`
 - round-four explore GPU-hours: `0.2646`
-- round-four split: `68.0% exploit / 32.0% explore`
-- this is inside the requested `70/30` operating band
+- round-four follow-up exploit GPU-hours: `0.3312`
+- round-four-plus-follow-up split: `77.2% exploit / 22.8% explore`
 
 ## Final Status
 
@@ -207,10 +270,11 @@ Definition-of-done checklist:
 - distributional slack / miss head implemented and evaluated: complete
 - verifier-backed refinement implemented and evaluated: complete
 - single exploration scout implemented and cleanly not promoted: complete
-- exploit / explore balance kept within target: complete
+- multiheavy exploit follow-up completed across 3 matched seeds: complete
+- candidate-path reranker implemented and evaluated on 2 matched seeds: complete
 
 Round-four conclusion:
 
 - the main new knowledge is that the benchmark deadline contract needed recalibration before model work could be trusted
-- after that fix, `E3` remained the lead baseline
-- the best remaining architecture-adjacent signal is deadline/slack calibration (`A2`), but it still needs a training / selection contract that converts calibration into lower miss rate and lower tail regret
+- after that fix, the multiheavy curriculum became the current lead exploit recipe over plain `E3`
+- the best next architecture-adjacent contender is now the lightweight path reranker, not the deadline/slack head

@@ -228,6 +228,8 @@ def _portfolio_frame() -> pd.DataFrame:
         {"experiment": "A1-E3-baseline", "bucket": "exploit", "gpu_hours": 0.36592718925740986, "status": "completed"},
         {"experiment": "A2-deadline-head", "bucket": "exploit", "gpu_hours": 0.11770952933364444, "status": "completed"},
         {"experiment": "A4-verifier-refine", "bucket": "exploit", "gpu_hours": 0.07911762999163734, "status": "completed"},
+        {"experiment": "A3-multiheavy-followup", "bucket": "exploit", "gpu_hours": 0.22461334804693855, "status": "completed"},
+        {"experiment": "A3-path-reranker", "bucket": "exploit", "gpu_hours": 0.10660791357358296, "status": "completed"},
         {"experiment": "B1-hazard-memory", "bucket": "explore", "gpu_hours": 0.26461411317189536, "status": "completed"},
     ]
     frame = pd.DataFrame(rows)
@@ -256,6 +258,75 @@ def _plot_portfolio(frame: pd.DataFrame) -> None:
 
     fig.tight_layout()
     fig.savefig(PLOTS_DIR / "portfolio_usage_round4.png", dpi=160)
+    plt.close(fig)
+
+
+def _variant_compare_frame(pairs: list[tuple[int, str, str]]) -> pd.DataFrame:
+    rows: list[dict[str, float | int | str]] = []
+    for seed, baseline_exp, variant_exp in pairs:
+        for variant, experiment in (("E3", baseline_exp), ("variant", variant_exp)):
+            summary = _summary(experiment)
+            rows.append(
+                {
+                    "seed": seed,
+                    "variant": variant,
+                    "experiment": experiment,
+                    "test_next_hop_accuracy": summary["test"]["next_hop_accuracy"],
+                    "average_regret": summary["test_rollout"]["average_regret"],
+                    "p95_regret": summary["test_rollout"]["p95_regret"],
+                    "deadline_miss_rate": summary["test_rollout"]["deadline_miss_rate"],
+                    "gpu_hours": summary["gpu_hours"],
+                }
+            )
+    frame = pd.DataFrame(rows)
+    mean_rows: list[dict[str, float | int | str]] = []
+    for variant, variant_frame in frame.groupby("variant"):
+        mean_rows.append(
+            {
+                "seed": "mean",
+                "variant": variant,
+                "experiment": f"{variant}-mean",
+                "test_next_hop_accuracy": variant_frame["test_next_hop_accuracy"].mean(),
+                "average_regret": variant_frame["average_regret"].mean(),
+                "p95_regret": variant_frame["p95_regret"].mean(),
+                "deadline_miss_rate": variant_frame["deadline_miss_rate"].mean(),
+                "gpu_hours": variant_frame["gpu_hours"].sum(),
+            }
+        )
+    return pd.concat([frame, pd.DataFrame(mean_rows)], ignore_index=True)
+
+
+def _plot_variant_compare(frame: pd.DataFrame, *, title_prefix: str, output_name: str) -> None:
+    plot_df = frame.copy()
+    plot_df["seed"] = plot_df["seed"].astype(str)
+    seeds = list(dict.fromkeys(plot_df["seed"]))
+    x = range(len(seeds))
+    width = 0.35
+
+    e3 = plot_df[plot_df["variant"] == "E3"].set_index("seed").loc[seeds]
+    variant_name = next(name for name in plot_df["variant"].unique() if name != "E3")
+    variant = plot_df[plot_df["variant"] == variant_name].set_index("seed").loc[seeds]
+
+    fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+    axes[0].bar([idx - width / 2 for idx in x], e3["average_regret"], width=width, label="E3", color="#1f77b4")
+    axes[0].bar([idx + width / 2 for idx in x], variant["average_regret"], width=width, label=variant_name, color="#ff7f0e")
+    axes[0].set_title(f"{title_prefix} Regret")
+    axes[0].set_xticks(list(x), seeds)
+
+    axes[1].bar([idx - width / 2 for idx in x], e3["p95_regret"], width=width, color="#1f77b4")
+    axes[1].bar([idx + width / 2 for idx in x], variant["p95_regret"], width=width, color="#ff7f0e")
+    axes[1].set_title(f"{title_prefix} p95")
+    axes[1].set_xticks(list(x), seeds)
+
+    axes[2].bar([idx - width / 2 for idx in x], e3["deadline_miss_rate"], width=width, color="#1f77b4")
+    axes[2].bar([idx + width / 2 for idx in x], variant["deadline_miss_rate"], width=width, color="#ff7f0e")
+    axes[2].set_title(f"{title_prefix} Deadline Miss")
+    axes[2].set_xticks(list(x), seeds)
+    axes[2].set_ylim(0.0, 1.0)
+    axes[0].legend()
+
+    fig.tight_layout()
+    fig.savefig(PLOTS_DIR / output_name, dpi=160)
     plt.close(fig)
 
 
@@ -301,6 +372,27 @@ def main() -> None:
     deadline_compare = pd.read_csv(PLOTS_DIR / "round4_seed311_variant_compare.csv")
     deadline_compare.to_csv(PLOTS_DIR / "round4_deadline_p95_compare.csv", index=False)
     _plot_deadline_compare(deadline_compare)
+
+    multiheavy = _variant_compare_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_seed311", "e3_memory_hubs_rsm_round4_multiheavy_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_seed312", "e3_memory_hubs_rsm_round4_multiheavy_seed312"),
+            (313, "e3_memory_hubs_rsm_round4_seed313", "e3_memory_hubs_rsm_round4_multiheavy_seed313"),
+        ]
+    )
+    multiheavy["variant"] = multiheavy["variant"].replace({"variant": "Multiheavy"})
+    multiheavy.to_csv(PLOTS_DIR / "round4_multiheavy_vs_e3.csv", index=False)
+    _plot_variant_compare(multiheavy, title_prefix="Multiheavy vs E3", output_name="round4_multiheavy_vs_e3.png")
+
+    reranker = _variant_compare_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_seed311", "a3_e3_path_reranker_round4_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_seed312", "a3_e3_path_reranker_round4_seed312"),
+        ]
+    )
+    reranker["variant"] = reranker["variant"].replace({"variant": "PathReranker"})
+    reranker.to_csv(PLOTS_DIR / "round4_path_reranker_vs_e3.csv", index=False)
+    _plot_variant_compare(reranker, title_prefix="Path Reranker vs E3", output_name="round4_path_reranker_vs_e3.png")
 
     portfolio = _portfolio_frame()
     portfolio.to_csv(PLOTS_DIR / "portfolio_usage_round4.csv", index=False)

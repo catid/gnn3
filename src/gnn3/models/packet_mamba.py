@@ -54,6 +54,11 @@ class PacketMambaConfig:
     hazard_memory_dim: int = 16
     path_reranker: bool = False
     path_reranker_weight: float = 1.0
+    path_reranker_bound: float = 0.0
+    path_reranker_traffic_gate: bool = False
+    path_reranker_gate_bias: float = 1.25
+    path_reranker_gate_sharpness: float = 4.0
+    path_reranker_packet_weight: float = 0.35
 
 
 class DenseEdgeMixer(nn.Module):
@@ -545,6 +550,37 @@ class PacketMambaModel(nn.Module):
         assert self.step_layers is not None
         return self.step_layers[step]
 
+    def _path_reranker_gate(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
+        path_features = batch["candidate_path_features"]
+        if not self.config.path_reranker_traffic_gate:
+            return torch.ones_like(path_features[..., 0])
+
+        # This deterministic fallback keeps the reranker active on short, low-queue,
+        # high-capacity paths, but damps it under the exact high-stress regimes where
+        # the combined recipe became unstable in deeper/heavier OOD suites.
+        path_length = path_features[..., 0]
+        mean_queue = path_features[..., 1]
+        max_queue = path_features[..., 2]
+        residual_ratio = path_features[..., 3].clamp(min=0.0, max=1.0)
+        structural_bonus = path_features[..., 4].clamp(min=0.0, max=1.0)
+        packet_pressure = (batch["packet_count"].float() / 8.0)[:, None]
+        urgency_pressure = (
+            batch["packet_priority"] / batch["packet_deadline"].clamp(min=1.0)
+        )[:, None]
+        risk_score = (
+            path_length
+            + 0.5 * mean_queue
+            + max_queue
+            + (1.0 - residual_ratio)
+            + self.config.path_reranker_packet_weight * packet_pressure
+            + 0.25 * urgency_pressure
+            - 0.25 * structural_bonus
+        )
+        return torch.sigmoid(
+            (self.config.path_reranker_gate_bias - risk_score)
+            * self.config.path_reranker_gate_sharpness
+        )
+
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         device = batch["node_features"].device
         node_mask = batch["node_mask"]
@@ -636,6 +672,7 @@ class PacketMambaModel(nn.Module):
             "candidate_slack": final_outputs["candidate_slack"],
             "candidate_cost_quantiles": final_outputs["candidate_cost_quantiles"],
             "path_scores": final_outputs["path_scores"],
+            "path_reranker_gate": final_outputs["path_reranker_gate"],
             "per_step_candidate_on_time_logits": (
                 torch.stack(per_step_on_time_logits, dim=1) if per_step_on_time_logits else None
             ),
@@ -676,6 +713,7 @@ class PacketMambaModel(nn.Module):
         candidate_slack = None
         candidate_cost_quantiles = None
         path_scores = None
+        path_reranker_gate = None
         selection_scores = node_logits
         if self.deadline_head is not None and self.slack_head is not None and self.quantile_head is not None:
             candidate_on_time_logits = self.deadline_head(action_input).squeeze(-1)
@@ -718,7 +756,11 @@ class PacketMambaModel(nn.Module):
                 dim=-1,
             )
             path_scores = self.path_reranker_head(path_input).squeeze(-1)
-            path_scores = path_scores.masked_fill(~path_valid, -1e9)
+            if self.config.path_reranker_bound > 0.0:
+                path_scores = self.config.path_reranker_bound * torch.tanh(path_scores)
+            path_reranker_gate = self._path_reranker_gate(batch)
+            path_scores = path_scores * path_reranker_gate
+            path_scores = path_scores.masked_fill(~path_valid, 0.0)
             selection_scores = selection_scores + self.config.path_reranker_weight * path_scores
             selection_scores = selection_scores.masked_fill(~path_valid, -1e9)
 
@@ -731,6 +773,7 @@ class PacketMambaModel(nn.Module):
             "candidate_slack": candidate_slack,
             "candidate_cost_quantiles": candidate_cost_quantiles,
             "path_scores": path_scores,
+            "path_reranker_gate": path_reranker_gate,
         }
 
 

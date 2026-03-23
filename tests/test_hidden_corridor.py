@@ -215,12 +215,19 @@ def test_candidate_path_reranker_forward_and_loss() -> None:
             router_variant="memory_hubs",
             detach_warmup=True,
             path_reranker=True,
+            path_reranker_bound=1.25,
+            path_reranker_traffic_gate=True,
         )
     )
     output = model(batch)
     losses = compute_losses(output, batch, final_step_only=True)
     assert output["path_scores"].shape == output["node_logits"].shape
+    assert output["path_reranker_gate"].shape == output["node_logits"].shape
     assert output["selection_scores"].shape == output["node_logits"].shape
+    valid_mask = batch["candidate_path_mask"].any(dim=-1) & batch["candidate_mask"] & batch["node_mask"]
+    assert float(output["path_reranker_gate"][valid_mask].min().detach()) >= 0.0
+    assert float(output["path_reranker_gate"][valid_mask].max().detach()) <= 1.0
+    assert float(output["path_scores"][valid_mask].abs().max().detach()) <= 1.25 + 1e-5
     assert float(losses["loss"].detach()) > 0.0
 
 

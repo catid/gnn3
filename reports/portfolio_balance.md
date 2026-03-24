@@ -47,12 +47,13 @@
 | B2-R4-verifier-reranker-seed313 | explore | Extend the verifier-backed path-feasibility filter to seed313 to see whether the reranker stays safe on the third matched split. | 0.08 | 0.0658 | completed | Negative matched seed313: regret 1.39 vs 0.55, p95 7.52 vs 2.90, and miss 43.8% vs 37.5% for plain multiheavy. |
 | B2-R4-verifier-reranker-ood-seed311 | explore | Run the verifier-filter reranker on the seed311 rebalanced OOD suites after matched confirmation. | 0.04 | 0.0166 | completed | Seed311 OOD improved branching3 and heavy_dynamic strongly, with lower overall mean regret and miss than multiheavy despite deeper_packets6 p95 worsening. |
 | B2-R4-verifier-reranker-ood-seed313 | explore | Run the verifier-filter reranker on the seed313 rebalanced OOD suites after matched confirmation. | 0.04 | 0.0166 | completed | Seed313 OOD improved branching3 and heavy_dynamic strongly and slightly improved deeper_packets6 regret, cutting overall miss from 95.8% to 45.8%. |
+| B2-R4-conditional-verifier-policy | explore | Test a shared-config deployment rule that keeps plain multiheavy on low-risk suites and switches to verifier-filter reranking on high-risk traffic/depth regimes. | 0.10 | 0.0908 | completed | Negative shared-suite result: matched runs fell back to multiheavy by design, and shared OOD mean regret worsened from 6.45 to 6.85 with no miss-rate gain. |
 
 Current cumulative GPU-hours:
 
 - Round-four-plus-follow-up exploit: `1.8310`
-- Round-four-plus-follow-up explore: `0.7770`
-- Round-four-plus-follow-up split: `70.2% / 29.8%`
+- Round-four-plus-follow-up explore: `0.8678`
+- Round-four-plus-follow-up split: `67.8% / 32.2%`
 - Overall exploit: `3.0997`
-- Overall explore: `1.9567`
-- Overall split: `61.3% / 38.7%`
+- Overall explore: `2.0475`
+- Overall split: `60.2% / 39.8%`

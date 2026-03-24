@@ -40,6 +40,10 @@ Key artifact bundle:
 - [round4_multiheavy_path_reranker_verifier_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_vs_multiheavy.png)
 - [round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy.csv)
 - [round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy.png)
+- [round4_conditional_verifier_policy_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_conditional_verifier_policy_vs_multiheavy.csv)
+- [round4_conditional_verifier_policy_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_conditional_verifier_policy_vs_multiheavy.png)
+- [round4_conditional_verifier_policy_ood_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_conditional_verifier_policy_ood_vs_multiheavy.csv)
+- [round4_conditional_verifier_policy_ood_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_conditional_verifier_policy_ood_vs_multiheavy.png)
 - [round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.csv)
 - [round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.png)
 - [round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.csv)
@@ -534,76 +538,53 @@ Seed312 rebalanced OOD result versus plain multiheavy:
 
 Most importantly, this removed the catastrophic `deeper_packets6` seed312 failure that survived the traffic-gated reranker path.
 
-I then expanded the verifier-filter reranker to the remaining matched seeds `311` and `313`.
+That seed312 result looked promising enough to justify one final bounded deployment check, but it turned out not to be sufficient deployment evidence by itself. The seed312 rescue used verifier-specific stress configs, while the plain multiheavy OOD baselines were still being reported on the shared generic round-four OOD suite family. To settle that mismatch, I added [deployment.py](/home/catid/gnn3/src/gnn3/eval/deployment.py) and [run_conditional_eval_sweep.py](/home/catid/gnn3/scripts/run_conditional_eval_sweep.py), then evaluated a shared-config conditional policy across seeds `311/312/313`:
 
-Three-seed matched result versus plain multiheavy:
+- use plain multiheavy on the matched low-risk suite
+- switch to verifier-filter reranking only when the eval config is clearly high-risk on branching, packet count, depth, or congestion
 
-- multiheavy mean:
-  - `95.82%` test next-hop accuracy
-  - `1.32` regret
-  - `4.77` p95
-  - `41.7%` miss
-- verifier-filter reranker mean:
-  - `96.06%` test next-hop accuracy
-  - `1.60` regret
-  - `6.31` p95
-  - `43.8%` miss
+Shared-config conditional deployment result versus plain multiheavy:
 
-Per-seed direction:
-
-- seed `311`: exact rollout match to multiheavy
-- seed `312`: exact rollout match to multiheavy
-- seed `313`: negative in-distribution regression (`1.39` vs `0.55` regret, `7.52` vs `2.90` p95, `43.8%` vs `37.5%` miss)
-
-Three-seed rebalanced OOD result versus plain multiheavy:
-
-- overall mean:
+- matched suite:
+  - the policy falls back to plain multiheavy on all three seeds, so there is no deployable in-distribution gain
+- shared OOD suite mean:
   - multiheavy: `6.45` regret, `17.81` p95, `95.8%` miss
-  - verifier-filter reranker: `3.15` regret, `11.88` p95, `50.0%` miss
-- branching3 mean:
-  - regret `6.89` -> `2.50`
-  - p95 `15.54` -> `8.02`
-  - miss `100.0%` -> `56.2%`
-- deeper_packets6 mean:
-  - regret `3.77` -> `3.64`
-  - p95 `10.03` -> `15.24`
-  - miss `87.5%` -> `68.8%`
-- heavy_dynamic mean:
-  - regret `8.69` -> `3.31`
-  - p95 `27.85` -> `12.38`
-  - miss `100.0%` -> `25.0%`
+  - conditional verifier policy: `6.85` regret, `20.36` p95, `95.8%` miss
+- suite means:
+  - branching3: effectively flat (`6.89` -> `6.84` regret)
+  - deeper_packets6: worse (`3.77` -> `4.56` regret, `10.03` -> `14.14` p95)
+  - heavy_dynamic: worse (`8.69` -> `9.14` regret, `27.85` -> `31.40` p95)
 
 Interpretation:
 
-- the verifier filter is the first reranker variant that holds up as a **broad OOD improvement** across all three confirmation seeds
-- it is not a clean default replacement for plain multiheavy because the seed313 matched rollout regressed materially
-- the branch now looks like an OOD-specialized path-level module, not a general in-distribution upgrade
+- the earlier verifier-filter seed312 rescue was a useful **targeted diagnostic**, not a deployable shared-suite improvement
+- once both branches are compared on the same OOD suite family, the conditional policy does not beat plain multiheavy
+- the reranker family still lacks matched evidence for actual deployment value
 
 Decision:
 
-- this is the first reranker stabilization that materially improves the targeted seed312 OOD failure and still shows strong three-seed OOD gains
-- it is **not** promoted over plain multiheavy as the default exploit recipe because the matched three-seed in-distribution mean got worse
-- it becomes the highest-value OOD-specialized path-level branch in the repo and the only reranker variant worth carrying forward
+- do **not** promote the verifier-filter reranker
+- do **not** promote conditional deployment for the verifier-filter reranker
+- treat the seed312 rescue as a debugging clue about path-feasibility handling, not as shortlist evidence
 
 ## Recommendation
 
 1. Keep the rebalanced `oracle_calibrated` suites as the only valid deadline-robustness ranking target.
 2. Keep plain multiheavy as the **robust exploit default**. It remains clearly better than fresh `E3` and it does not show the reranker’s deep-OOD blow-up.
-3. Do not promote the original combined reranker recipe or the traffic-gated reranker recipe. Both still fail the hard OOD bar.
-4. Do not promote the verifier-filter reranker as the new default either. Its three-seed matched in-distribution mean is worse than plain multiheavy.
-5. Keep the verifier-filter reranker as the only reranker direction worth carrying forward. It cuts three-seed OOD mean regret from `6.45` to `3.15` and mean miss rate from `95.8%` to `50.0%`.
-6. Do not promote the plain multiheavy deadline-head add-on. It remains flat even after fixing best-checkpoint evaluation in the trainer.
-7. If reranking is revisited, use explicit path-feasibility or verifier-backed filtering for deeper/heavier traffic and couple it to conditional deployment or better checkpoint selection so the seed313 in-distribution regression does not become the default behavior.
-8. Demote `A2`, `A4`, and `B1` behind the current exploit winners. If auxiliary heads are revisited, do so against plain multiheavy and require rollout movement, not calibration-only improvement.
-9. Keep `detach_warmup` untouched.
+3. Do not promote the original combined reranker recipe, the traffic-gated reranker, the verifier-filter reranker, or the conditional verifier policy. None of them beat plain multiheavy on a matched shared-suite deployment check.
+4. Treat the earlier seed312 verifier rescue as a targeted diagnostic only. It is useful for understanding path-feasibility failures, but it is not shortlist evidence.
+5. Do not promote the plain multiheavy deadline-head add-on. It remains flat even after fixing best-checkpoint evaluation in the trainer.
+6. Stop spending architecture budget on reranker variants for now. If path-level routing is revisited later, require shared-suite evidence first, not seed-specific rescue wins.
+7. Demote `A2`, `A4`, and `B1` behind the current exploit winners. If auxiliary heads are revisited, do so against plain multiheavy and require rollout movement, not calibration-only improvement.
+8. Keep `detach_warmup` untouched.
 
 ## Portfolio
 
 - round-four exploit GPU-hours before follow-up closeout: `0.5628`
 - round-four explore GPU-hours: `0.2646`
 - round-four-plus-follow-up exploit GPU-hours: `1.8310`
-- round-four-plus-follow-up explore GPU-hours: `0.7770`
-- round-four-plus-follow-up split: `70.2% exploit / 29.8% explore`
+- round-four-plus-follow-up explore GPU-hours: `0.8678`
+- round-four-plus-follow-up split: `67.8% exploit / 32.2% explore`
 
 This still leans exploit-heavy, but the final closeout moved back toward exploration because the reranker stabilization task required additional multi-seed OOD evidence.
 
@@ -626,10 +607,11 @@ Definition-of-done checklist:
 - bounded traffic-gated reranker stabilization completed and not promoted: complete
 - trainer best-checkpoint evaluation bug fixed and validated: complete
 - verifier-filter reranker three-seed confirmation completed: complete
+- shared-config conditional verifier deployment check completed and negative: complete
 
 Round-four conclusion:
 
 - the main new knowledge is that the benchmark deadline contract needed recalibration before model work could be trusted
 - after that fix, plain multiheavy became the robust exploit default and it remains the lead recipe after every follow-up in this pass
 - auxiliary deadline heads are still calibration-positive but rollout-flat on the shortlist
-- path-level reranking is still not promoted as a default, but explicit verifier-backed feasibility filtering is now the first reranker variant that produces strong three-seed OOD gains; it should be treated as an OOD-specialized branch until its seed313 in-distribution regression is explained or eliminated
+- path-level reranking is not currently supported by matched deployment evidence in this repo; the strongest verifier-filter result was a seed-specific rescue that did not survive a shared-config conditional deployment check

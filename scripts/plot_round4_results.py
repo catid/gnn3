@@ -241,6 +241,10 @@ def _portfolio_frame() -> pd.DataFrame:
         {"experiment": "B2-gated-reranker-seed313", "bucket": "explore", "gpu_hours": 0.06544615877999199, "status": "completed"},
         {"experiment": "B2-gated-reranker-ood-seed311", "bucket": "explore", "gpu_hours": 0.0208, "status": "completed"},
         {"experiment": "B2-gated-reranker-ood-seed312", "bucket": "explore", "gpu_hours": 0.0258, "status": "completed"},
+        {"experiment": "B2-verifier-reranker-seed311", "bucket": "explore", "gpu_hours": 0.06485164801279704, "status": "completed"},
+        {"experiment": "B2-verifier-reranker-seed312", "bucket": "explore", "gpu_hours": 0.06004132946332296, "status": "completed"},
+        {"experiment": "B2-verifier-reranker-seed313", "bucket": "explore", "gpu_hours": 0.06580910636319054, "status": "completed"},
+        {"experiment": "B2-conditional-verifier-policy", "bucket": "explore", "gpu_hours": 0.0908, "status": "completed"},
     ]
     frame = pd.DataFrame(rows)
     total = float(frame["gpu_hours"].sum())
@@ -707,6 +711,128 @@ def main() -> None:
         _plot_ood_compare(
             verifier_ood_compare,
             output_name="round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy.png",
+        )
+
+    conditional_rows: list[dict[str, float | int | str]] = []
+    for seed in (311, 312, 313):
+        conditional_path = PLOTS_DIR / f"round4_conditional_verifier_policy_seed{seed}.csv"
+        if not conditional_path.exists():
+            continue
+        conditional_df = pd.read_csv(conditional_path)
+        baseline_summary = _summary(f"e3_memory_hubs_rsm_round4_multiheavy_seed{seed}")
+        conditional_match = conditional_df[
+            conditional_df["experiment"] == f"e3_memory_hubs_rsm_round4_multiheavy_seed{seed}"
+        ]
+        if conditional_match.empty:
+            continue
+        conditional_row = conditional_match.iloc[0]
+        conditional_rows.extend(
+            [
+                {
+                    "seed": seed,
+                    "variant": "Multiheavy",
+                    "experiment": f"e3_memory_hubs_rsm_round4_multiheavy_seed{seed}",
+                    "test_next_hop_accuracy": baseline_summary["test"]["next_hop_accuracy"],
+                    "average_regret": baseline_summary["test_rollout"]["average_regret"],
+                    "p95_regret": baseline_summary["test_rollout"]["p95_regret"],
+                    "deadline_miss_rate": baseline_summary["test_rollout"]["deadline_miss_rate"],
+                    "gpu_hours": baseline_summary["gpu_hours"],
+                },
+                {
+                    "seed": seed,
+                    "variant": "ConditionalVerifierPolicy",
+                    "experiment": f"round4_conditional_verifier_policy_seed{seed}",
+                    "test_next_hop_accuracy": conditional_row["test_next_hop_accuracy"],
+                    "average_regret": conditional_row["average_regret"],
+                    "p95_regret": conditional_row["p95_regret"],
+                    "deadline_miss_rate": conditional_row["deadline_miss_rate"],
+                    "gpu_hours": 0.0,
+                },
+            ]
+        )
+    if conditional_rows:
+        conditional_frame = pd.DataFrame(conditional_rows)
+        conditional_mean_rows: list[dict[str, float | int | str]] = []
+        for variant, variant_frame in conditional_frame.groupby("variant"):
+            conditional_mean_rows.append(
+                {
+                    "seed": "mean",
+                    "variant": variant,
+                    "experiment": f"{variant}-mean",
+                    "test_next_hop_accuracy": variant_frame["test_next_hop_accuracy"].mean(),
+                    "average_regret": variant_frame["average_regret"].mean(),
+                    "p95_regret": variant_frame["p95_regret"].mean(),
+                    "deadline_miss_rate": variant_frame["deadline_miss_rate"].mean(),
+                    "gpu_hours": variant_frame["gpu_hours"].sum(),
+                }
+            )
+        conditional_frame = pd.concat([conditional_frame, pd.DataFrame(conditional_mean_rows)], ignore_index=True)
+        conditional_frame.to_csv(PLOTS_DIR / "round4_conditional_verifier_policy_vs_multiheavy.csv", index=False)
+        _plot_variant_compare(
+            conditional_frame,
+            title_prefix="Conditional Verifier Policy vs Multiheavy",
+            output_name="round4_conditional_verifier_policy_vs_multiheavy.png",
+        )
+
+    conditional_ood_rows: list[dict[str, float | int | str]] = []
+    for seed in (311, 312, 313):
+        baseline_path = PLOTS_DIR / f"round4_multiheavy_ood_seed{seed}.csv"
+        conditional_path = PLOTS_DIR / f"round4_conditional_verifier_policy_seed{seed}.csv"
+        if not baseline_path.exists() or not conditional_path.exists():
+            continue
+        baseline_df = pd.read_csv(baseline_path).copy()
+        conditional_df = pd.read_csv(conditional_path).copy()
+        baseline_df["suite"] = baseline_df["experiment"].map(_suite_label)
+        conditional_df = conditional_df[conditional_df["experiment"].str.startswith("a0_e3_ood_")].copy()
+        conditional_df["suite"] = conditional_df["experiment"].map(_suite_label)
+        for label, frame in (("Multiheavy", baseline_df), ("ConditionalVerifierPolicy", conditional_df)):
+            for _, row in frame.iterrows():
+                conditional_ood_rows.append(
+                    {
+                        "seed": seed,
+                        "suite": row["suite"],
+                        "variant": label,
+                        "average_regret": row["average_regret"],
+                        "p95_regret": row["p95_regret"],
+                        "deadline_miss_rate": row["deadline_miss_rate"],
+                        "rollout_next_hop_accuracy": row["rollout_next_hop_accuracy"],
+                    }
+                )
+    if conditional_ood_rows:
+        conditional_ood_frame = pd.DataFrame(conditional_ood_rows)
+        conditional_ood_means: list[dict[str, float | int | str]] = []
+        for (suite, variant), suite_frame in conditional_ood_frame.groupby(["suite", "variant"]):
+            conditional_ood_means.append(
+                {
+                    "seed": "mean",
+                    "suite": suite,
+                    "variant": variant,
+                    "average_regret": suite_frame["average_regret"].mean(),
+                    "p95_regret": suite_frame["p95_regret"].mean(),
+                    "deadline_miss_rate": suite_frame["deadline_miss_rate"].mean(),
+                    "rollout_next_hop_accuracy": suite_frame["rollout_next_hop_accuracy"].mean(),
+                }
+            )
+        for variant, variant_frame in conditional_ood_frame.groupby("variant"):
+            conditional_ood_means.append(
+                {
+                    "seed": "mean",
+                    "suite": "overall",
+                    "variant": variant,
+                    "average_regret": variant_frame["average_regret"].mean(),
+                    "p95_regret": variant_frame["p95_regret"].mean(),
+                    "deadline_miss_rate": variant_frame["deadline_miss_rate"].mean(),
+                    "rollout_next_hop_accuracy": variant_frame["rollout_next_hop_accuracy"].mean(),
+                }
+            )
+        conditional_ood_frame = pd.concat(
+            [conditional_ood_frame, pd.DataFrame(conditional_ood_means)],
+            ignore_index=True,
+        )
+        conditional_ood_frame.to_csv(PLOTS_DIR / "round4_conditional_verifier_policy_ood_vs_multiheavy.csv", index=False)
+        _plot_ood_compare(
+            conditional_ood_frame,
+            output_name="round4_conditional_verifier_policy_ood_vs_multiheavy.png",
         )
 
     portfolio = _portfolio_frame()

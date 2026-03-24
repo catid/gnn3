@@ -635,6 +635,32 @@ def main() -> None:
         output_name="round4_multiheavy_path_reranker_gated_vs_multiheavy.png",
     )
 
+    verifier_reranker_summary = ARTIFACTS_DIR / "a3_e3_multiheavy_path_reranker_verifier_round4_seed312" / "summary.json"
+    if verifier_reranker_summary.exists():
+        verifier_reranker = _variant_compare_frame(
+            [
+                (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "a3_e3_multiheavy_path_reranker_verifier_round4_seed312"),
+            ]
+        )
+        verifier_reranker["variant"] = verifier_reranker["variant"].replace(
+            {"E3": "Multiheavy", "variant": "Multiheavy+VerifierPathReranker"}
+        )
+        verifier_reranker.loc[
+            (verifier_reranker["seed"] == "mean") & (verifier_reranker["variant"] == "Multiheavy"),
+            "experiment",
+        ] = "Multiheavy-mean"
+        verifier_reranker.loc[
+            (verifier_reranker["seed"] == "mean")
+            & (verifier_reranker["variant"] == "Multiheavy+VerifierPathReranker"),
+            "experiment",
+        ] = "Multiheavy+VerifierPathReranker-mean"
+        verifier_reranker.to_csv(PLOTS_DIR / "round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.csv", index=False)
+        _plot_variant_compare(
+            verifier_reranker,
+            title_prefix="Verifier Path Reranker vs Multiheavy",
+            output_name="round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.png",
+        )
+
     ood_compare = _ood_compare_frame()
     if not ood_compare.empty:
         ood_compare.to_csv(PLOTS_DIR / "round4_multiheavy_path_reranker_ood_vs_multiheavy.csv", index=False)
@@ -653,6 +679,23 @@ def main() -> None:
         _plot_ood_compare(
             gated_ood_compare,
             output_name="round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.png",
+        )
+
+    verifier_ood_compare = _ood_compare_frame_from_specs(
+        [
+            (312, "round4_multiheavy_ood_seed312.csv", "round4_multiheavy_path_reranker_verifier_ood_seed312.csv"),
+        ],
+        baseline_label="Multiheavy",
+        variant_label="Multiheavy+VerifierPathReranker",
+    )
+    if not verifier_ood_compare.empty:
+        verifier_ood_compare.to_csv(
+            PLOTS_DIR / "round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.csv",
+            index=False,
+        )
+        _plot_ood_compare(
+            verifier_ood_compare,
+            output_name="round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.png",
         )
 
     portfolio = _portfolio_frame()

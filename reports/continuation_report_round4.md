@@ -36,6 +36,10 @@ Key artifact bundle:
 - [round4_multiheavy_path_reranker_gated_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_gated_vs_multiheavy.png)
 - [round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.csv)
 - [round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.png)
+- [round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.csv)
+- [round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.png)
+- [round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.csv)
+- [round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.png)
 - [portfolio_usage_round4.csv](/home/catid/gnn3/reports/plots/portfolio_usage_round4.csv)
 - [portfolio_usage_round4.png](/home/catid/gnn3/reports/plots/portfolio_usage_round4.png)
 
@@ -388,7 +392,9 @@ Artifacts:
 - [round4_multiheavy_deadline_head_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_deadline_head_vs_multiheavy.csv)
 - [round4_multiheavy_deadline_head_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_deadline_head_vs_multiheavy.png)
 
-I then reran the deadline/slack/quantile auxiliary head on the **plain multiheavy** baseline instead of the unstable combined reranker path.
+Before revisiting the plain multiheavy deadline-head path, I fixed a trainer contract bug in [trainer.py](/home/catid/gnn3/src/gnn3/train/trainer.py): the trainer was writing `best.pt` using the selection metric, but the final `summary.json` test rollout was still being reported from the last epoch model rather than from the selected checkpoint. The fix now reloads `best.pt` before final evaluation and records `selected_epoch` plus `selected_selection_score` in the summary.
+
+I then reran the deadline/slack/quantile auxiliary head on the **plain multiheavy** baseline under that corrected best-checkpoint evaluation path instead of the unstable combined reranker path.
 
 Seed `311` result against the robust exploit default:
 
@@ -412,6 +418,7 @@ What changed:
 Decision:
 
 - this exploit follow-up is a clean negative
+- fixing best-checkpoint evaluation did not rescue the auxiliary-head branch
 - auxiliary deadline heads are still not worth promoting on the current shortlist unless checkpoint selection or policy coupling changes materially
 
 ### Traffic-Gated Reranker Follow-Up
@@ -473,23 +480,76 @@ Decision:
 - it is a useful diagnostic guardrail because it preserved the base-suite behavior and fixed one historical OOD failure seed
 - but it still fails the actual acceptance bar because deeper_packets6 seed `312` remains a hard catastrophic case
 
+### Verifier-Filtered Reranker Rescue
+
+Artifacts:
+
+- [round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.csv)
+- [round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.png)
+- [round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.csv)
+- [round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.png)
+
+The next targeted reranker rescue replaced the scalar traffic gate with an explicit verifier-backed feasibility filter. Candidate-path slack and on-time feasibility signals are now threaded into the reranker readout in [hidden_corridor.py](/home/catid/gnn3/src/gnn3/data/hidden_corridor.py) and [packet_mamba.py](/home/catid/gnn3/src/gnn3/models/packet_mamba.py), so infeasible candidates can be penalized or hard-masked instead of merely damped.
+
+Matched seed312 in-distribution result versus plain multiheavy:
+
+- multiheavy:
+  - `94.73%` test next-hop accuracy
+  - `1.92` regret
+  - `5.45` p95
+  - `43.8%` miss
+- verifier-filter reranker:
+  - `95.47%` test next-hop accuracy
+  - `1.92` regret
+  - `5.45` p95
+  - `43.8%` miss
+
+That is the right in-distribution behavior for this rescue pass: it preserved the robust multiheavy rollout instead of inventing new baseline-suite movement.
+
+Seed312 rebalanced OOD result versus plain multiheavy:
+
+- overall mean:
+  - multiheavy: `7.41` regret, `18.90` p95, `95.8%` miss
+  - verifier-filter reranker: `2.50` regret, `10.41` p95, `54.2%` miss
+- branching3:
+  - regret `6.84` -> `1.98`
+  - p95 `15.54` -> `7.95`
+  - miss `100.0%` -> `56.2%`
+- deeper_packets6:
+  - regret `4.28` -> `3.09`
+  - p95 `11.71` -> `12.00`
+  - miss `87.5%` -> `75.0%`
+- heavy_dynamic:
+  - regret `11.10` -> `2.42`
+  - p95 `29.44` -> `11.27`
+  - miss `100.0%` -> `31.2%`
+
+Most importantly, this removed the catastrophic `deeper_packets6` seed312 failure that survived the traffic-gated reranker path.
+
+Decision:
+
+- this is the first reranker stabilization that materially improves the targeted seed312 OOD failure instead of merely collapsing back to multiheavy behavior
+- it is still only a one-seed targeted rescue, so it is **not** promoted yet
+- it becomes the highest-value reranker follow-up if path-level methods are revisited again
+
 ## Recommendation
 
 1. Keep the rebalanced `oracle_calibrated` suites as the only valid deadline-robustness ranking target.
 2. Keep plain multiheavy as the **robust exploit default**. It remains clearly better than fresh `E3` and it does not show the reranker’s deep-OOD blow-up.
-3. Do not promote **any** reranker recipe yet. The original combined add-on fails the 3-seed OOD check, and the new gated fallback still has a catastrophic deeper_packets6 seed-312 failure.
-4. Do not promote the plain multiheavy deadline-head add-on. It matches the robust baseline exactly on the held-out rollout.
-5. If reranking is revisited, target explicit path-feasibility or verifier-backed filtering for deeper/heavier traffic instead of another generic scalar gate.
-6. Demote `A2`, `A4`, and `B1` behind the current exploit winners. If auxiliary heads are revisited, do so against plain multiheavy and require rollout movement, not calibration-only improvement.
-7. Keep `detach_warmup` untouched.
+3. Do not promote the original combined reranker recipe or the traffic-gated reranker recipe. Both still fail the hard OOD bar.
+4. Keep the verifier-filter reranker as the only reranker direction worth expanding. It preserved in-distribution multiheavy behavior and materially improved the targeted seed312 OOD failure, but it still needs seed311/313 confirmation before promotion.
+5. Do not promote the plain multiheavy deadline-head add-on. It remains flat even after fixing best-checkpoint evaluation in the trainer.
+6. If reranking is revisited, use explicit path-feasibility or verifier-backed filtering for deeper/heavier traffic instead of another generic scalar gate.
+7. Demote `A2`, `A4`, and `B1` behind the current exploit winners. If auxiliary heads are revisited, do so against plain multiheavy and require rollout movement, not calibration-only improvement.
+8. Keep `detach_warmup` untouched.
 
 ## Portfolio
 
 - round-four exploit GPU-hours before follow-up closeout: `0.5628`
 - round-four explore GPU-hours: `0.2646`
-- round-four-plus-follow-up exploit GPU-hours: `1.6903`
-- round-four-plus-follow-up explore GPU-hours: `0.5273`
-- round-four-plus-follow-up split: `76.2% exploit / 23.8% explore`
+- round-four-plus-follow-up exploit GPU-hours: `1.8310`
+- round-four-plus-follow-up explore GPU-hours: `0.6131`
+- round-four-plus-follow-up split: `74.9% exploit / 25.1% explore`
 
 This still leans exploit-heavy, but the final closeout moved back toward exploration because the reranker stabilization task required additional multi-seed OOD evidence.
 
@@ -510,10 +570,12 @@ Definition-of-done checklist:
 - combined versus multiheavy OOD stress batch completed across 3 matched seeds: complete
 - plain multiheavy deadline-head recheck completed and not promoted: complete
 - bounded traffic-gated reranker stabilization completed and not promoted: complete
+- trainer best-checkpoint evaluation bug fixed and validated: complete
+- verifier-filter reranker seed312 rescue completed and queued for broader confirmation: complete
 
 Round-four conclusion:
 
 - the main new knowledge is that the benchmark deadline contract needed recalibration before model work could be trusted
 - after that fix, plain multiheavy became the robust exploit default and it remains the lead recipe after every follow-up in this pass
 - auxiliary deadline heads are still calibration-positive but rollout-flat on the shortlist
-- path-level reranking remains an unresolved idea: the original add-on wins in-distribution, the gated fallback fixes one OOD seed, but the deeper/heavier path failure on seed `312` means the branch is still not trustworthy enough to promote
+- path-level reranking is still not promoted as a default, but explicit verifier-backed feasibility filtering is now the first targeted rescue that improves the seed312 deeper/heavy OOD failure without harming matched in-distribution behavior

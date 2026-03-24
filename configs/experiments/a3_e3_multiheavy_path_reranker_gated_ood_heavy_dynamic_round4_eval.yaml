@@ -1,0 +1,48 @@
+name: a3_e3_multiheavy_path_reranker_gated_ood_heavy_dynamic_round4_eval
+bucket: explore
+seed: 311
+stage: scout
+notes: round4 OOD heavy dynamic evaluation for the bounded and traffic-gated multiheavy plus path-reranker scout
+output_dir: artifacts/experiments/a3_e3_multiheavy_path_reranker_gated_ood_heavy_dynamic_round4_eval
+benchmark:
+  train_episodes: 180
+  val_episodes: 48
+  test_episodes: 48
+  curriculum_levels: [single_dynamic, multi_dynamic, multi_dynamic]
+  hidden_corridor:
+    seed: 311
+    packets_max: 4
+    num_communities: 4
+    tree_depth_min: 3
+    tree_depth_max: 3
+    branching_factor: 2
+    community_base_queue: [2.5, 5.5]
+    queue_penalty: 2.5
+    capacity_penalty: 3.0
+    urgency_penalty: 1.5
+    deadline_mode: oracle_calibrated
+    deadline_slack_ratio_range: [0.05, 0.15]
+    deadline_slack_abs_range: [0.25, 1.0]
+train:
+  batch_size: 24
+  eval_batch_size: 48
+  epochs: 7
+  device: cuda:1
+  bf16: true
+  rollout_eval_episodes: 16
+model:
+  d_model: 128
+  d_state: 16
+  inner_layers: 2
+  outer_steps: 3
+  router_variant: memory_hubs
+  final_step_only_loss: true
+  detach_warmup: true
+  penultimate_grad_prob: 0.25
+  path_reranker: true
+  path_reranker_weight: 0.75
+  path_reranker_bound: 1.25
+  path_reranker_traffic_gate: true
+  path_reranker_gate_bias: 1.25
+  path_reranker_gate_sharpness: 4.0
+  path_reranker_packet_weight: 0.35

@@ -34,12 +34,18 @@
 | A3-R4-multiheavy-reranker-combined | exploit | Test whether the lightweight reranker adds value on top of the new lead multiheavy curriculum rather than as a standalone branch. | 0.20 | 0.1866 | completed | 3 matched seeds slightly beat multiheavy and clearly beat `E3`: mean regret 1.23, mean p95 4.69, mean miss 39.6%. |
 | A2-R4-combined-deadline-head | exploit | Test the existing deadline/slack/quantile head on top of the combined multiheavy plus reranker recipe. | 0.08 | 0.0611 | completed | Improved auxiliary calibration metrics, but the held-out test rollout matched the combined baseline exactly on seed 311. |
 | A3-R4-combined-ood-stress | exploit | Stress-test the combined reranker recipe against plain multiheavy on the rebalanced hard OOD suites. | 0.40 | 0.3783 | completed | Negative OOD result: combined mean regret 74.34 vs 6.45 for multiheavy, driven by catastrophic deeper-packets failures on seeds 311 and 312. |
+| A2-R4-multiheavy-deadline-head | exploit | Re-test the deadline/slack/quantile head on the robust plain multiheavy baseline instead of the unstable combined path. | 0.16 | 0.1422 | completed | Negative seed311 scout: rollout matched multiheavy exactly at 1.50 regret, 5.96 p95, and 43.8% miss despite clean auxiliary calibration metrics. |
+| B2-R4-gated-reranker-seed311 | explore | Add a bounded traffic-aware fallback gate so the reranker can preserve base-suite behavior while testing OOD stabilization. | 0.08 | 0.0608 | completed | Matched seed311 rollout collapsed back to plain multiheavy exactly, but seed311 OOD improved on all three rebalanced stress suites. |
+| B2-R4-gated-reranker-seed312 | explore | Verify whether the traffic-gated reranker stays stable on the second historical failure seed. | 0.10 | 0.0899 | completed | Matched seed312 rollout matched multiheavy exactly, but `deeper_packets6` OOD still exploded to 1199.23 regret and 4797.20 p95. |
+| B2-R4-gated-reranker-seed313 | explore | Finish the third matched seed for the gated reranker so the in-distribution fallback behavior is measured fairly. | 0.08 | 0.0654 | completed | Matched seed313 rollout also matched multiheavy exactly; no retained in-distribution reranker gain. |
+| B2-R4-gated-reranker-ood-seed311 | explore | Measure the first OOD sweep for the gated reranker on the seed311 checkpoint. | 0.03 | 0.0208 | completed | Positive seed311 OOD: lower regret and miss than multiheavy on branching3, deeper_packets6, and heavy_dynamic. |
+| B2-R4-gated-reranker-ood-seed312 | explore | Measure the second OOD sweep for the gated reranker on the seed312 checkpoint. | 0.04 | 0.0258 | completed | Mixed seed312 OOD: branching3 and heavy_dynamic improved, but deeper_packets6 remained catastrophically unstable. |
 
 Current cumulative GPU-hours:
 
-- Round-four-plus-follow-up exploit: `1.5481`
-- Round-four-plus-follow-up explore: `0.2646`
-- Round-four-plus-follow-up split: `85.4% / 14.6%`
-- Overall exploit: `2.8168`
-- Overall explore: `1.4444`
-- Overall split: `66.1% / 33.9%`
+- Round-four-plus-follow-up exploit: `1.6903`
+- Round-four-plus-follow-up explore: `0.5273`
+- Round-four-plus-follow-up split: `76.2% / 23.8%`
+- Overall exploit: `2.9590`
+- Overall explore: `1.7071`
+- Overall split: `63.4% / 36.6%`

@@ -234,7 +234,13 @@ def _portfolio_frame() -> pd.DataFrame:
         {"experiment": "A3-combined-multiheavy-reranker", "bucket": "exploit", "gpu_hours": 0.18660099433528052, "status": "completed"},
         {"experiment": "A2-combined-deadline-head", "bucket": "exploit", "gpu_hours": 0.06111519972483317, "status": "completed"},
         {"experiment": "A3-combined-ood-stress", "bucket": "exploit", "gpu_hours": 0.37833333333333335, "status": "completed"},
+        {"experiment": "A2-multiheavy-deadline-head-scout", "bucket": "exploit", "gpu_hours": 0.1422042096985711, "status": "completed"},
         {"experiment": "B1-hazard-memory", "bucket": "explore", "gpu_hours": 0.26461411317189536, "status": "completed"},
+        {"experiment": "B2-gated-reranker-seed311", "bucket": "explore", "gpu_hours": 0.060779284636179605, "status": "completed"},
+        {"experiment": "B2-gated-reranker-seed312", "bucket": "explore", "gpu_hours": 0.089862193663915, "status": "completed"},
+        {"experiment": "B2-gated-reranker-seed313", "bucket": "explore", "gpu_hours": 0.06544615877999199, "status": "completed"},
+        {"experiment": "B2-gated-reranker-ood-seed311", "bucket": "explore", "gpu_hours": 0.0208, "status": "completed"},
+        {"experiment": "B2-gated-reranker-ood-seed312", "bucket": "explore", "gpu_hours": 0.0258, "status": "completed"},
     ]
     frame = pd.DataFrame(rows)
     total = float(frame["gpu_hours"].sum())
@@ -346,13 +352,13 @@ def _suite_label(experiment_name: str) -> str:
     return experiment_name
 
 
-def _ood_compare_frame() -> pd.DataFrame:
+def _ood_compare_frame_from_specs(
+    specs: list[tuple[int, str, str]],
+    *,
+    baseline_label: str,
+    variant_label: str,
+) -> pd.DataFrame:
     rows: list[dict[str, float | int | str]] = []
-    specs = [
-        (311, "round4_multiheavy_ood_seed311.csv", "round4_multiheavy_path_reranker_ood_seed311.csv"),
-        (312, "round4_multiheavy_ood_seed312.csv", "round4_multiheavy_path_reranker_ood_seed312.csv"),
-        (313, "round4_multiheavy_ood_seed313.csv", "round4_multiheavy_path_reranker_ood_seed313.csv"),
-    ]
     for seed, baseline_name, variant_name in specs:
         baseline_path = PLOTS_DIR / baseline_name
         variant_path = PLOTS_DIR / variant_name
@@ -360,14 +366,14 @@ def _ood_compare_frame() -> pd.DataFrame:
             continue
         baseline_df = pd.read_csv(baseline_path).copy()
         variant_df = pd.read_csv(variant_path).copy()
-        for variant_label, frame in (("Multiheavy", baseline_df), ("Multiheavy+PathReranker", variant_df)):
+        for label, frame in ((baseline_label, baseline_df), (variant_label, variant_df)):
             frame["suite"] = frame["experiment"].map(_suite_label)
             for _, row in frame.iterrows():
                 rows.append(
                     {
                         "seed": seed,
                         "suite": row["suite"],
-                        "variant": variant_label,
+                        "variant": label,
                         "average_regret": row["average_regret"],
                         "p95_regret": row["p95_regret"],
                         "deadline_miss_rate": row["deadline_miss_rate"],
@@ -405,6 +411,18 @@ def _ood_compare_frame() -> pd.DataFrame:
     return pd.concat([frame, pd.DataFrame(mean_rows)], ignore_index=True)
 
 
+def _ood_compare_frame() -> pd.DataFrame:
+    return _ood_compare_frame_from_specs(
+        [
+            (311, "round4_multiheavy_ood_seed311.csv", "round4_multiheavy_path_reranker_ood_seed311.csv"),
+            (312, "round4_multiheavy_ood_seed312.csv", "round4_multiheavy_path_reranker_ood_seed312.csv"),
+            (313, "round4_multiheavy_ood_seed313.csv", "round4_multiheavy_path_reranker_ood_seed313.csv"),
+        ],
+        baseline_label="Multiheavy",
+        variant_label="Multiheavy+PathReranker",
+    )
+
+
 def _plot_ood_compare(frame: pd.DataFrame, *, output_name: str) -> None:
     plot_df = frame[frame["seed"] == "mean"].copy()
     if plot_df.empty:
@@ -413,12 +431,15 @@ def _plot_ood_compare(frame: pd.DataFrame, *, output_name: str) -> None:
     suites = list(dict.fromkeys(plot_df["suite"]))
     x = range(len(suites))
     width = 0.35
-    baseline = plot_df[plot_df["variant"] == "Multiheavy"].set_index("suite").loc[suites]
-    variant = plot_df[plot_df["variant"] == "Multiheavy+PathReranker"].set_index("suite").loc[suites]
+    variant_names = list(dict.fromkeys(plot_df["variant"]))
+    baseline_name = variant_names[0]
+    variant_name = variant_names[1]
+    baseline = plot_df[plot_df["variant"] == baseline_name].set_index("suite").loc[suites]
+    variant = plot_df[plot_df["variant"] == variant_name].set_index("suite").loc[suites]
 
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
-    axes[0].bar([idx - width / 2 for idx in x], baseline["average_regret"], width=width, label="Multiheavy", color="#1f77b4")
-    axes[0].bar([idx + width / 2 for idx in x], variant["average_regret"], width=width, label="Multiheavy+PathReranker", color="#ff7f0e")
+    axes[0].bar([idx - width / 2 for idx in x], baseline["average_regret"], width=width, label=baseline_name, color="#1f77b4")
+    axes[0].bar([idx + width / 2 for idx in x], variant["average_regret"], width=width, label=variant_name, color="#ff7f0e")
     axes[0].set_title("OOD Regret")
     axes[0].set_xticks(list(x), suites)
 
@@ -563,10 +584,76 @@ def main() -> None:
             output_name="round4_combined_deadline_head_vs_combined.png",
         )
 
+    multiheavy_deadline_head_summary = ARTIFACTS_DIR / "a2_e3_multiheavy_deadline_head_round4_seed311" / "summary.json"
+    if multiheavy_deadline_head_summary.exists():
+        multiheavy_deadline_head = _variant_compare_frame(
+            [
+                (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "a2_e3_multiheavy_deadline_head_round4_seed311"),
+            ]
+        )
+        multiheavy_deadline_head["variant"] = multiheavy_deadline_head["variant"].replace(
+            {"E3": "Multiheavy", "variant": "Multiheavy+DeadlineHead"}
+        )
+        multiheavy_deadline_head.loc[
+            (multiheavy_deadline_head["seed"] == "mean") & (multiheavy_deadline_head["variant"] == "Multiheavy"),
+            "experiment",
+        ] = "Multiheavy-mean"
+        multiheavy_deadline_head.loc[
+            (multiheavy_deadline_head["seed"] == "mean")
+            & (multiheavy_deadline_head["variant"] == "Multiheavy+DeadlineHead"),
+            "experiment",
+        ] = "Multiheavy+DeadlineHead-mean"
+        multiheavy_deadline_head.to_csv(PLOTS_DIR / "round4_multiheavy_deadline_head_vs_multiheavy.csv", index=False)
+        _plot_variant_compare(
+            multiheavy_deadline_head,
+            title_prefix="Multiheavy Deadline Head vs Multiheavy",
+            output_name="round4_multiheavy_deadline_head_vs_multiheavy.png",
+        )
+
+    gated_reranker = _variant_compare_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "a3_e3_multiheavy_path_reranker_gated_round4_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "a3_e3_multiheavy_path_reranker_gated_round4_seed312"),
+            (313, "e3_memory_hubs_rsm_round4_multiheavy_seed313", "a3_e3_multiheavy_path_reranker_gated_round4_seed313"),
+        ]
+    )
+    gated_reranker["variant"] = gated_reranker["variant"].replace(
+        {"E3": "Multiheavy", "variant": "Multiheavy+GatedPathReranker"}
+    )
+    gated_reranker.loc[
+        (gated_reranker["seed"] == "mean") & (gated_reranker["variant"] == "Multiheavy"),
+        "experiment",
+    ] = "Multiheavy-mean"
+    gated_reranker.loc[
+        (gated_reranker["seed"] == "mean") & (gated_reranker["variant"] == "Multiheavy+GatedPathReranker"),
+        "experiment",
+    ] = "Multiheavy+GatedPathReranker-mean"
+    gated_reranker.to_csv(PLOTS_DIR / "round4_multiheavy_path_reranker_gated_vs_multiheavy.csv", index=False)
+    _plot_variant_compare(
+        gated_reranker,
+        title_prefix="Gated Path Reranker vs Multiheavy",
+        output_name="round4_multiheavy_path_reranker_gated_vs_multiheavy.png",
+    )
+
     ood_compare = _ood_compare_frame()
     if not ood_compare.empty:
         ood_compare.to_csv(PLOTS_DIR / "round4_multiheavy_path_reranker_ood_vs_multiheavy.csv", index=False)
         _plot_ood_compare(ood_compare, output_name="round4_multiheavy_path_reranker_ood_vs_multiheavy.png")
+
+    gated_ood_compare = _ood_compare_frame_from_specs(
+        [
+            (311, "round4_multiheavy_ood_seed311.csv", "round4_multiheavy_path_reranker_gated_ood_seed311.csv"),
+            (312, "round4_multiheavy_ood_seed312.csv", "round4_multiheavy_path_reranker_gated_ood_seed312.csv"),
+        ],
+        baseline_label="Multiheavy",
+        variant_label="Multiheavy+GatedPathReranker",
+    )
+    if not gated_ood_compare.empty:
+        gated_ood_compare.to_csv(PLOTS_DIR / "round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.csv", index=False)
+        _plot_ood_compare(
+            gated_ood_compare,
+            output_name="round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.png",
+        )
 
     portfolio = _portfolio_frame()
     portfolio.to_csv(PLOTS_DIR / "portfolio_usage_round4.csv", index=False)

@@ -30,6 +30,12 @@ Key artifact bundle:
 - [round4_combined_deadline_head_vs_combined.png](/home/catid/gnn3/reports/plots/round4_combined_deadline_head_vs_combined.png)
 - [round4_multiheavy_path_reranker_ood_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_ood_vs_multiheavy.csv)
 - [round4_multiheavy_path_reranker_ood_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_ood_vs_multiheavy.png)
+- [round4_multiheavy_deadline_head_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_deadline_head_vs_multiheavy.csv)
+- [round4_multiheavy_deadline_head_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_deadline_head_vs_multiheavy.png)
+- [round4_multiheavy_path_reranker_gated_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_gated_vs_multiheavy.csv)
+- [round4_multiheavy_path_reranker_gated_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_gated_vs_multiheavy.png)
+- [round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.csv)
+- [round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.png)
 - [portfolio_usage_round4.csv](/home/catid/gnn3/reports/plots/portfolio_usage_round4.csv)
 - [portfolio_usage_round4.png](/home/catid/gnn3/reports/plots/portfolio_usage_round4.png)
 
@@ -375,24 +381,117 @@ Decision:
 - plain multiheavy remains the correct exploit baseline for hard OOD work
 - the combined model should now be treated as an in-distribution contender that requires OOD stabilization before any broader promotion
 
+### Plain Multiheavy Deadline-Head Recheck
+
+Artifacts:
+
+- [round4_multiheavy_deadline_head_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_deadline_head_vs_multiheavy.csv)
+- [round4_multiheavy_deadline_head_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_deadline_head_vs_multiheavy.png)
+
+I then reran the deadline/slack/quantile auxiliary head on the **plain multiheavy** baseline instead of the unstable combined reranker path.
+
+Seed `311` result against the robust exploit default:
+
+- multiheavy:
+  - `1.50` regret
+  - `5.96` p95
+  - `43.8%` miss
+- multiheavy + deadline head:
+  - `1.50` regret
+  - `5.96` p95
+  - `43.8%` miss
+
+What changed:
+
+- the auxiliary calibration outputs were populated cleanly on the robust baseline
+  - on-time Brier: `0.064`
+  - slack MAE: `2.91`
+  - median-quantile MAE: `2.39`
+- the held-out rollout did **not** move at all
+
+Decision:
+
+- this exploit follow-up is a clean negative
+- auxiliary deadline heads are still not worth promoting on the current shortlist unless checkpoint selection or policy coupling changes materially
+
+### Traffic-Gated Reranker Follow-Up
+
+Artifacts:
+
+- [round4_multiheavy_path_reranker_gated_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_gated_vs_multiheavy.csv)
+- [round4_multiheavy_path_reranker_gated_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_gated_vs_multiheavy.png)
+- [round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.csv)
+- [round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.png)
+
+I then tested the smallest plausible stabilization for the reranker branch: bound the reranker residual and damp it deterministically under long, queued, low-capacity, high-packet-pressure paths.
+
+Matched baseline-suite result versus plain multiheavy:
+
+- multiheavy mean test next-hop accuracy: `95.82%`
+- gated reranker mean test next-hop accuracy: `96.10%`
+- multiheavy mean regret: `1.32`
+- gated reranker mean regret: `1.32`
+- multiheavy mean p95 regret: `4.77`
+- gated reranker mean p95 regret: `4.77`
+- multiheavy mean deadline miss rate: `41.7%`
+- gated reranker mean deadline miss rate: `41.7%`
+
+Per-seed rollout direction:
+
+- seed `311`: exact match to multiheavy
+- seed `312`: exact match to multiheavy
+- seed `313`: exact match to multiheavy
+
+That means the gate succeeded at making the reranker safe **in-distribution**, but it also removed the original baseline-suite gain.
+
+OOD result across the two historical failure seeds (`311` and `312`):
+
+- multiheavy overall mean regret: `6.56`
+- gated reranker overall mean regret: `202.26`
+- multiheavy overall mean p95 regret: `17.68`
+- gated reranker overall mean p95 regret: `807.64`
+- multiheavy overall mean deadline miss rate: `95.8%`
+- gated reranker overall mean deadline miss rate: `51.0%`
+
+The mean is dominated by one surviving catastrophic failure:
+
+- seed `311` improved on all three OOD suites
+  - branching3 regret: `6.95` -> `3.36`
+  - deeper_packets6 regret: `3.61` -> `2.77`
+  - heavy_dynamic regret: `6.62` -> `3.82`
+- seed `312` improved on branching3 and heavy_dynamic
+  - branching3 regret: `6.84` -> `1.98`
+  - heavy_dynamic regret: `11.10` -> `2.42`
+- but seed `312` still catastrophically failed on deeper_packets6
+  - regret: `4.28` -> `1199.23`
+  - p95 regret: `11.71` -> `4797.20`
+  - solved rate: `1.00` -> `0.9375`
+
+Decision:
+
+- this stabilization is **not** enough to promote any reranker recipe
+- it is a useful diagnostic guardrail because it preserved the base-suite behavior and fixed one historical OOD failure seed
+- but it still fails the actual acceptance bar because deeper_packets6 seed `312` remains a hard catastrophic case
+
 ## Recommendation
 
 1. Keep the rebalanced `oracle_calibrated` suites as the only valid deadline-robustness ranking target.
 2. Keep plain multiheavy as the **robust exploit default**. It remains clearly better than fresh `E3` and it does not show the reranker’s deep-OOD blow-up.
-3. Keep the combined multiheavy plus reranker recipe as an **in-distribution contender**, not a promoted default. It wins on the matched baseline suites but fails the hard OOD stress check.
-4. Do not promote the standalone reranker path. Its third matched seed failed, and the add-on only makes sense inside the combined recipe.
-5. Do not promote the combined deadline-head add-on. On the real test rollout it matched the combined baseline exactly.
-6. Demote `A2`, `A4`, and `B1` behind the current exploit winners. If auxiliary heads are revisited, do so against plain multiheavy or as an OOD regularizer for the reranker.
+3. Do not promote **any** reranker recipe yet. The original combined add-on fails the 3-seed OOD check, and the new gated fallback still has a catastrophic deeper_packets6 seed-312 failure.
+4. Do not promote the plain multiheavy deadline-head add-on. It matches the robust baseline exactly on the held-out rollout.
+5. If reranking is revisited, target explicit path-feasibility or verifier-backed filtering for deeper/heavier traffic instead of another generic scalar gate.
+6. Demote `A2`, `A4`, and `B1` behind the current exploit winners. If auxiliary heads are revisited, do so against plain multiheavy and require rollout movement, not calibration-only improvement.
 7. Keep `detach_warmup` untouched.
 
 ## Portfolio
 
 - round-four exploit GPU-hours before follow-up closeout: `0.5628`
 - round-four explore GPU-hours: `0.2646`
-- round-four follow-up exploit GPU-hours: `0.9853`
-- round-four-plus-follow-up split: `85.4% exploit / 14.6% explore`
+- round-four-plus-follow-up exploit GPU-hours: `1.6903`
+- round-four-plus-follow-up explore GPU-hours: `0.5273`
+- round-four-plus-follow-up split: `76.2% exploit / 23.8% explore`
 
-This overshoots the original round-four `70/30` target because the only remaining open issues after the first report were exploit-side contender closeout tasks.
+This still leans exploit-heavy, but the final closeout moved back toward exploration because the reranker stabilization task required additional multi-seed OOD evidence.
 
 ## Final Status
 
@@ -409,9 +508,12 @@ Definition-of-done checklist:
 - combined multiheavy plus reranker contender completed across 3 matched seeds: complete
 - combined deadline-head add-on checked on the lead in-distribution recipe: complete
 - combined versus multiheavy OOD stress batch completed across 3 matched seeds: complete
+- plain multiheavy deadline-head recheck completed and not promoted: complete
+- bounded traffic-gated reranker stabilization completed and not promoted: complete
 
 Round-four conclusion:
 
 - the main new knowledge is that the benchmark deadline contract needed recalibration before model work could be trusted
-- after that fix, plain multiheavy became the robust exploit default and the combined reranker recipe became a narrower in-distribution contender
-- the path-level extension is useful as a bounded add-on, not as a standalone architectural branch, but it still needs deep/heavy OOD stabilization
+- after that fix, plain multiheavy became the robust exploit default and it remains the lead recipe after every follow-up in this pass
+- auxiliary deadline heads are still calibration-positive but rollout-flat on the shortlist
+- path-level reranking remains an unresolved idea: the original add-on wins in-distribution, the gated fallback fixes one OOD seed, but the deeper/heavier path failure on seed `312` means the branch is still not trustworthy enough to promote

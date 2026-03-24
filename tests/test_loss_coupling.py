@@ -27,6 +27,7 @@ def _batch_with_slack(candidate_slack: torch.Tensor) -> dict[str, torch.Tensor]:
 def _output(selection_scores: torch.Tensor) -> dict[str, torch.Tensor]:
     return {
         "selection_scores": selection_scores,
+        "path_scores": selection_scores.clone(),
         "values": torch.tensor([1.0], dtype=torch.float32),
         "route_logits": torch.tensor([[2.0, 2.0, -2.0]], dtype=torch.float32),
         "candidate_on_time_logits": None,
@@ -83,6 +84,28 @@ def test_selection_pairwise_loss_prefers_feasible_low_cost_rankings() -> None:
         selection_pairwise_margin=0.5,
     )
     assert float(better["selection_pairwise_loss"]) < float(worse["selection_pairwise_loss"])
+    assert float(better["loss"]) < float(worse["loss"])
+
+
+def test_path_soft_target_loss_prefers_feasible_low_cost_paths() -> None:
+    batch = _batch()
+    better = compute_losses(
+        _output(torch.tensor([[3.0, 2.0, -1.0]], dtype=torch.float32)),
+        batch,
+        final_step_only=True,
+        path_soft_target_weight=1.0,
+        path_soft_target_temperature=0.5,
+        path_soft_target_on_time_bonus=1.0,
+    )
+    worse = compute_losses(
+        _output(torch.tensor([[-1.0, 0.0, 3.0]], dtype=torch.float32)),
+        batch,
+        final_step_only=True,
+        path_soft_target_weight=1.0,
+        path_soft_target_temperature=0.5,
+        path_soft_target_on_time_bonus=1.0,
+    )
+    assert float(better["path_soft_target_loss"]) < float(worse["path_soft_target_loss"])
     assert float(better["loss"]) < float(worse["loss"])
 
 

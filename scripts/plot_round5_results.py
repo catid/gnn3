@@ -180,6 +180,16 @@ def main() -> None:
     dagger.to_csv(PLOTS / "round5_multiheavy_dagger_vs_multiheavy.csv", index=False)
     _plot_compare(dagger, "round5_multiheavy_dagger_vs_multiheavy.png", "DAgger")
 
+    pathhead = _summary_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "e3_memory_hubs_rsm_round5_multiheavy_pathhead_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "e3_memory_hubs_rsm_round5_multiheavy_pathhead_seed312"),
+        ],
+        "PathHead",
+    )
+    pathhead.to_csv(PLOTS / "round5_multiheavy_pathhead_vs_multiheavy.csv", index=False)
+    _plot_compare(pathhead, "round5_multiheavy_pathhead_vs_multiheavy.png", "PathHead")
+
 
 if __name__ == "__main__":
     main()

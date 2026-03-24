@@ -2,7 +2,7 @@
 
 ## Scope
 
-This pass tested nine bounded non-reranker exploit changes on top of the robust plain `multiheavy` recipe:
+This pass tested ten bounded exploit changes on top of the robust plain `multiheavy` recipe: nine non-reranker tweaks plus one integrated candidate-path scout that was killed after two seeds.
 
 1. risk-biased checkpoint selection
 2. tighter training-only oracle-calibrated deadlines with fixed validation and test manifests
@@ -13,6 +13,7 @@ This pass tested nine bounded non-reranker exploit changes on top of the robust 
 7. feasible-first hard target supervision when an on-time candidate exists
 8. slack-critical weighting on the main next-hop CE
 9. bounded DAgger-style state-refresh finetuning on oracle-relabeled model-visited train states
+10. supervised traffic-gated candidate-path scoring on the existing integrated path head
 
 Key artifacts:
 
@@ -34,6 +35,8 @@ Key artifacts:
 - [round5_multiheavy_slack_weight_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_slack_weight_vs_multiheavy.png)
 - [round5_multiheavy_dagger_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round5_multiheavy_dagger_vs_multiheavy.csv)
 - [round5_multiheavy_dagger_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_dagger_vs_multiheavy.png)
+- [round5_multiheavy_pathhead_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round5_multiheavy_pathhead_vs_multiheavy.csv)
+- [round5_multiheavy_pathhead_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_pathhead_vs_multiheavy.png)
 - [experiment_summary.csv](/home/catid/gnn3/reports/plots/experiment_summary.csv)
 
 Implementation changes:
@@ -48,6 +51,7 @@ Implementation changes:
 - bounded DAgger refresh knobs in [config.py](/home/catid/gnn3/src/gnn3/train/config.py)
 - oracle relabel collection for model-visited train states in [rollout.py](/home/catid/gnn3/src/gnn3/eval/rollout.py)
 - bounded DAgger finetune loop in [trainer.py](/home/catid/gnn3/src/gnn3/train/trainer.py)
+- supervised path-head soft-target loss in [packet_mamba.py](/home/catid/gnn3/src/gnn3/models/packet_mamba.py)
 - matched round-five configs in [e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed313.yaml)
 - matched tighter-train configs in [e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed313.yaml)
 - matched packets6-train configs in [e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed313.yaml)
@@ -57,10 +61,11 @@ Implementation changes:
 - matched feasible-target configs in [e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed313.yaml)
 - matched slack-weight configs in [e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed313.yaml)
 - matched DAgger-refresh configs in [e3_memory_hubs_rsm_round5_multiheavy_dagger_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_dagger_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_dagger_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_dagger_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_dagger_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_dagger_seed313.yaml)
+- killed-early path-head scout configs in [e3_memory_hubs_rsm_round5_multiheavy_pathhead_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_pathhead_seed311.yaml) and [e3_memory_hubs_rsm_round5_multiheavy_pathhead_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_pathhead_seed312.yaml)
 - selection regression tests in [test_trainer_selection.py](/home/catid/gnn3/tests/test_trainer_selection.py)
 - split-override regression coverage in [test_config_split_overrides.py](/home/catid/gnn3/tests/test_config_split_overrides.py)
 - critical-sampling and DAgger-refresh regression coverage in [test_train_sampling.py](/home/catid/gnn3/tests/test_train_sampling.py)
-- soft-target loss regression coverage in [test_loss_coupling.py](/home/catid/gnn3/tests/test_loss_coupling.py)
+- soft-target and path-head loss regression coverage in [test_loss_coupling.py](/home/catid/gnn3/tests/test_loss_coupling.py)
 
 ## Matched Result
 
@@ -314,9 +319,35 @@ What did not change:
 - no matched-seed gain appeared in regret, p95 regret, deadline miss rate, or rollout next-hop accuracy
 - the extra state-refresh supervision raised static test next-hop accuracy slightly, but that did not translate into a different rollout policy
 
+## Integrated Candidate-Path Head Scout
+
+Killed-after-two-seeds comparison against the same plain `multiheavy` baseline, using the existing traffic-gated `path_reranker_head` inside the model plus a direct soft-target loss on `path_scores`:
+
+- multiheavy mean next-hop accuracy on seeds `311/312`: `94.98%`
+- path-head mean next-hop accuracy on seeds `311/312`: `95.40%`
+- multiheavy mean rollout next-hop accuracy on seeds `311/312`: `94.85%`
+- path-head mean rollout next-hop accuracy on seeds `311/312`: `94.63%`
+- multiheavy mean regret on seeds `311/312`: `1.71`
+- path-head mean regret on seeds `311/312`: `1.80`
+- multiheavy mean p95 regret on seeds `311/312`: `5.70`
+- path-head mean p95 regret on seeds `311/312`: `6.58`
+- multiheavy mean deadline miss rate on seeds `311/312`: `43.8%`
+- path-head mean deadline miss rate on seeds `311/312`: `46.9%`
+
+What changed:
+
+- the model carried a live `path_soft_target_loss` on both seeds, around `0.61` to `0.65` at test time
+- seed `312` stayed exactly on the plain `multiheavy` held-out rollout while slightly improving static test next-hop accuracy
+- seed `311` regressed on held-out rollout: regret `1.69` vs `1.50`, p95 `7.71` vs `5.96`, miss `50.0%` vs `43.8%`
+
+What did not change:
+
+- the scout did not beat plain `multiheavy` on any matched rollout metric across the first two seeds
+- the stronger path-level supervision still did not produce a trustworthy exploit gain, so the branch was killed before seed `313`
+
 ## Decision
 
-All nine round-five exploit changes are clean negatives.
+All ten round-five exploit changes are negatives. Nine reached the full matched three-seed bar, and the integrated path-head scout was killed early after two seeds because it already trailed plain `multiheavy` on held-out rollout.
 
 Checkpoint-selection policy alone is not the next leverage point for this repo. Tightening the training-only deadline contract also is not enough on its own. Both changes moved internal training behavior, but neither changed the actual held-out rollout once the current plain `multiheavy` model had trained.
 Deadline-aware soft action targets also are not enough on their own. They changed selected checkpoints and introduced a stable auxiliary loss, but they still did not move held-out rollout quality.
@@ -325,6 +356,7 @@ Feasible-first hard-target supervision is also not enough on its own. It changed
 Slack-critical CE weighting is also not enough on its own. It emphasized deadline-sensitive decisions directly in the main loss, but the matched held-out rollout still converged back to plain `multiheavy`.
 Critical-decision oversampling is also not enough on its own. It changed train-time replay pressure much more strongly than the loss-only tweaks, but the matched held-out rollout still converged back to plain `multiheavy`.
 Bounded DAgger state refresh is also not enough on its own. It changed the supervised state distribution much more directly than the earlier train-only tweaks, but even after `1,027` oracle-relabeled model-visited refresh decisions, the matched held-out rollout still converged back to plain `multiheavy`.
+Supervised path-head coupling is also not enough on its own. It moved path-level supervision into the existing integrated candidate-path head, but the first two matched seeds still underperformed plain `multiheavy` on held-out rollout, so the branch was killed before a third seed.
 
 ## Feasible-First Oracle-Policy Note
 
@@ -342,5 +374,6 @@ Updated recommendation:
 8. Do not spend another cycle on feasible-first hard targets alone; they changed the supervised choice directly but still failed to improve the matched held-out rollout.
 9. Do not spend another cycle on slack-critical CE weighting alone; it changed decision pressure inside the main loss, but the matched held-out rollout still stayed flat.
 10. Do not spend another cycle on bounded DAgger refresh alone; it changed the supervised state distribution directly, but the matched held-out rollout still stayed flat.
-11. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract; it is equivalent to the existing oracle except for tie cases.
-12. If exploit work continues, the next lever must change the learned policy more materially than checkpoint ranking, train-distribution tightening, packet-cap widening, critical-decision oversampling, soft candidate coupling, pairwise ranking, feasible-first hard targets, slack-critical CE weighting, or bounded DAgger refresh alone.
+11. Do not spend another cycle on supervised path-head coupling alone; the first two matched seeds already trailed plain `multiheavy` on held-out rollout.
+12. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract; it is equivalent to the existing oracle except for tie cases.
+13. If exploit work continues, the next lever must change the learned policy more materially than checkpoint ranking, train-distribution tightening, packet-cap widening, critical-decision oversampling, soft candidate coupling, pairwise ranking, feasible-first hard targets, slack-critical CE weighting, bounded DAgger refresh, or supervised path-head coupling alone.

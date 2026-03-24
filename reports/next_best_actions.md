@@ -7,7 +7,8 @@
 5. Preserve the rebalanced `oracle_calibrated` deadline suites and the split-manifest discipline. Old corrected deadline suites remain diagnostic-only because the oracle itself misses them.
 6. Keep `detach_warmup` in every shortlist. That remains the strongest causal architectural requirement in the repo.
 7. Do not spend another cycle on checkpoint-selection tuning alone. The matched round-five tail-select scout chose earlier checkpoints on all three seeds, but every held-out rollout stayed identical to plain multiheavy.
-8. The next highest-value batch is:
+8. Do not spend another cycle on tighter training-only deadlines alone. The matched three-seed tight-train scout changed the train manifests but still matched plain multiheavy exactly on held-out rollout.
+9. The next highest-value batch is:
    first, keep plain multiheavy as the exploit default;
-   second, focus on non-reranker changes that alter the learned policy or training signal on the shared suites;
+   second, focus on non-reranker changes that alter the learned policy or loss coupling on the shared suites;
    third, revisit auxiliary heads only if they move held-out rollout on plain multiheavy rather than calibration metrics alone.

@@ -21,6 +21,9 @@ class BenchmarkConfig:
     val_seed_offset: int = 10_000
     test_seed_offset: int = 20_000
     hidden_corridor: HiddenCorridorConfig = field(default_factory=HiddenCorridorConfig)
+    train_hidden_corridor_overrides: dict[str, Any] = field(default_factory=dict)
+    val_hidden_corridor_overrides: dict[str, Any] = field(default_factory=dict)
+    test_hidden_corridor_overrides: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -79,7 +82,22 @@ def _benchmark_from_dict(data: dict[str, Any]) -> BenchmarkConfig:
         val_seed_offset=int(data.get("val_seed_offset", 10_000)),
         test_seed_offset=int(data.get("test_seed_offset", 20_000)),
         hidden_corridor=hidden_corridor,
+        train_hidden_corridor_overrides=_hidden_corridor_overrides_from_dict(data.get("train_hidden_corridor_overrides", {})),
+        val_hidden_corridor_overrides=_hidden_corridor_overrides_from_dict(data.get("val_hidden_corridor_overrides", {})),
+        test_hidden_corridor_overrides=_hidden_corridor_overrides_from_dict(data.get("test_hidden_corridor_overrides", {})),
     )
+
+
+def _hidden_corridor_overrides_from_dict(data: dict[str, Any]) -> dict[str, Any]:
+    overrides: dict[str, Any] = {}
+    for key, value in data.items():
+        if key == "seed":
+            continue
+        if isinstance(value, list):
+            overrides[key] = tuple(value)
+        else:
+            overrides[key] = value
+    return overrides
 
 
 def hidden_corridor_config_for_split(benchmark: BenchmarkConfig, split: str) -> HiddenCorridorConfig:
@@ -88,11 +106,17 @@ def hidden_corridor_config_for_split(benchmark: BenchmarkConfig, split: str) -> 
         "val": benchmark.val_seed_offset,
         "test": benchmark.test_seed_offset,
     }
+    split_overrides = {
+        "train": benchmark.train_hidden_corridor_overrides,
+        "val": benchmark.val_hidden_corridor_overrides,
+        "test": benchmark.test_hidden_corridor_overrides,
+    }
     if split not in split_offsets:
         raise ValueError(f"Unknown benchmark split: {split}")
     return replace(
         benchmark.hidden_corridor,
         seed=benchmark.hidden_corridor.seed + split_offsets[split],
+        **split_overrides[split],
     )
 
 

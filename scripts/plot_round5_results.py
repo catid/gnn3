@@ -41,10 +41,10 @@ def _summary_frame(pairs: list[tuple[int, str, str]]) -> pd.DataFrame:
     return pd.concat([frame, means[frame.columns]], ignore_index=True)
 
 
-def _plot_compare(frame: pd.DataFrame, output_name: str) -> None:
+def _plot_compare(frame: pd.DataFrame, output_name: str, variant_label: str) -> None:
     plot_df = frame[frame["seed"] != "mean"].copy()
     baseline = plot_df[plot_df["variant"] == "Multiheavy"].reset_index(drop=True)
-    variant = plot_df[plot_df["variant"] == "TailSelect"].reset_index(drop=True)
+    variant = plot_df[plot_df["variant"] == variant_label].reset_index(drop=True)
 
     fig, axes = plt.subplots(1, 4, figsize=(18, 4))
     x = list(range(len(baseline)))
@@ -73,7 +73,7 @@ def _plot_compare(frame: pd.DataFrame, output_name: str) -> None:
     axes[3].set_xticks(x, labels)
     axes[3].set_ylim(0.0, 1.05)
 
-    axes[0].legend(["Multiheavy", "TailSelect"], loc="best")
+    axes[0].legend(["Multiheavy", variant_label], loc="best")
     fig.tight_layout()
     fig.savefig(PLOTS / output_name, dpi=160)
     plt.close(fig)
@@ -81,15 +81,29 @@ def _plot_compare(frame: pd.DataFrame, output_name: str) -> None:
 
 def main() -> None:
     PLOTS.mkdir(parents=True, exist_ok=True)
-    compare = _summary_frame(
+    tail_select = _summary_frame(
         [
             (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed311"),
             (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed312"),
             (313, "e3_memory_hubs_rsm_round4_multiheavy_seed313", "e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed313"),
         ]
     )
-    compare.to_csv(PLOTS / "round5_multiheavy_tail_select_vs_multiheavy.csv", index=False)
-    _plot_compare(compare, "round5_multiheavy_tail_select_vs_multiheavy.png")
+    tail_select.to_csv(PLOTS / "round5_multiheavy_tail_select_vs_multiheavy.csv", index=False)
+    _plot_compare(tail_select, "round5_multiheavy_tail_select_vs_multiheavy.png", "TailSelect")
+
+    tight_train = _summary_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed312"),
+            (313, "e3_memory_hubs_rsm_round4_multiheavy_seed313", "e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed313"),
+        ]
+    )
+    tight_train["variant"] = tight_train["variant"].replace({"TailSelect": "TightTrain"})
+    tight_train.loc[(tight_train["seed"] == "mean") & (tight_train["variant"] == "TightTrain"), "experiment"] = (
+        "TightTrain-mean"
+    )
+    tight_train.to_csv(PLOTS / "round5_multiheavy_tighttrain_vs_multiheavy.csv", index=False)
+    _plot_compare(tight_train, "round5_multiheavy_tighttrain_vs_multiheavy.png", "TightTrain")
 
 
 if __name__ == "__main__":

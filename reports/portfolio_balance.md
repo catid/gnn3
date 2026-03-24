@@ -54,14 +54,16 @@
 | A8-R5-pairwise | exploit | Test whether deadline-aware pairwise action-ranking loss built from candidate cost/on-time/slack labels can move plain multiheavy held-out rollout without adding new architecture. | 0.36 | 0.3389 | completed | Negative matched 3-seed result: selected epochs changed to 2/2/3 and the auxiliary ranking loss stayed well behaved, but all held-out rollout metrics matched plain multiheavy exactly. |
 | A9-R5-feasible-target | exploit | Test whether feasible-first hard-target supervision can improve plain multiheavy rollout by explicitly selecting the best on-time candidate when one exists. | 0.30 | 0.2785 | completed | Negative matched 3-seed result: selected epochs changed to 3/5/2, but overall held-out rollout worsened slightly versus plain multiheavy. |
 | A10-R5-slack-weight | exploit | Test whether slack-critical weighting on the main next-hop CE can improve plain multiheavy deadline behavior by emphasizing low-slack decisions directly. | 0.32 | 0.2958 | completed | Negative matched 3-seed result: selected epochs changed to 4/2/2, but all held-out rollout metrics matched plain multiheavy exactly. |
+| A11-R5-packets6-train | exploit | Test whether increasing plain multiheavy training-split packet pressure to 6 packets, while keeping validation/test manifests fixed, changes the held-out rollout policy. | 0.28 | 0.2447 | completed | Negative matched 3-seed result: train-manifest hashes changed and early checkpoints moved, but all held-out rollout metrics matched plain multiheavy exactly. |
+| A12-R5-feasible-oracle-policy | exploit | Check whether a separate train-only feasible-first oracle rollout is a distinct exploit lever before spending GPU time on it. | 0.00 | 0.0000 | scoped-out | No run needed: under the current benchmark contract, on-time feasibility is defined by the same cumulative `_edge_cost` already minimized by the oracle, so feasible-first is equivalent to cost-first except for tie cases. |
 
 Current cumulative GPU-hours:
 
 - Round-four-plus-follow-up exploit: `1.8310`
 - Round-four-plus-follow-up explore: `0.8678`
 - Round-four-plus-follow-up split: `67.8% / 32.2%`
-- Round-five exploit-only batch: `1.7647`
+- Round-five exploit-only batch: `2.0094`
 - Round-five split: `100.0% / 0.0%`
-- Overall exploit: `4.8644`
+- Overall exploit: `5.1091`
 - Overall explore: `2.0475`
-- Overall split: `70.4% / 29.6%`
+- Overall split: `71.4% / 28.6%`

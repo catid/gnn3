@@ -11,10 +11,10 @@ ROOT = Path("artifacts/experiments")
 PLOTS = Path("reports/plots")
 
 
-def _summary_frame(pairs: list[tuple[int, str, str]]) -> pd.DataFrame:
+def _summary_frame(pairs: list[tuple[int, str, str]], variant_label: str) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     for seed, baseline_name, variant_name in pairs:
-        for label, experiment_name in (("Multiheavy", baseline_name), ("TailSelect", variant_name)):
+        for label, experiment_name in (("Multiheavy", baseline_name), (variant_label, variant_name)):
             summary = json.loads((ROOT / experiment_name / "summary.json").read_text(encoding="utf-8"))
             rows.append(
                 {
@@ -37,7 +37,7 @@ def _summary_frame(pairs: list[tuple[int, str, str]]) -> pd.DataFrame:
         .mean()
         .assign(seed="mean")
     )
-    means["experiment"] = means["variant"].map({"Multiheavy": "Multiheavy-mean", "TailSelect": "TailSelect-mean"})
+    means["experiment"] = means["variant"].map({"Multiheavy": "Multiheavy-mean", variant_label: f"{variant_label}-mean"})
     return pd.concat([frame, means[frame.columns]], ignore_index=True)
 
 
@@ -86,7 +86,8 @@ def main() -> None:
             (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed311"),
             (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed312"),
             (313, "e3_memory_hubs_rsm_round4_multiheavy_seed313", "e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed313"),
-        ]
+        ],
+        "TailSelect",
     )
     tail_select.to_csv(PLOTS / "round5_multiheavy_tail_select_vs_multiheavy.csv", index=False)
     _plot_compare(tail_select, "round5_multiheavy_tail_select_vs_multiheavy.png", "TailSelect")
@@ -96,14 +97,22 @@ def main() -> None:
             (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed311"),
             (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed312"),
             (313, "e3_memory_hubs_rsm_round4_multiheavy_seed313", "e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed313"),
-        ]
-    )
-    tight_train["variant"] = tight_train["variant"].replace({"TailSelect": "TightTrain"})
-    tight_train.loc[(tight_train["seed"] == "mean") & (tight_train["variant"] == "TightTrain"), "experiment"] = (
-        "TightTrain-mean"
+        ],
+        "TightTrain",
     )
     tight_train.to_csv(PLOTS / "round5_multiheavy_tighttrain_vs_multiheavy.csv", index=False)
     _plot_compare(tight_train, "round5_multiheavy_tighttrain_vs_multiheavy.png", "TightTrain")
+
+    soft_targets = _summary_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed312"),
+            (313, "e3_memory_hubs_rsm_round4_multiheavy_seed313", "e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed313"),
+        ],
+        "SoftTargets",
+    )
+    soft_targets.to_csv(PLOTS / "round5_multiheavy_softtargets_vs_multiheavy.csv", index=False)
+    _plot_compare(soft_targets, "round5_multiheavy_softtargets_vs_multiheavy.png", "SoftTargets")
 
 
 if __name__ == "__main__":

@@ -50,14 +50,15 @@
 | B2-R4-conditional-verifier-policy | explore | Test a shared-config deployment rule that keeps plain multiheavy on low-risk suites and switches to verifier-filter reranking on high-risk traffic/depth regimes. | 0.10 | 0.0908 | completed | Negative shared-suite result: matched runs fell back to multiheavy by design, and shared OOD mean regret worsened from 6.45 to 6.85 with no miss-rate gain. |
 | A5-R5-tail-select | exploit | Test whether risk-biased checkpoint selection alone can improve plain multiheavy tail regret and deadline behavior without changing the learned policy. | 0.32 | 0.3151 | completed | Negative matched 3-seed result: selected epochs changed to 3/2/2, but all held-out rollout metrics matched plain multiheavy exactly. |
 | A6-R5-tighttrain | exploit | Test whether tighter training-only oracle-calibrated deadlines improve plain multiheavy tail regret and miss rate while holding validation/test manifests fixed. | 0.25 | 0.2348 | completed | Negative matched 3-seed result: train-manifest hashes changed, but all held-out rollout metrics matched plain multiheavy exactly. |
+| A7-R5-softtargets | exploit | Test whether deadline-aware soft action targets built from candidate cost/on-time labels can move plain multiheavy held-out rollout without adding new architecture. | 0.32 | 0.3016 | completed | Negative matched 3-seed result: selected epochs changed to 4/2/2 and the auxiliary loss stayed well behaved, but all held-out rollout metrics matched plain multiheavy exactly. |
 
 Current cumulative GPU-hours:
 
 - Round-four-plus-follow-up exploit: `1.8310`
 - Round-four-plus-follow-up explore: `0.8678`
 - Round-four-plus-follow-up split: `67.8% / 32.2%`
-- Round-five exploit-only batch: `0.5499`
+- Round-five exploit-only batch: `0.8515`
 - Round-five split: `100.0% / 0.0%`
-- Overall exploit: `3.6496`
+- Overall exploit: `3.9512`
 - Overall explore: `2.0475`
-- Overall split: `64.1% / 35.9%`
+- Overall split: `65.9% / 34.1%`

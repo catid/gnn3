@@ -51,6 +51,9 @@ class TrainConfig:
     selection_rollout_tail_regret_weight: float = 0.10
     selection_rollout_miss_weight: float = 0.05
     selection_rollout_deadline_weight: float = 0.05
+    selection_soft_target_weight: float = 0.0
+    selection_soft_target_temperature: float = 1.0
+    selection_soft_target_on_time_bonus: float = 0.0
 
 
 @dataclass(frozen=True)

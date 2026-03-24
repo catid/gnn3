@@ -902,6 +902,17 @@ def _selection_feasible_target(batch: dict[str, torch.Tensor]) -> torch.Tensor:
     return torch.where(has_feasible, feasible_target, batch["target_next_hop"])
 
 
+def _selection_slack_critical_weights(
+    *,
+    batch: dict[str, torch.Tensor],
+    scale: float,
+) -> torch.Tensor:
+    valid_mask = batch["candidate_mask"] & batch["node_mask"]
+    best_slack = batch["candidate_slack"].masked_fill(~valid_mask, -1e6).max(dim=-1).values
+    scale = max(float(scale), 1e-3)
+    return 1.0 + torch.sigmoid(-best_slack / scale)
+
+
 def compute_losses(
     output: dict[str, torch.Tensor],
     batch: dict[str, torch.Tensor],
@@ -921,6 +932,8 @@ def compute_losses(
     selection_pairwise_slack_bonus: float = 0.0,
     selection_pairwise_margin: float = 0.0,
     selection_feasible_target_weight: float = 0.0,
+    selection_slack_critical_weight: float = 0.0,
+    selection_slack_critical_scale: float = 1.0,
     quantiles: tuple[float, ...] = (0.1, 0.5, 0.9),
     verifier_aux_last_k_steps: int = 1,
 ) -> dict[str, torch.Tensor]:
@@ -928,11 +941,24 @@ def compute_losses(
     feasible_target_loss = output["selection_scores"].new_tensor(0.0)
     if final_step_only:
         logits = output["selection_scores"]
-        ce_loss = F.cross_entropy(logits, target)
+        ce_loss = F.cross_entropy(logits, target, reduction="none")
+        if selection_slack_critical_weight > 0.0:
+            slack_weights = _selection_slack_critical_weights(batch=batch, scale=selection_slack_critical_scale)
+            ce_loss = ce_loss * (1.0 + selection_slack_critical_weight * (slack_weights - 1.0))
+        ce_loss = ce_loss.mean()
         value_loss = F.mse_loss(output["values"], batch["cost_to_go"])
     else:
         repeated_target = target[:, None].expand(-1, output["per_step_logits"].size(1)).reshape(-1)
-        ce_loss = F.cross_entropy(output["per_step_logits"].reshape(-1, output["per_step_logits"].size(-1)), repeated_target)
+        ce_loss = F.cross_entropy(
+            output["per_step_logits"].reshape(-1, output["per_step_logits"].size(-1)),
+            repeated_target,
+            reduction="none",
+        )
+        if selection_slack_critical_weight > 0.0:
+            slack_weights = _selection_slack_critical_weights(batch=batch, scale=selection_slack_critical_scale)
+            repeated_weights = slack_weights[:, None].expand(-1, output["per_step_logits"].size(1)).reshape(-1)
+            ce_loss = ce_loss * (1.0 + selection_slack_critical_weight * (repeated_weights - 1.0))
+        ce_loss = ce_loss.mean()
         repeated_value = batch["cost_to_go"][:, None].expand_as(output["per_step_values"])
         value_loss = F.mse_loss(output["per_step_values"], repeated_value)
 

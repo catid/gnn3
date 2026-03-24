@@ -53,14 +53,15 @@
 | A7-R5-softtargets | exploit | Test whether deadline-aware soft action targets built from candidate cost/on-time labels can move plain multiheavy held-out rollout without adding new architecture. | 0.32 | 0.3016 | completed | Negative matched 3-seed result: selected epochs changed to 4/2/2 and the auxiliary loss stayed well behaved, but all held-out rollout metrics matched plain multiheavy exactly. |
 | A8-R5-pairwise | exploit | Test whether deadline-aware pairwise action-ranking loss built from candidate cost/on-time/slack labels can move plain multiheavy held-out rollout without adding new architecture. | 0.36 | 0.3389 | completed | Negative matched 3-seed result: selected epochs changed to 2/2/3 and the auxiliary ranking loss stayed well behaved, but all held-out rollout metrics matched plain multiheavy exactly. |
 | A9-R5-feasible-target | exploit | Test whether feasible-first hard-target supervision can improve plain multiheavy rollout by explicitly selecting the best on-time candidate when one exists. | 0.30 | 0.2785 | completed | Negative matched 3-seed result: selected epochs changed to 3/5/2, but overall held-out rollout worsened slightly versus plain multiheavy. |
+| A10-R5-slack-weight | exploit | Test whether slack-critical weighting on the main next-hop CE can improve plain multiheavy deadline behavior by emphasizing low-slack decisions directly. | 0.32 | 0.2958 | completed | Negative matched 3-seed result: selected epochs changed to 4/2/2, but all held-out rollout metrics matched plain multiheavy exactly. |
 
 Current cumulative GPU-hours:
 
 - Round-four-plus-follow-up exploit: `1.8310`
 - Round-four-plus-follow-up explore: `0.8678`
 - Round-four-plus-follow-up split: `67.8% / 32.2%`
-- Round-five exploit-only batch: `1.4689`
+- Round-five exploit-only batch: `1.7647`
 - Round-five split: `100.0% / 0.0%`
-- Overall exploit: `4.5686`
+- Overall exploit: `4.8644`
 - Overall explore: `2.0475`
-- Overall split: `69.1% / 30.9%`
+- Overall split: `70.4% / 29.6%`

@@ -129,6 +129,8 @@ def evaluate_decision_dataset(
     selection_pairwise_slack_bonus: float,
     selection_pairwise_margin: float,
     selection_feasible_target_weight: float,
+    selection_slack_critical_weight: float,
+    selection_slack_critical_scale: float,
     quantiles: tuple[float, ...],
     verifier_aux_last_k_steps: int,
 ) -> dict[str, float]:
@@ -175,6 +177,8 @@ def evaluate_decision_dataset(
             selection_pairwise_slack_bonus=selection_pairwise_slack_bonus,
             selection_pairwise_margin=selection_pairwise_margin,
             selection_feasible_target_weight=selection_feasible_target_weight,
+            selection_slack_critical_weight=selection_slack_critical_weight,
+            selection_slack_critical_scale=selection_slack_critical_scale,
             quantiles=quantiles,
             verifier_aux_last_k_steps=verifier_aux_last_k_steps,
         )
@@ -411,6 +415,8 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                     selection_pairwise_slack_bonus=config.train.selection_pairwise_slack_bonus,
                     selection_pairwise_margin=config.train.selection_pairwise_margin,
                     selection_feasible_target_weight=config.train.selection_feasible_target_weight,
+                    selection_slack_critical_weight=config.train.selection_slack_critical_weight,
+                    selection_slack_critical_scale=config.train.selection_slack_critical_scale,
                     quantiles=config.model.quantile_levels,
                     verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
                 )
@@ -445,6 +451,8 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                 selection_pairwise_slack_bonus=config.train.selection_pairwise_slack_bonus,
                 selection_pairwise_margin=config.train.selection_pairwise_margin,
                 selection_feasible_target_weight=config.train.selection_feasible_target_weight,
+                selection_slack_critical_weight=config.train.selection_slack_critical_weight,
+                selection_slack_critical_scale=config.train.selection_slack_critical_scale,
                 quantiles=config.model.quantile_levels,
                 verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
             )
@@ -534,6 +542,8 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                 selection_pairwise_slack_bonus=config.train.selection_pairwise_slack_bonus,
                 selection_pairwise_margin=config.train.selection_pairwise_margin,
                 selection_feasible_target_weight=config.train.selection_feasible_target_weight,
+                selection_slack_critical_weight=config.train.selection_slack_critical_weight,
+                selection_slack_critical_scale=config.train.selection_slack_critical_scale,
                 quantiles=config.model.quantile_levels,
                 verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
             )

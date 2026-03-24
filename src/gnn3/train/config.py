@@ -60,6 +60,8 @@ class TrainConfig:
     selection_pairwise_slack_bonus: float = 0.0
     selection_pairwise_margin: float = 0.0
     selection_feasible_target_weight: float = 0.0
+    selection_slack_critical_weight: float = 0.0
+    selection_slack_critical_scale: float = 1.0
 
 
 @dataclass(frozen=True)

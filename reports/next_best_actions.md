@@ -11,7 +11,8 @@
 9. Do not spend another cycle on soft action-target coupling alone. The matched three-seed soft-target scout changed selected epochs and carried a stable auxiliary loss, but every held-out rollout still matched plain multiheavy exactly.
 10. Do not spend another cycle on pairwise action-ranking loss alone. The matched three-seed pairwise scout changed selected epochs and carried a stable ranking loss, but every held-out rollout still matched plain multiheavy exactly.
 11. Do not spend another cycle on feasible-first hard targets alone. The matched three-seed feasible-target scout changed the supervised choice directly, but the held-out rollout slightly worsened overall versus plain multiheavy.
-12. The next highest-value batch is:
+12. Do not spend another cycle on slack-critical CE weighting alone. The matched three-seed slack-weight scout changed the main loss pressure directly, but every held-out rollout still matched plain multiheavy exactly.
+13. The next highest-value batch is:
    first, keep plain multiheavy as the exploit default;
    second, focus on non-reranker changes that alter the learned policy more materially on the shared suites;
    third, revisit auxiliary heads only if they move held-out rollout on plain multiheavy rather than calibration metrics alone.

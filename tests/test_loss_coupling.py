@@ -18,6 +18,12 @@ def _batch() -> dict[str, torch.Tensor]:
     }
 
 
+def _batch_with_slack(candidate_slack: torch.Tensor) -> dict[str, torch.Tensor]:
+    batch = _batch()
+    batch["candidate_slack"] = candidate_slack
+    return batch
+
+
 def _output(selection_scores: torch.Tensor) -> dict[str, torch.Tensor]:
     return {
         "selection_scores": selection_scores,
@@ -96,3 +102,22 @@ def test_selection_feasible_target_loss_prefers_best_on_time_candidate() -> None
     )
     assert float(better["selection_feasible_target_loss"]) < float(worse["selection_feasible_target_loss"])
     assert float(better["loss"]) < float(worse["loss"])
+
+
+def test_slack_critical_weighting_upweights_low_slack_decisions() -> None:
+    logits = _output(torch.tensor([[0.3, 0.2, -1.0]], dtype=torch.float32))
+    high_slack = compute_losses(
+        logits,
+        _batch_with_slack(torch.tensor([[2.0, 1.6, -2.0]], dtype=torch.float32)),
+        final_step_only=True,
+        selection_slack_critical_weight=1.0,
+        selection_slack_critical_scale=0.5,
+    )
+    low_slack = compute_losses(
+        logits,
+        _batch_with_slack(torch.tensor([[0.1, -0.2, -2.0]], dtype=torch.float32)),
+        final_step_only=True,
+        selection_slack_critical_weight=1.0,
+        selection_slack_critical_scale=0.5,
+    )
+    assert float(low_slack["loss"]) > float(high_slack["loss"])

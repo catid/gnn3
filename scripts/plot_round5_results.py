@@ -136,6 +136,17 @@ def main() -> None:
     feasible_target.to_csv(PLOTS / "round5_multiheavy_feasible_target_vs_multiheavy.csv", index=False)
     _plot_compare(feasible_target, "round5_multiheavy_feasible_target_vs_multiheavy.png", "FeasibleTarget")
 
+    slack_weight = _summary_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed312"),
+            (313, "e3_memory_hubs_rsm_round4_multiheavy_seed313", "e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed313"),
+        ],
+        "SlackWeight",
+    )
+    slack_weight.to_csv(PLOTS / "round5_multiheavy_slack_weight_vs_multiheavy.csv", index=False)
+    _plot_compare(slack_weight, "round5_multiheavy_slack_weight_vs_multiheavy.png", "SlackWeight")
+
 
 if __name__ == "__main__":
     main()

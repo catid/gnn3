@@ -43,12 +43,16 @@
 | B2-R4-gated-reranker-ood-seed312 | explore | Measure the second OOD sweep for the gated reranker on the seed312 checkpoint. | 0.04 | 0.0258 | completed | Mixed seed312 OOD: branching3 and heavy_dynamic improved, but deeper_packets6 remained catastrophically unstable. |
 | B2-R4-verifier-reranker-seed312 | explore | Replace the scalar reranker gate with verifier-backed path-feasibility filtering on the historical seed312 failure case. | 0.08 | 0.0600 | completed | Matched seed312 rollout preserved multiheavy behavior exactly while slightly improving test next-hop accuracy to 95.47%. |
 | B2-R4-verifier-reranker-ood-seed312 | explore | Measure the verifier-filter reranker on the seed312 rebalanced OOD suites to see whether it fixes the deeper/heavier path failure. | 0.04 | 0.0258 | completed | Positive targeted rescue: overall OOD mean regret dropped from 7.41 to 2.50 and deadline miss from 95.8% to 54.2%, removing the catastrophic deeper_packets6 seed312 failure. |
+| B2-R4-verifier-reranker-seed311 | explore | Extend the verifier-backed path-feasibility filter to seed311 to check whether the seed312 rescue keeps plain multiheavy behavior on another matched split. | 0.08 | 0.0649 | completed | Matched seed311 rollout was an exact multiheavy match at 1.50 regret, 5.96 p95, and 43.8% miss. |
+| B2-R4-verifier-reranker-seed313 | explore | Extend the verifier-backed path-feasibility filter to seed313 to see whether the reranker stays safe on the third matched split. | 0.08 | 0.0658 | completed | Negative matched seed313: regret 1.39 vs 0.55, p95 7.52 vs 2.90, and miss 43.8% vs 37.5% for plain multiheavy. |
+| B2-R4-verifier-reranker-ood-seed311 | explore | Run the verifier-filter reranker on the seed311 rebalanced OOD suites after matched confirmation. | 0.04 | 0.0166 | completed | Seed311 OOD improved branching3 and heavy_dynamic strongly, with lower overall mean regret and miss than multiheavy despite deeper_packets6 p95 worsening. |
+| B2-R4-verifier-reranker-ood-seed313 | explore | Run the verifier-filter reranker on the seed313 rebalanced OOD suites after matched confirmation. | 0.04 | 0.0166 | completed | Seed313 OOD improved branching3 and heavy_dynamic strongly and slightly improved deeper_packets6 regret, cutting overall miss from 95.8% to 45.8%. |
 
 Current cumulative GPU-hours:
 
 - Round-four-plus-follow-up exploit: `1.8310`
-- Round-four-plus-follow-up explore: `0.6131`
-- Round-four-plus-follow-up split: `74.9% / 25.1%`
+- Round-four-plus-follow-up explore: `0.7770`
+- Round-four-plus-follow-up split: `70.2% / 29.8%`
 - Overall exploit: `3.0997`
-- Overall explore: `1.7929`
-- Overall split: `63.4% / 36.6%`
+- Overall explore: `1.9567`
+- Overall split: `61.3% / 38.7%`

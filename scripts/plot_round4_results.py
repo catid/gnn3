@@ -635,12 +635,17 @@ def main() -> None:
         output_name="round4_multiheavy_path_reranker_gated_vs_multiheavy.png",
     )
 
-    verifier_reranker_summary = ARTIFACTS_DIR / "a3_e3_multiheavy_path_reranker_verifier_round4_seed312" / "summary.json"
-    if verifier_reranker_summary.exists():
+    verifier_pairs = [
+        (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "a3_e3_multiheavy_path_reranker_verifier_round4_seed311"),
+        (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "a3_e3_multiheavy_path_reranker_verifier_round4_seed312"),
+        (313, "e3_memory_hubs_rsm_round4_multiheavy_seed313", "a3_e3_multiheavy_path_reranker_verifier_round4_seed313"),
+    ]
+    verifier_pairs = [
+        pair for pair in verifier_pairs if (ARTIFACTS_DIR / pair[2] / "summary.json").exists()
+    ]
+    if verifier_pairs:
         verifier_reranker = _variant_compare_frame(
-            [
-                (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "a3_e3_multiheavy_path_reranker_verifier_round4_seed312"),
-            ]
+            verifier_pairs
         )
         verifier_reranker["variant"] = verifier_reranker["variant"].replace(
             {"E3": "Multiheavy", "variant": "Multiheavy+VerifierPathReranker"}
@@ -654,11 +659,11 @@ def main() -> None:
             & (verifier_reranker["variant"] == "Multiheavy+VerifierPathReranker"),
             "experiment",
         ] = "Multiheavy+VerifierPathReranker-mean"
-        verifier_reranker.to_csv(PLOTS_DIR / "round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.csv", index=False)
+        verifier_reranker.to_csv(PLOTS_DIR / "round4_multiheavy_path_reranker_verifier_vs_multiheavy.csv", index=False)
         _plot_variant_compare(
             verifier_reranker,
             title_prefix="Verifier Path Reranker vs Multiheavy",
-            output_name="round4_multiheavy_path_reranker_verifier_vs_multiheavy_seed312.png",
+            output_name="round4_multiheavy_path_reranker_verifier_vs_multiheavy.png",
         )
 
     ood_compare = _ood_compare_frame()
@@ -681,21 +686,27 @@ def main() -> None:
             output_name="round4_multiheavy_path_reranker_gated_ood_vs_multiheavy.png",
         )
 
+    verifier_ood_specs = [
+        (311, "round4_multiheavy_ood_seed311.csv", "round4_multiheavy_path_reranker_verifier_ood_seed311.csv"),
+        (312, "round4_multiheavy_ood_seed312.csv", "round4_multiheavy_path_reranker_verifier_ood_seed312.csv"),
+        (313, "round4_multiheavy_ood_seed313.csv", "round4_multiheavy_path_reranker_verifier_ood_seed313.csv"),
+    ]
+    verifier_ood_specs = [
+        spec for spec in verifier_ood_specs if (PLOTS_DIR / spec[2]).exists()
+    ]
     verifier_ood_compare = _ood_compare_frame_from_specs(
-        [
-            (312, "round4_multiheavy_ood_seed312.csv", "round4_multiheavy_path_reranker_verifier_ood_seed312.csv"),
-        ],
+        verifier_ood_specs,
         baseline_label="Multiheavy",
         variant_label="Multiheavy+VerifierPathReranker",
     )
     if not verifier_ood_compare.empty:
         verifier_ood_compare.to_csv(
-            PLOTS_DIR / "round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.csv",
+            PLOTS_DIR / "round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy.csv",
             index=False,
         )
         _plot_ood_compare(
             verifier_ood_compare,
-            output_name="round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy_seed312.png",
+            output_name="round4_multiheavy_path_reranker_verifier_ood_vs_multiheavy.png",
         )
 
     portfolio = _portfolio_frame()

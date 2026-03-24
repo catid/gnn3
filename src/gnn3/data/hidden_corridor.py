@@ -585,6 +585,7 @@ def make_decision_record(
     curriculum_level: str,
     include_candidate_targets: bool = True,
 ) -> DecisionRecord:
+    del include_candidate_targets
     num_nodes = graph.num_nodes
     community_one_hot = np.zeros((num_nodes, 4), dtype=np.float32)
     valid_communities = graph.node_communities >= 0
@@ -667,41 +668,13 @@ def make_decision_record(
                 )
                 path_valid = len(downstream_path) >= 1 and math.isfinite(downstream_cost)
                 full_path = [current_node, *downstream_path] if path_valid else [current_node, candidate]
+                total_cost = transition_cost + downstream_cost if path_valid else math.inf
             path_len = min(len(full_path), num_nodes)
             candidate_path_nodes[candidate, :path_len] = np.asarray(full_path[:path_len], dtype=np.int64)
             candidate_path_mask[candidate, :path_len] = path_valid
             candidate_path_features[candidate] = _path_summary_features(graph, full_path)
-    if include_candidate_targets:
-        if config is None:
-            raise ValueError("config is required when include_candidate_targets=True")
-        for candidate in np.flatnonzero(graph.adj[current_node]):
-            candidate = int(candidate)
-            candidate_graph = graph.copy()
-            transition_cost = _edge_cost(
-                candidate_graph,
-                packet,
-                current_node,
-                candidate,
-                remaining_deadline=packet.deadline,
-                config=config,
-            )
-            remaining_deadline = max(packet.deadline - transition_cost, 0.0)
-            _apply_transition(candidate_graph, current_node, candidate, packet)
             if candidate == packet.destination:
                 total_cost = transition_cost
-            else:
-                _candidate_path, downstream_cost = shortest_path(
-                    candidate_graph,
-                    packet,
-                    start=candidate,
-                    remaining_deadline=max(remaining_deadline, 1.0),
-                    config=config,
-                )
-                total_cost = (
-                    transition_cost + downstream_cost
-                    if math.isfinite(downstream_cost)
-                    else math.inf
-                )
             if math.isfinite(total_cost):
                 candidate_cost_to_go[candidate] = float(total_cost)
                 candidate_slack[candidate] = float(packet.deadline - total_cost)

@@ -465,6 +465,14 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
             dist.destroy_process_group()
         return None
 
+    selected_epoch = None
+    selected_selection_score = None
+    if best_checkpoint.exists():
+        checkpoint_payload = torch.load(best_checkpoint, map_location=device)
+        eval_model.load_state_dict(checkpoint_payload["model"])
+        selected_epoch = checkpoint_payload.get("epoch")
+        selected_selection_score = checkpoint_payload.get("selection_score")
+
     test_metrics = evaluate_decision_dataset(
         eval_model,
         test_loader,
@@ -511,6 +519,8 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
             "test": test_hidden_cfg.seed,
         },
         "best_metric": best_metric,
+        "selected_epoch": selected_epoch,
+        "selected_selection_score": selected_selection_score,
         "world_size": world_size,
         "elapsed_seconds": elapsed_seconds,
         "gpu_hours": gpu_hours,

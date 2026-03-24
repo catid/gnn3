@@ -231,6 +231,41 @@ def test_candidate_path_reranker_forward_and_loss() -> None:
     assert float(losses["loss"].detach()) > 0.0
 
 
+def test_candidate_path_verifier_filter_masks_infeasible_choices() -> None:
+    cfg = HiddenCorridorConfig(
+        seed=16,
+        deadline_mode="oracle_calibrated",
+    )
+    dataset = HiddenCorridorDecisionDataset(config=cfg, num_episodes=2)
+    batch = collate_decisions([dataset[0], dataset[1]])
+    valid_candidates = (batch["candidate_mask"] & batch["node_mask"])[0].nonzero().flatten()
+    target = int(batch["target_next_hop"][0].item())
+    batch["candidate_on_time"][0].zero_()
+    batch["candidate_slack"][0].fill_(-5.0)
+    batch["candidate_on_time"][0, target] = 1.0
+    batch["candidate_slack"][0, target] = 2.0
+    for candidate in valid_candidates.tolist():
+        if candidate != target:
+            batch["candidate_slack"][0, candidate] = -3.0
+
+    model = PacketMambaModel(
+        PacketMambaConfig(
+            node_feature_dim=batch["node_features"].shape[-1],
+            outer_steps=2,
+            inner_layers=2,
+            router_variant="memory_hubs",
+            detach_warmup=True,
+            path_reranker=True,
+            path_verifier_filter=True,
+        )
+    )
+    output = model(batch)
+    infeasible_candidates = [candidate for candidate in valid_candidates.tolist() if candidate != target]
+    assert output["selection_scores"][0, target] > -1e8
+    for candidate in infeasible_candidates:
+        assert output["selection_scores"][0, candidate] < -1e8
+
+
 def test_dataset_manifest_is_stable_for_same_seed() -> None:
     cfg = HiddenCorridorConfig(seed=10)
     dataset_a = HiddenCorridorDecisionDataset(config=cfg, num_episodes=4)
@@ -318,6 +353,8 @@ def test_smoke_training_runs(tmp_path: Path) -> None:
     assert "device_placement" in summary
     assert "manifest_hashes" in summary
     assert "split_config_seeds" in summary
+    assert "selected_epoch" in summary
+    assert "selected_selection_score" in summary
     assert "p95_regret" in summary["test_rollout"]
     assert "deadline_miss_rate" in summary["test_rollout"]
     manifest_payload = json.loads(Path(summary["output_dir"], "dataset_manifests.json").read_text())

@@ -59,6 +59,10 @@ class PacketMambaConfig:
     path_reranker_gate_bias: float = 1.25
     path_reranker_gate_sharpness: float = 4.0
     path_reranker_packet_weight: float = 0.35
+    path_verifier_filter: bool = False
+    path_verifier_hard_mask: bool = True
+    path_verifier_slack_margin: float = 0.0
+    path_verifier_penalty: float = 4.0
 
 
 class DenseEdgeMixer(nn.Module):
@@ -714,6 +718,8 @@ class PacketMambaModel(nn.Module):
         candidate_cost_quantiles = None
         path_scores = None
         path_reranker_gate = None
+        path_verifier_penalty = None
+        path_verifier_keep_mask = None
         selection_scores = node_logits
         if self.deadline_head is not None and self.slack_head is not None and self.quantile_head is not None:
             candidate_on_time_logits = self.deadline_head(action_input).squeeze(-1)
@@ -764,6 +770,28 @@ class PacketMambaModel(nn.Module):
             selection_scores = selection_scores + self.config.path_reranker_weight * path_scores
             selection_scores = selection_scores.masked_fill(~path_valid, -1e9)
 
+        if self.config.path_verifier_filter:
+            candidate_valid = batch["candidate_mask"] & batch["node_mask"]
+            verified_on_time = batch["candidate_on_time"] > 0.5
+            verified_slack = batch["candidate_slack"]
+            deadline_scale = batch["packet_deadline"][:, None].clamp(min=1.0)
+            verifier_penalty = self.config.path_verifier_penalty * F.relu(
+                (self.config.path_verifier_slack_margin - verified_slack) / deadline_scale
+            )
+            verifier_penalty = verifier_penalty.masked_fill(~candidate_valid, 0.0)
+            selection_scores = selection_scores - verifier_penalty
+
+            feasible_candidates = verified_on_time & candidate_valid
+            has_feasible = feasible_candidates.any(dim=-1, keepdim=True)
+            path_verifier_keep_mask = candidate_valid & (~has_feasible | feasible_candidates)
+            if self.config.path_verifier_hard_mask:
+                selection_scores = selection_scores.masked_fill(~path_verifier_keep_mask, -1e9)
+            else:
+                path_verifier_keep_mask = candidate_valid
+
+            path_verifier_penalty = verifier_penalty
+            selection_scores = selection_scores.masked_fill(~candidate_valid, -1e9)
+
         return {
             "node_logits": node_logits,
             "selection_scores": selection_scores,
@@ -774,6 +802,8 @@ class PacketMambaModel(nn.Module):
             "candidate_cost_quantiles": candidate_cost_quantiles,
             "path_scores": path_scores,
             "path_reranker_gate": path_reranker_gate,
+            "path_verifier_penalty": path_verifier_penalty,
+            "path_verifier_keep_mask": path_verifier_keep_mask,
         }
 
 

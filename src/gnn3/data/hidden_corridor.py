@@ -840,6 +840,35 @@ class HiddenCorridorDecisionDataset(Dataset[DecisionRecord]):
     def __getitem__(self, index: int) -> DecisionRecord:
         return self._decisions[index]
 
+    def sampling_weights(
+        self,
+        *,
+        mode: str,
+        slack_weight: float = 0.0,
+        packet_weight: float = 0.0,
+        infeasible_bonus: float = 0.0,
+        max_multiplier: float = 1.0,
+    ) -> np.ndarray:
+        if mode == "uniform":
+            return np.ones((len(self._decisions),), dtype=np.float64)
+        if mode != "critical":
+            raise ValueError(f"Unknown train decision sampling mode: {mode}")
+        packets_cap = max(int(self.config.packets_max), 1)
+        return np.asarray(
+            [
+                critical_decision_weight(
+                    record,
+                    packets_cap=packets_cap,
+                    slack_weight=slack_weight,
+                    packet_weight=packet_weight,
+                    infeasible_bonus=infeasible_bonus,
+                    max_multiplier=max_multiplier,
+                )
+                for record in self._decisions
+            ],
+            dtype=np.float64,
+        )
+
     @staticmethod
     def _graph_hash(graph: GraphState) -> str:
         hasher = hashlib.sha256()
@@ -986,3 +1015,27 @@ def collate_decisions(records: list[DecisionRecord]) -> dict[str, torch.Tensor]:
         "packet_index": packet_index,
         "packet_count": packet_count,
     }
+
+
+def critical_decision_weight(
+    record: DecisionRecord,
+    *,
+    packets_cap: int,
+    slack_weight: float,
+    packet_weight: float,
+    infeasible_bonus: float,
+    max_multiplier: float,
+) -> float:
+    valid_candidates = record.candidate_mask.astype(bool)
+    feasible_candidates = valid_candidates & (record.candidate_on_time > 0.5)
+    if feasible_candidates.any():
+        best_slack = float(record.candidate_slack[feasible_candidates].max())
+        slack_term = 1.0 / (1.0 + max(best_slack, 0.0))
+        infeasible_term = 0.0
+    else:
+        slack_term = 1.0
+        infeasible_term = max(infeasible_bonus, 0.0)
+
+    packet_term = max(int(record.packet_count) - 1, 0) / max(packets_cap - 1, 1)
+    weight = 1.0 + max(slack_weight, 0.0) * slack_term + max(packet_weight, 0.0) * packet_term + infeasible_term
+    return float(min(max(weight, 1.0), max(max_multiplier, 1.0)))

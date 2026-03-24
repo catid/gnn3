@@ -13,7 +13,7 @@ import torch.distributed as dist
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import AdamW
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
 
@@ -270,16 +270,29 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
         curriculum_levels=config.benchmark.curriculum_levels,
     )
 
-    train_sampler = (
-        DistributedSampler(
+    train_sampling_weights = None
+    if is_distributed:
+        train_sampler = DistributedSampler(
             train_dataset,
             num_replicas=world_size,
             rank=rank,
             shuffle=True,
         )
-        if is_distributed
-        else None
-    )
+    elif config.train.train_decision_sampling == "uniform":
+        train_sampler = None
+    else:
+        train_sampling_weights = train_dataset.sampling_weights(
+            mode=config.train.train_decision_sampling,
+            slack_weight=config.train.train_critical_slack_weight,
+            packet_weight=config.train.train_critical_packet_weight,
+            infeasible_bonus=config.train.train_critical_infeasible_bonus,
+            max_multiplier=config.train.train_critical_max_multiplier,
+        )
+        train_sampler = WeightedRandomSampler(
+            weights=torch.as_tensor(train_sampling_weights, dtype=torch.double),
+            num_samples=len(train_sampling_weights),
+            replacement=True,
+        )
     train_loader = DataLoader(
         train_dataset,
         batch_size=config.train.batch_size,
@@ -364,6 +377,12 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                 "cudnn_benchmark": torch.backends.cudnn.benchmark,
                 "cudnn_deterministic": torch.backends.cudnn.deterministic,
             },
+            "train_sampling": {
+                "mode": config.train.train_decision_sampling,
+                "mean_weight": float(train_sampling_weights.mean()) if train_sampling_weights is not None else 1.0,
+                "max_weight": float(train_sampling_weights.max()) if train_sampling_weights is not None else 1.0,
+                "min_weight": float(train_sampling_weights.min()) if train_sampling_weights is not None else 1.0,
+            },
             "train_decisions": len(train_dataset),
             "val_decisions": len(val_dataset),
             "test_decisions": len(test_dataset),
@@ -375,7 +394,7 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
     step = 0
     for epoch in range(1, config.train.epochs + 1):
         model.train()
-        if train_sampler is not None:
+        if isinstance(train_sampler, DistributedSampler):
             train_sampler.set_epoch(epoch)
         epoch_totals = {
             "loss": 0.0,

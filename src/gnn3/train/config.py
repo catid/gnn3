@@ -62,6 +62,11 @@ class TrainConfig:
     selection_feasible_target_weight: float = 0.0
     selection_slack_critical_weight: float = 0.0
     selection_slack_critical_scale: float = 1.0
+    train_decision_sampling: str = "uniform"
+    train_critical_slack_weight: float = 0.0
+    train_critical_packet_weight: float = 0.0
+    train_critical_infeasible_bonus: float = 0.0
+    train_critical_max_multiplier: float = 1.0
 
 
 @dataclass(frozen=True)

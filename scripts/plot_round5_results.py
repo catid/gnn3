@@ -114,6 +114,17 @@ def main() -> None:
     packets6_train.to_csv(PLOTS / "round5_multiheavy_packets6_train_vs_multiheavy.csv", index=False)
     _plot_compare(packets6_train, "round5_multiheavy_packets6_train_vs_multiheavy.png", "Packets6Train")
 
+    critical_sampling = _summary_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "e3_memory_hubs_rsm_round5_multiheavy_critical_sampling_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "e3_memory_hubs_rsm_round5_multiheavy_critical_sampling_seed312"),
+            (313, "e3_memory_hubs_rsm_round4_multiheavy_seed313", "e3_memory_hubs_rsm_round5_multiheavy_critical_sampling_seed313"),
+        ],
+        "CriticalSampling",
+    )
+    critical_sampling.to_csv(PLOTS / "round5_multiheavy_critical_sampling_vs_multiheavy.csv", index=False)
+    _plot_compare(critical_sampling, "round5_multiheavy_critical_sampling_vs_multiheavy.png", "CriticalSampling")
+
     soft_targets = _summary_frame(
         [
             (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed311"),

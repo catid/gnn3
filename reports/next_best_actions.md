@@ -9,12 +9,13 @@
 7. Do not spend another cycle on checkpoint-selection tuning alone. The matched round-five tail-select scout chose earlier checkpoints on all three seeds, but every held-out rollout stayed identical to plain multiheavy.
 8. Do not spend another cycle on tighter training-only deadlines alone. The matched three-seed tight-train scout changed the train manifests but still matched plain multiheavy exactly on held-out rollout.
 9. Do not spend another cycle on train-only packet-cap widening alone. The matched three-seed packets6-train scout changed the train manifests and early optimization behavior, but every held-out rollout still matched plain multiheavy exactly.
-10. Do not spend another cycle on soft action-target coupling alone. The matched three-seed soft-target scout changed selected epochs and carried a stable auxiliary loss, but every held-out rollout still matched plain multiheavy exactly.
-11. Do not spend another cycle on pairwise action-ranking loss alone. The matched three-seed pairwise scout changed selected epochs and carried a stable ranking loss, but every held-out rollout still matched plain multiheavy exactly.
-12. Do not spend another cycle on feasible-first hard targets alone. The matched three-seed feasible-target scout changed the supervised choice directly, but the held-out rollout slightly worsened overall versus plain multiheavy.
-13. Do not spend another cycle on slack-critical CE weighting alone. The matched three-seed slack-weight scout changed the main loss pressure directly, but every held-out rollout still matched plain multiheavy exactly.
-14. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract. The oracle already minimizes the same cumulative `_edge_cost` that defines on-time feasibility, so a feasible-first rollout would only differ on exact ties.
-15. The next highest-value batch is:
+10. Do not spend another cycle on train-only critical-decision oversampling alone. The matched three-seed critical-sampling scout changed minibatch pressure materially, but every held-out rollout still matched plain multiheavy exactly.
+11. Do not spend another cycle on soft action-target coupling alone. The matched three-seed soft-target scout changed selected epochs and carried a stable auxiliary loss, but every held-out rollout still matched plain multiheavy exactly.
+12. Do not spend another cycle on pairwise action-ranking loss alone. The matched three-seed pairwise scout changed selected epochs and carried a stable ranking loss, but every held-out rollout still matched plain multiheavy exactly.
+13. Do not spend another cycle on feasible-first hard targets alone. The matched three-seed feasible-target scout changed the supervised choice directly, but the held-out rollout slightly worsened overall versus plain multiheavy.
+14. Do not spend another cycle on slack-critical CE weighting alone. The matched three-seed slack-weight scout changed the main loss pressure directly, but every held-out rollout still matched plain multiheavy exactly.
+15. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract. The oracle already minimizes the same cumulative `_edge_cost` that defines on-time feasibility, so a feasible-first rollout would only differ on exact ties.
+16. The next highest-value batch is:
    first, keep plain multiheavy as the exploit default;
-   second, focus on non-reranker changes that alter the learned policy more materially on the shared suites;
+   second, stop testing new train-only weighting or oversampling variants that leave the model architecture and per-decision contract unchanged;
    third, revisit auxiliary heads only if they move held-out rollout on plain multiheavy rather than calibration metrics alone.

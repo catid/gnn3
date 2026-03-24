@@ -2,15 +2,16 @@
 
 ## Scope
 
-This pass tested seven bounded non-reranker exploit changes on top of the robust plain `multiheavy` recipe:
+This pass tested eight bounded non-reranker exploit changes on top of the robust plain `multiheavy` recipe:
 
 1. risk-biased checkpoint selection
 2. tighter training-only oracle-calibrated deadlines with fixed validation and test manifests
 3. train-only `packets_max=6` curriculum with fixed validation and test manifests
-4. deadline-aware soft action targets using existing candidate cost and on-time labels
-5. deadline-aware pairwise ranking loss using the same oracle candidate labels
-6. feasible-first hard target supervision when an on-time candidate exists
-7. slack-critical weighting on the main next-hop CE
+4. train-only critical-decision oversampling toward low-slack and multi-packet decisions
+5. deadline-aware soft action targets using existing candidate cost and on-time labels
+6. deadline-aware pairwise ranking loss using the same oracle candidate labels
+7. feasible-first hard target supervision when an on-time candidate exists
+8. slack-critical weighting on the main next-hop CE
 
 Key artifacts:
 
@@ -20,6 +21,8 @@ Key artifacts:
 - [round5_multiheavy_tighttrain_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_tighttrain_vs_multiheavy.png)
 - [round5_multiheavy_packets6_train_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round5_multiheavy_packets6_train_vs_multiheavy.csv)
 - [round5_multiheavy_packets6_train_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_packets6_train_vs_multiheavy.png)
+- [round5_multiheavy_critical_sampling_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round5_multiheavy_critical_sampling_vs_multiheavy.csv)
+- [round5_multiheavy_critical_sampling_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_critical_sampling_vs_multiheavy.png)
 - [round5_multiheavy_softtargets_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round5_multiheavy_softtargets_vs_multiheavy.csv)
 - [round5_multiheavy_softtargets_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_softtargets_vs_multiheavy.png)
 - [round5_multiheavy_pairwise_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round5_multiheavy_pairwise_vs_multiheavy.csv)
@@ -42,12 +45,14 @@ Implementation changes:
 - matched round-five configs in [e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed313.yaml)
 - matched tighter-train configs in [e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed313.yaml)
 - matched packets6-train configs in [e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed313.yaml)
+- matched critical-sampling configs in [e3_memory_hubs_rsm_round5_multiheavy_critical_sampling_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_critical_sampling_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_critical_sampling_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_critical_sampling_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_critical_sampling_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_critical_sampling_seed313.yaml)
 - matched soft-target configs in [e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed313.yaml)
 - matched pairwise configs in [e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed313.yaml)
 - matched feasible-target configs in [e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed313.yaml)
 - matched slack-weight configs in [e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed313.yaml)
 - selection regression tests in [test_trainer_selection.py](/home/catid/gnn3/tests/test_trainer_selection.py)
 - split-override regression coverage in [test_config_split_overrides.py](/home/catid/gnn3/tests/test_config_split_overrides.py)
+- critical-sampling regression coverage in [test_train_sampling.py](/home/catid/gnn3/tests/test_train_sampling.py)
 - soft-target loss regression coverage in [test_loss_coupling.py](/home/catid/gnn3/tests/test_loss_coupling.py)
 
 ## Matched Result
@@ -138,6 +143,37 @@ Take:
 
 - harder train-only packet-count pressure is not enough on its own to move the learned rollout policy under the fixed shared evaluation manifests
 - this closes off another pure-curriculum lever unless it is paired with a stronger objective or policy change
+
+## Critical-Decision Oversampling Scout
+
+Matched three-seed comparison against the same plain `multiheavy` baseline, but with train-only decision-level oversampling toward low-slack, infeasible, and higher-packet-count decisions:
+
+- multiheavy mean next-hop accuracy: `95.82%`
+- critical-sampling mean next-hop accuracy: `96.10%`
+- multiheavy mean rollout next-hop accuracy: `95.52%`
+- critical-sampling mean rollout next-hop accuracy: `95.52%`
+- multiheavy mean regret: `1.32`
+- critical-sampling mean regret: `1.32`
+- multiheavy mean p95 regret: `4.77`
+- critical-sampling mean p95 regret: `4.77`
+- multiheavy mean deadline miss rate: `41.7%`
+- critical-sampling mean deadline miss rate: `41.7%`
+
+What changed:
+
+- the train sampler materially changed minibatch pressure instead of just changing scalar loss weights
+- mean train sample weight was about `1.83x`, with weights clipped up to `4.0x`
+- seed `311` and seed `312` both found stronger validation rollout checkpoints than their plain-multiheavy baselines before snapping back on held-out test rollout
+
+What did not change:
+
+- the held-out test rollout stayed identical to the existing `multiheavy` baseline on all three matched seeds
+- no matched-seed gain appeared in regret, p95 regret, deadline miss rate, or rollout next-hop accuracy
+
+Take:
+
+- even materially harder replay of low-slack and multi-packet decisions was not enough to move the final learned policy under the current training contract
+- this is a stronger negative than the earlier loss-only tweaks because the training distribution inside each epoch actually changed
 
 ## Deadline-Aware Soft-Target Scout
 
@@ -246,13 +282,14 @@ What did not change:
 
 ## Decision
 
-All six round-five exploit changes are clean negatives.
+All eight round-five exploit changes are clean negatives.
 
 Checkpoint-selection policy alone is not the next leverage point for this repo. Tightening the training-only deadline contract also is not enough on its own. Both changes moved internal training behavior, but neither changed the actual held-out rollout once the current plain `multiheavy` model had trained.
 Deadline-aware soft action targets also are not enough on their own. They changed selected checkpoints and introduced a stable auxiliary loss, but they still did not move held-out rollout quality.
 Deadline-aware pairwise ranking also is not enough on its own. It pushed the policy with a stronger relative-ordering objective than soft targets, but it still converged to the same held-out rollout as plain `multiheavy`.
 Feasible-first hard-target supervision is also not enough on its own. It changed the supervised action target directly when an on-time candidate existed, but the matched held-out rollout still did not improve and slightly worsened overall.
 Slack-critical CE weighting is also not enough on its own. It emphasized deadline-sensitive decisions directly in the main loss, but the matched held-out rollout still converged back to plain `multiheavy`.
+Critical-decision oversampling is also not enough on its own. It changed train-time replay pressure much more strongly than the loss-only tweaks, but the matched held-out rollout still converged back to plain `multiheavy`.
 
 ## Feasible-First Oracle-Policy Note
 
@@ -264,9 +301,10 @@ Updated recommendation:
 2. Do not spend more time on rerankers or selector-only tuning for now.
 3. Do not spend another cycle on train-only deadline tightening by itself; it changed train manifests but not held-out rollout.
 4. Do not spend another cycle on train-only packet-cap widening alone; it changed train manifests and early optimization behavior, but the held-out rollout still stayed flat.
-5. Do not spend another cycle on soft candidate distillation alone; it changed internal losses but not the held-out rollout.
-6. Do not spend another cycle on pairwise action-ranking loss alone; it altered the ordering objective directly, but the matched held-out rollout still stayed flat.
-7. Do not spend another cycle on feasible-first hard targets alone; they changed the supervised choice directly but still failed to improve the matched held-out rollout.
-8. Do not spend another cycle on slack-critical CE weighting alone; it changed decision pressure inside the main loss, but the matched held-out rollout still stayed flat.
-9. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract; it is equivalent to the existing oracle except for tie cases.
-10. If exploit work continues, the next lever must change the learned policy more materially than checkpoint ranking, train-distribution tightening, packet-cap widening, soft candidate coupling, pairwise ranking, feasible-first hard targets, or slack-critical CE weighting alone.
+5. Do not spend another cycle on train-only critical-decision oversampling alone; it materially changed minibatch pressure, but the held-out rollout still stayed flat.
+6. Do not spend another cycle on soft candidate distillation alone; it changed internal losses but not the held-out rollout.
+7. Do not spend another cycle on pairwise action-ranking loss alone; it altered the ordering objective directly, but the matched held-out rollout still stayed flat.
+8. Do not spend another cycle on feasible-first hard targets alone; they changed the supervised choice directly but still failed to improve the matched held-out rollout.
+9. Do not spend another cycle on slack-critical CE weighting alone; it changed decision pressure inside the main loss, but the matched held-out rollout still stayed flat.
+10. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract; it is equivalent to the existing oracle except for tie cases.
+11. If exploit work continues, the next lever must change the learned policy more materially than checkpoint ranking, train-distribution tightening, packet-cap widening, critical-decision oversampling, soft candidate coupling, pairwise ranking, feasible-first hard targets, or slack-critical CE weighting alone.

@@ -59,6 +59,7 @@ class TrainConfig:
     selection_pairwise_on_time_bonus: float = 0.0
     selection_pairwise_slack_bonus: float = 0.0
     selection_pairwise_margin: float = 0.0
+    selection_feasible_target_weight: float = 0.0
 
 
 @dataclass(frozen=True)

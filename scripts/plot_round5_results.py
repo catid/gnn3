@@ -125,6 +125,17 @@ def main() -> None:
     pairwise.to_csv(PLOTS / "round5_multiheavy_pairwise_vs_multiheavy.csv", index=False)
     _plot_compare(pairwise, "round5_multiheavy_pairwise_vs_multiheavy.png", "Pairwise")
 
+    feasible_target = _summary_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed312"),
+            (313, "e3_memory_hubs_rsm_round4_multiheavy_seed313", "e3_memory_hubs_rsm_round5_multiheavy_feasible_target_seed313"),
+        ],
+        "FeasibleTarget",
+    )
+    feasible_target.to_csv(PLOTS / "round5_multiheavy_feasible_target_vs_multiheavy.csv", index=False)
+    _plot_compare(feasible_target, "round5_multiheavy_feasible_target_vs_multiheavy.png", "FeasibleTarget")
+
 
 if __name__ == "__main__":
     main()

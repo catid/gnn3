@@ -893,6 +893,15 @@ def _selection_pairwise_ranking_loss(
     return pair_losses[preferred_mask].mean()
 
 
+def _selection_feasible_target(batch: dict[str, torch.Tensor]) -> torch.Tensor:
+    valid_mask = batch["candidate_mask"] & batch["node_mask"]
+    feasible_mask = valid_mask & (batch["candidate_on_time"] > 0.5)
+    feasible_cost = batch["candidate_cost_to_go"].masked_fill(~feasible_mask, 1e9)
+    feasible_target = feasible_cost.argmin(dim=-1)
+    has_feasible = feasible_mask.any(dim=-1)
+    return torch.where(has_feasible, feasible_target, batch["target_next_hop"])
+
+
 def compute_losses(
     output: dict[str, torch.Tensor],
     batch: dict[str, torch.Tensor],
@@ -911,10 +920,12 @@ def compute_losses(
     selection_pairwise_on_time_bonus: float = 0.0,
     selection_pairwise_slack_bonus: float = 0.0,
     selection_pairwise_margin: float = 0.0,
+    selection_feasible_target_weight: float = 0.0,
     quantiles: tuple[float, ...] = (0.1, 0.5, 0.9),
     verifier_aux_last_k_steps: int = 1,
 ) -> dict[str, torch.Tensor]:
     target = batch["target_next_hop"]
+    feasible_target_loss = output["selection_scores"].new_tensor(0.0)
     if final_step_only:
         logits = output["selection_scores"]
         ce_loss = F.cross_entropy(logits, target)
@@ -949,6 +960,9 @@ def compute_losses(
             slack_bonus=selection_pairwise_slack_bonus,
             margin=selection_pairwise_margin,
         )
+    if selection_feasible_target_weight > 0.0:
+        feasible_target = _selection_feasible_target(batch)
+        feasible_target_loss = F.cross_entropy(output["selection_scores"], feasible_target)
     if deadline_bce_weight > 0.0 or slack_weight > 0.0 or quantile_weight > 0.0:
         per_step_on_time = output.get("per_step_candidate_on_time_logits")
         per_step_slack = output.get("per_step_candidate_slack")
@@ -987,6 +1001,7 @@ def compute_losses(
         + route_weight * route_loss
         + selection_soft_target_weight * selection_soft_target_loss
         + selection_pairwise_weight * selection_pairwise_loss
+        + selection_feasible_target_weight * feasible_target_loss
         + deadline_bce_weight * on_time_loss
         + slack_weight * slack_loss
         + quantile_weight * quantile_loss
@@ -1001,6 +1016,7 @@ def compute_losses(
         "route_loss": route_loss.detach(),
         "selection_soft_target_loss": selection_soft_target_loss.detach(),
         "selection_pairwise_loss": selection_pairwise_loss.detach(),
+        "selection_feasible_target_loss": feasible_target_loss.detach(),
         "on_time_loss": on_time_loss.detach(),
         "slack_loss": slack_loss.detach(),
         "quantile_loss": quantile_loss.detach(),

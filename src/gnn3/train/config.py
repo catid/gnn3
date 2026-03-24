@@ -54,6 +54,11 @@ class TrainConfig:
     selection_soft_target_weight: float = 0.0
     selection_soft_target_temperature: float = 1.0
     selection_soft_target_on_time_bonus: float = 0.0
+    selection_pairwise_weight: float = 0.0
+    selection_pairwise_temperature: float = 1.0
+    selection_pairwise_on_time_bonus: float = 0.0
+    selection_pairwise_slack_bonus: float = 0.0
+    selection_pairwise_margin: float = 0.0
 
 
 @dataclass(frozen=True)

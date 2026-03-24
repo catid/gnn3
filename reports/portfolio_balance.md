@@ -51,14 +51,15 @@
 | A5-R5-tail-select | exploit | Test whether risk-biased checkpoint selection alone can improve plain multiheavy tail regret and deadline behavior without changing the learned policy. | 0.32 | 0.3151 | completed | Negative matched 3-seed result: selected epochs changed to 3/2/2, but all held-out rollout metrics matched plain multiheavy exactly. |
 | A6-R5-tighttrain | exploit | Test whether tighter training-only oracle-calibrated deadlines improve plain multiheavy tail regret and miss rate while holding validation/test manifests fixed. | 0.25 | 0.2348 | completed | Negative matched 3-seed result: train-manifest hashes changed, but all held-out rollout metrics matched plain multiheavy exactly. |
 | A7-R5-softtargets | exploit | Test whether deadline-aware soft action targets built from candidate cost/on-time labels can move plain multiheavy held-out rollout without adding new architecture. | 0.32 | 0.3016 | completed | Negative matched 3-seed result: selected epochs changed to 4/2/2 and the auxiliary loss stayed well behaved, but all held-out rollout metrics matched plain multiheavy exactly. |
+| A8-R5-pairwise | exploit | Test whether deadline-aware pairwise action-ranking loss built from candidate cost/on-time/slack labels can move plain multiheavy held-out rollout without adding new architecture. | 0.36 | 0.3389 | completed | Negative matched 3-seed result: selected epochs changed to 2/2/3 and the auxiliary ranking loss stayed well behaved, but all held-out rollout metrics matched plain multiheavy exactly. |
 
 Current cumulative GPU-hours:
 
 - Round-four-plus-follow-up exploit: `1.8310`
 - Round-four-plus-follow-up explore: `0.8678`
 - Round-four-plus-follow-up split: `67.8% / 32.2%`
-- Round-five exploit-only batch: `0.8515`
+- Round-five exploit-only batch: `1.1904`
 - Round-five split: `100.0% / 0.0%`
-- Overall exploit: `3.9512`
+- Overall exploit: `4.2901`
 - Overall explore: `2.0475`
-- Overall split: `65.9% / 34.1%`
+- Overall split: `67.7% / 32.3%`

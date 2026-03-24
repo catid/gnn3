@@ -52,3 +52,29 @@ def test_selection_soft_target_loss_prefers_feasible_low_cost_actions() -> None:
     )
     assert float(better["selection_soft_target_loss"]) < float(worse["selection_soft_target_loss"])
     assert float(better["loss"]) < float(worse["loss"])
+
+
+def test_selection_pairwise_loss_prefers_feasible_low_cost_rankings() -> None:
+    batch = _batch()
+    better = compute_losses(
+        _output(torch.tensor([[3.0, 2.0, -1.0]], dtype=torch.float32)),
+        batch,
+        final_step_only=True,
+        selection_pairwise_weight=1.0,
+        selection_pairwise_temperature=1.0,
+        selection_pairwise_on_time_bonus=1.0,
+        selection_pairwise_slack_bonus=0.25,
+        selection_pairwise_margin=0.5,
+    )
+    worse = compute_losses(
+        _output(torch.tensor([[-1.0, 0.0, 3.0]], dtype=torch.float32)),
+        batch,
+        final_step_only=True,
+        selection_pairwise_weight=1.0,
+        selection_pairwise_temperature=1.0,
+        selection_pairwise_on_time_bonus=1.0,
+        selection_pairwise_slack_bonus=0.25,
+        selection_pairwise_margin=0.5,
+    )
+    assert float(better["selection_pairwise_loss"]) < float(worse["selection_pairwise_loss"])
+    assert float(better["loss"]) < float(worse["loss"])

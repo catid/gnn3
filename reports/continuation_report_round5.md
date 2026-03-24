@@ -2,11 +2,12 @@
 
 ## Scope
 
-This pass tested three bounded non-reranker exploit changes on top of the robust plain `multiheavy` recipe:
+This pass tested four bounded non-reranker exploit changes on top of the robust plain `multiheavy` recipe:
 
 1. risk-biased checkpoint selection
 2. tighter training-only oracle-calibrated deadlines with fixed validation and test manifests
 3. deadline-aware soft action targets using existing candidate cost and on-time labels
+4. deadline-aware pairwise ranking loss using the same oracle candidate labels
 
 Key artifacts:
 
@@ -16,6 +17,8 @@ Key artifacts:
 - [round5_multiheavy_tighttrain_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_tighttrain_vs_multiheavy.png)
 - [round5_multiheavy_softtargets_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round5_multiheavy_softtargets_vs_multiheavy.csv)
 - [round5_multiheavy_softtargets_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_softtargets_vs_multiheavy.png)
+- [round5_multiheavy_pairwise_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round5_multiheavy_pairwise_vs_multiheavy.csv)
+- [round5_multiheavy_pairwise_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_pairwise_vs_multiheavy.png)
 - [experiment_summary.csv](/home/catid/gnn3/reports/plots/experiment_summary.csv)
 
 Implementation changes:
@@ -24,9 +27,11 @@ Implementation changes:
 - selection-score wiring in [trainer.py](/home/catid/gnn3/src/gnn3/train/trainer.py)
 - split-specific train/val/test hidden-corridor overrides in [config.py](/home/catid/gnn3/src/gnn3/train/config.py)
 - deadline-aware soft-target selection loss in [packet_mamba.py](/home/catid/gnn3/src/gnn3/models/packet_mamba.py)
+- deadline-aware pairwise ranking loss in [packet_mamba.py](/home/catid/gnn3/src/gnn3/models/packet_mamba.py)
 - matched round-five configs in [e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed313.yaml)
 - matched tighter-train configs in [e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed313.yaml)
 - matched soft-target configs in [e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_softtargets_seed313.yaml)
+- matched pairwise configs in [e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed313.yaml)
 - selection regression tests in [test_trainer_selection.py](/home/catid/gnn3/tests/test_trainer_selection.py)
 - split-override regression coverage in [test_config_split_overrides.py](/home/catid/gnn3/tests/test_config_split_overrides.py)
 - soft-target loss regression coverage in [test_loss_coupling.py](/home/catid/gnn3/tests/test_loss_coupling.py)
@@ -115,12 +120,40 @@ What did not change:
 - the held-out test rollout stayed identical to the existing `multiheavy` baseline on all three matched seeds
 - no matched-seed gain appeared in regret, p95 regret, deadline miss rate, or rollout next-hop accuracy
 
+## Deadline-Aware Pairwise Ranking Scout
+
+Matched three-seed comparison against the same plain `multiheavy` baseline, but with a bounded pairwise ranking loss built from the existing candidate cost-to-go, on-time, and slack labels:
+
+- multiheavy mean next-hop accuracy: `95.82%`
+- pairwise mean next-hop accuracy: `96.10%`
+- multiheavy mean rollout next-hop accuracy: `95.52%`
+- pairwise mean rollout next-hop accuracy: `95.52%`
+- multiheavy mean regret: `1.32`
+- pairwise mean regret: `1.32`
+- multiheavy mean p95 regret: `4.77`
+- pairwise mean p95 regret: `4.77`
+- multiheavy mean deadline miss rate: `41.7%`
+- pairwise mean deadline miss rate: `41.7%`
+
+What changed:
+
+- the trainer now carries an explicit `selection_pairwise_loss` through train, validation, and test
+- selected epochs moved to `2 / 2 / 3`
+- the auxiliary pairwise loss stayed finite on every seed at test time: `0.299`, `0.292`, `0.336`
+- seed `313` had a rough first epoch before recovering to the same held-out rollout as baseline
+
+What did not change:
+
+- the held-out test rollout stayed identical to the existing `multiheavy` baseline on all three matched seeds
+- no matched-seed gain appeared in regret, p95 regret, deadline miss rate, or rollout next-hop accuracy
+
 ## Decision
 
-All three round-five exploit changes are clean negatives.
+All four round-five exploit changes are clean negatives.
 
 Checkpoint-selection policy alone is not the next leverage point for this repo. Tightening the training-only deadline contract also is not enough on its own. Both changes moved internal training behavior, but neither changed the actual held-out rollout once the current plain `multiheavy` model had trained.
 Deadline-aware soft action targets also are not enough on their own. They changed selected checkpoints and introduced a stable auxiliary loss, but they still did not move held-out rollout quality.
+Deadline-aware pairwise ranking also is not enough on its own. It pushed the policy with a stronger relative-ordering objective than soft targets, but it still converged to the same held-out rollout as plain `multiheavy`.
 
 Updated recommendation:
 
@@ -128,4 +161,5 @@ Updated recommendation:
 2. Do not spend more time on rerankers or selector-only tuning for now.
 3. Do not spend another cycle on train-only deadline tightening by itself; it changed train manifests but not held-out rollout.
 4. Do not spend another cycle on soft candidate distillation alone; it changed internal losses but not the held-out rollout.
-5. If exploit work continues, the next lever must change the learned policy more materially than checkpoint ranking, train-distribution tightening, or soft candidate coupling alone.
+5. Do not spend another cycle on pairwise action-ranking loss alone; it altered the ordering objective directly, but the matched held-out rollout still stayed flat.
+6. If exploit work continues, the next lever must change the learned policy more materially than checkpoint ranking, train-distribution tightening, soft candidate coupling, or pairwise ranking alone.

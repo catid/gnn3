@@ -9,7 +9,8 @@
 7. Do not spend another cycle on checkpoint-selection tuning alone. The matched round-five tail-select scout chose earlier checkpoints on all three seeds, but every held-out rollout stayed identical to plain multiheavy.
 8. Do not spend another cycle on tighter training-only deadlines alone. The matched three-seed tight-train scout changed the train manifests but still matched plain multiheavy exactly on held-out rollout.
 9. Do not spend another cycle on soft action-target coupling alone. The matched three-seed soft-target scout changed selected epochs and carried a stable auxiliary loss, but every held-out rollout still matched plain multiheavy exactly.
-10. The next highest-value batch is:
+10. Do not spend another cycle on pairwise action-ranking loss alone. The matched three-seed pairwise scout changed selected epochs and carried a stable ranking loss, but every held-out rollout still matched plain multiheavy exactly.
+11. The next highest-value batch is:
    first, keep plain multiheavy as the exploit default;
    second, focus on non-reranker changes that alter the learned policy more materially on the shared suites;
    third, revisit auxiliary heads only if they move held-out rollout on plain multiheavy rather than calibration metrics alone.

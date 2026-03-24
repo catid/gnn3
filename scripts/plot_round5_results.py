@@ -114,6 +114,17 @@ def main() -> None:
     soft_targets.to_csv(PLOTS / "round5_multiheavy_softtargets_vs_multiheavy.csv", index=False)
     _plot_compare(soft_targets, "round5_multiheavy_softtargets_vs_multiheavy.png", "SoftTargets")
 
+    pairwise = _summary_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed312"),
+            (313, "e3_memory_hubs_rsm_round4_multiheavy_seed313", "e3_memory_hubs_rsm_round5_multiheavy_pairwise_seed313"),
+        ],
+        "Pairwise",
+    )
+    pairwise.to_csv(PLOTS / "round5_multiheavy_pairwise_vs_multiheavy.csv", index=False)
+    _plot_compare(pairwise, "round5_multiheavy_pairwise_vs_multiheavy.png", "Pairwise")
+
 
 if __name__ == "__main__":
     main()

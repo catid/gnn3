@@ -865,6 +865,34 @@ def _selection_soft_target_loss(
     return -(target_probs * log_probs).sum(dim=-1).mean()
 
 
+def _selection_pairwise_ranking_loss(
+    *,
+    selection_scores: torch.Tensor,
+    batch: dict[str, torch.Tensor],
+    temperature: float,
+    on_time_bonus: float,
+    slack_bonus: float,
+    margin: float,
+) -> torch.Tensor:
+    valid_mask = batch["candidate_mask"] & batch["node_mask"]
+    temperature = max(float(temperature), 1e-3)
+    target_quality = -batch["candidate_cost_to_go"] / temperature
+    if on_time_bonus != 0.0:
+        target_quality = target_quality + on_time_bonus * batch["candidate_on_time"]
+    if slack_bonus != 0.0:
+        target_quality = target_quality + slack_bonus * torch.tanh(batch["candidate_slack"] / temperature)
+
+    pair_mask = valid_mask[:, :, None] & valid_mask[:, None, :]
+    target_gap = target_quality[:, :, None] - target_quality[:, None, :]
+    preferred_mask = pair_mask & (target_gap > 1e-6)
+    if not preferred_mask.any():
+        return selection_scores.new_tensor(0.0)
+
+    score_gap = selection_scores[:, :, None] - selection_scores[:, None, :]
+    pair_losses = F.softplus(float(margin) - score_gap)
+    return pair_losses[preferred_mask].mean()
+
+
 def compute_losses(
     output: dict[str, torch.Tensor],
     batch: dict[str, torch.Tensor],
@@ -878,6 +906,11 @@ def compute_losses(
     selection_soft_target_weight: float = 0.0,
     selection_soft_target_temperature: float = 1.0,
     selection_soft_target_on_time_bonus: float = 0.0,
+    selection_pairwise_weight: float = 0.0,
+    selection_pairwise_temperature: float = 1.0,
+    selection_pairwise_on_time_bonus: float = 0.0,
+    selection_pairwise_slack_bonus: float = 0.0,
+    selection_pairwise_margin: float = 0.0,
     quantiles: tuple[float, ...] = (0.1, 0.5, 0.9),
     verifier_aux_last_k_steps: int = 1,
 ) -> dict[str, torch.Tensor]:
@@ -896,6 +929,7 @@ def compute_losses(
     route_targets = batch["route_relevance"][batch["node_mask"]]
     route_loss = F.binary_cross_entropy_with_logits(route_logits, route_targets)
     selection_soft_target_loss = output["selection_scores"].new_tensor(0.0)
+    selection_pairwise_loss = output["selection_scores"].new_tensor(0.0)
     on_time_loss = output["selection_scores"].new_tensor(0.0)
     slack_loss = output["selection_scores"].new_tensor(0.0)
     quantile_loss = output["selection_scores"].new_tensor(0.0)
@@ -905,6 +939,15 @@ def compute_losses(
             batch=batch,
             temperature=selection_soft_target_temperature,
             on_time_bonus=selection_soft_target_on_time_bonus,
+        )
+    if selection_pairwise_weight > 0.0:
+        selection_pairwise_loss = _selection_pairwise_ranking_loss(
+            selection_scores=output["selection_scores"],
+            batch=batch,
+            temperature=selection_pairwise_temperature,
+            on_time_bonus=selection_pairwise_on_time_bonus,
+            slack_bonus=selection_pairwise_slack_bonus,
+            margin=selection_pairwise_margin,
         )
     if deadline_bce_weight > 0.0 or slack_weight > 0.0 or quantile_weight > 0.0:
         per_step_on_time = output.get("per_step_candidate_on_time_logits")
@@ -943,6 +986,7 @@ def compute_losses(
         + value_weight * value_loss
         + route_weight * route_loss
         + selection_soft_target_weight * selection_soft_target_loss
+        + selection_pairwise_weight * selection_pairwise_loss
         + deadline_bce_weight * on_time_loss
         + slack_weight * slack_loss
         + quantile_weight * quantile_loss
@@ -956,6 +1000,7 @@ def compute_losses(
         "value_loss": value_loss.detach(),
         "route_loss": route_loss.detach(),
         "selection_soft_target_loss": selection_soft_target_loss.detach(),
+        "selection_pairwise_loss": selection_pairwise_loss.detach(),
         "on_time_loss": on_time_loss.detach(),
         "slack_loss": slack_loss.detach(),
         "quantile_loss": quantile_loss.detach(),

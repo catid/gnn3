@@ -60,14 +60,15 @@
 | A14-R5-dagger-refresh | exploit | Test whether bounded DAgger-style state refresh on oracle-relabeled model-visited train states can move plain multiheavy held-out rollout. | 0.36 | 0.3393 | completed | Negative matched 3-seed result: 1,027 refresh decisions and two DAgger finetune epochs per seed still left all held-out rollout metrics identical to plain multiheavy. |
 | A15-R5-pathhead | exploit | Test whether direct soft-target supervision on the integrated traffic-gated path head can move plain multiheavy held-out rollout. | 0.18 | 0.1426 | killed-early | Negative 2-seed scout: seed312 matched baseline and seed311 regressed, so mean regret rose from 1.71 to 1.80 and mean miss from 43.8% to 46.9%. |
 | A16-R5-pathpolicy | exploit | Test whether the existing traffic-gated integrated path head can serve as the primary path-first selection policy on plain multiheavy. | 0.20 | 0.2629 | killed-early | Strong negative 2-seed scout: mean regret jumped from 1.71 to 5232.47, mean p95 from 5.70 to 13806.12, and mean miss from 43.8% to 81.2%. |
+| A17-R5-outer-step | exploit | Test whether inference-time selection among existing outer refinement steps can improve plain multiheavy held-out rollout without retraining. | 0.08 | 0.0743 | completed | Three-seed scout showed `earliest_final_agreement` matched `final` exactly, while `first` and `max_margin` were catastrophic. |
 
 Current cumulative GPU-hours:
 
 - Round-four-plus-follow-up exploit: `1.8310`
 - Round-four-plus-follow-up explore: `0.8678`
 - Round-four-plus-follow-up split: `67.8% / 32.2%`
-- Round-five exploit-only batch: `3.1613`
+- Round-five exploit-only batch: `3.2356`
 - Round-five split: `100.0% / 0.0%`
-- Overall exploit: `6.2610`
+- Overall exploit: `6.3353`
 - Overall explore: `2.0475`
-- Overall split: `75.4% / 24.6%`
+- Overall split: `75.6% / 24.4%`

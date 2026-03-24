@@ -15,6 +15,7 @@ from gnn3.data.hidden_corridor import (
     make_decision_record,
     shortest_path,
 )
+from gnn3.eval.step_policy import select_step_scores
 from gnn3.models.packet_mamba import PacketMambaModel
 
 
@@ -42,10 +43,13 @@ def _predict_next_hop(
     model: PacketMambaModel,
     record: DecisionRecord,
     device: torch.device,
+    *,
+    selection_strategy: str = "final",
 ) -> int:
     batch = _move_batch(collate_decisions([record]), device)
     output = model(batch)
-    return int(output["selection_scores"].argmax(dim=-1).item())
+    scores = select_step_scores(output, batch["candidate_mask"], strategy=selection_strategy)
+    return int(scores.argmax(dim=-1).item())
 
 
 def _rollout_episode(
@@ -54,6 +58,7 @@ def _rollout_episode(
     *,
     device: torch.device,
     config: HiddenCorridorConfig,
+    selection_strategy: str = "final",
 ) -> tuple[bool, int, int, float, int]:
     working_graph = episode.graph.copy()
     ordered_packets = sorted(
@@ -101,7 +106,12 @@ def _rollout_episode(
                     curriculum_level="eval",
                     include_candidate_targets=False,
                 )
-                chosen_next_hop = _predict_next_hop(model, record, device)
+                chosen_next_hop = _predict_next_hop(
+                    model,
+                    record,
+                    device,
+                    selection_strategy=selection_strategy,
+                )
             total_steps += 1
             correct_steps += int(chosen_next_hop == oracle_next_hop)
             if not working_graph.adj[current, chosen_next_hop]:
@@ -138,6 +148,7 @@ def collect_policy_decisions(
     *,
     device: torch.device,
     config: HiddenCorridorConfig,
+    selection_strategy: str = "final",
 ) -> DecisionListDataset:
     decisions: list[DecisionRecord] = []
     was_training = model.training
@@ -177,7 +188,12 @@ def collect_policy_decisions(
                     curriculum_level=episode.curriculum_level,
                 )
                 decisions.append(record)
-                chosen_next_hop = _predict_next_hop(model, record, device)
+                chosen_next_hop = _predict_next_hop(
+                    model,
+                    record,
+                    device,
+                    selection_strategy=selection_strategy,
+                )
                 if not working_graph.adj[current, chosen_next_hop]:
                     break
                 transition_cost = _edge_cost(
@@ -204,6 +220,7 @@ def evaluate_rollouts(
     *,
     device: torch.device,
     config: HiddenCorridorConfig,
+    selection_strategy: str = "final",
 ) -> RolloutMetrics:
     oracle_costs: list[float] = []
     model_costs: list[float] = []
@@ -229,6 +246,7 @@ def evaluate_rollouts(
             model,
             device=device,
             config=config,
+            selection_strategy=selection_strategy,
         )
         solved += int(episode_solved)
         total_steps += steps

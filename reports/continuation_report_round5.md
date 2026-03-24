@@ -377,9 +377,46 @@ What did not change:
 - the path-first policy did not preserve any of the robust in-distribution behavior of plain `multiheavy`
 - there was no evidence that simply elevating the current path head to the primary policy is salvageable under the present training contract
 
+## Outer-Step Selection Scout
+
+Three-seed evaluation-only scout on the existing `round4_multiheavy` checkpoints, using `4` rollout episodes per seed and comparing inference-time outer-step selection rules without retraining:
+
+- `final` mean decision next-hop accuracy: `96.18%`
+- `earliest_final_agreement` mean decision next-hop accuracy: `96.18%`
+- `first` mean decision next-hop accuracy: `44.48%`
+- `max_margin` mean decision next-hop accuracy: `87.32%`
+- `final` mean rollout next-hop accuracy: `95.27%`
+- `earliest_final_agreement` mean rollout next-hop accuracy: `95.27%`
+- `first` mean rollout next-hop accuracy: `37.03%`
+- `max_margin` mean rollout next-hop accuracy: `51.87%`
+- `final` mean regret: `1.08`
+- `earliest_final_agreement` mean regret: `1.08`
+- `first` mean regret: `7816.83`
+- `max_margin` mean regret: `1717.10`
+- `final` mean p95 regret: `3.16`
+- `earliest_final_agreement` mean p95 regret: `3.16`
+- `first` mean p95 regret: `16017.27`
+- `max_margin` mean p95 regret: `3917.05`
+- `final` mean deadline miss rate: `41.7%`
+- `earliest_final_agreement` mean deadline miss rate: `41.7%`
+- `first` mean deadline miss rate: `100.0%`
+- `max_margin` mean deadline miss rate: `66.7%`
+
+What changed:
+
+- this scout tested a more material inference-time contract than the earlier loss-only round-five tweaks, because it can switch the selected outer refinement step per decision without changing training
+- `earliest_final_agreement` collapsed exactly to the current `final` policy on the scout, which means the multiheavy checkpoints already behave as if the earliest stable useful step is the final step
+- `first` and `max_margin` were both unsafe even on the small scout, with catastrophic regret and miss-rate blowups
+
+What did not change:
+
+- there is still no evidence that outer-step selection by itself can improve plain `multiheavy`
+- the only non-destructive alternative, `earliest_final_agreement`, did not produce a distinct rollout policy from the current final-step selector
+- this closes another selector-only lever without needing a larger rerun
+
 ## Decision
 
-All eleven round-five exploit changes are negatives. Nine reached the full matched three-seed bar, and both integrated candidate-path scouts were killed early after two seeds because they already trailed plain `multiheavy` on held-out rollout.
+All twelve round-five exploit changes are negatives. Nine reached the full matched three-seed bar, two integrated candidate-path scouts were killed early after two seeds because they already trailed plain `multiheavy` on held-out rollout, and the final evaluation-only outer-step scout showed no non-destructive selector improvement.
 
 Checkpoint-selection policy alone is not the next leverage point for this repo. Tightening the training-only deadline contract also is not enough on its own. Both changes moved internal training behavior, but neither changed the actual held-out rollout once the current plain `multiheavy` model had trained.
 Deadline-aware soft action targets also are not enough on their own. They changed selected checkpoints and introduced a stable auxiliary loss, but they still did not move held-out rollout quality.
@@ -390,6 +427,7 @@ Critical-decision oversampling is also not enough on its own. It changed train-t
 Bounded DAgger state refresh is also not enough on its own. It changed the supervised state distribution much more directly than the earlier train-only tweaks, but even after `1,027` oracle-relabeled model-visited refresh decisions, the matched held-out rollout still converged back to plain `multiheavy`.
 Supervised path-head coupling is also not enough on its own. It moved path-level supervision into the existing integrated candidate-path head, but the first two matched seeds still underperformed plain `multiheavy` on held-out rollout, so the branch was killed before a third seed.
 Path-first integrated selection is much worse than plain `multiheavy`. Promoting the existing path head from an additive score to the actual policy caused immediate catastrophic rollout degradation on both matched seeds, so that direction is now closed unless the path head itself is redesigned substantially.
+Outer-step selection is also not enough on its own. The only safe alternative, `earliest_final_agreement`, exactly matched the current final-step policy on the three-seed scout, while `first` and `max_margin` produced catastrophic regret and deadline failures.
 
 ## Feasible-First Oracle-Policy Note
 
@@ -409,5 +447,6 @@ Updated recommendation:
 10. Do not spend another cycle on bounded DAgger refresh alone; it changed the supervised state distribution directly, but the matched held-out rollout still stayed flat.
 11. Do not spend another cycle on supervised path-head coupling alone; the first two matched seeds already trailed plain `multiheavy` on held-out rollout.
 12. Do not spend another cycle on path-first integrated selection with the current path head. The two-seed scout was catastrophically worse than plain `multiheavy` on both matched rollouts.
-13. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract; it is equivalent to the existing oracle except for tie cases.
-14. If exploit work continues, the next lever must change the learned policy more materially than checkpoint ranking, train-distribution tightening, packet-cap widening, critical-decision oversampling, soft candidate coupling, pairwise ranking, feasible-first hard targets, slack-critical CE weighting, bounded DAgger refresh, supervised path-head coupling, or the current path-first selection mode.
+13. Do not spend another cycle on outer-step selection by itself. The three-seed scout showed that `earliest_final_agreement` is exactly the current final-step policy, while `first` and `max_margin` are unsafe.
+14. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract; it is equivalent to the existing oracle except for tie cases.
+15. If exploit work continues, the next lever must change the learned policy more materially than checkpoint ranking, train-distribution tightening, packet-cap widening, critical-decision oversampling, soft candidate coupling, pairwise ranking, feasible-first hard targets, slack-critical CE weighting, bounded DAgger refresh, supervised path-head coupling, outer-step selection, or the current path-first selection mode.

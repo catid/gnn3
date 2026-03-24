@@ -1,0 +1,61 @@
+{
+  "experiment": "e3_memory_hubs_rsm_round5_multiheavy_pathpolicy_seed312",
+  "seed": 312,
+  "stage": "scout",
+  "notes": "round5 exploit scout switching multiheavy to path-first candidate selection using the existing traffic-gated integrated path head",
+  "git_commit": "d6c1fb79fe40a2216e4ad96594ccfc755a5c4291",
+  "git_branch": "main",
+  "device_placement": "cuda:1",
+  "manifest_hashes": {
+    "train": "5c72ba132226fde415cd200a75349f122fbbb855fb300f3eb9f57dcd0a498900",
+    "val": "cf3bc67c471969661ffee212a13f5774ec964f3b963eab7bedc02fdc2b3405e2",
+    "test": "1f8314e5858354c445d92f4dcf8f29cd5f6072e253c3fd6fa88978712257d455"
+  },
+  "split_config_seeds": {
+    "train": 312,
+    "val": 10312,
+    "test": 20312
+  },
+  "best_metric": 0.49796584805394006,
+  "selected_epoch": 1,
+  "selected_selection_score": 0.49796584805394006,
+  "world_size": 1,
+  "elapsed_seconds": 477.5623643398285,
+  "gpu_hours": 0.13265621231661903,
+  "test": {
+    "loss": 3.258818402009852,
+    "next_hop_loss": 0.7658683832953957,
+    "value_loss": 11.601191576789407,
+    "route_loss": 0.17821110522045808,
+    "selection_soft_target_loss": 0.0,
+    "path_soft_target_loss": 0.7744528931729934,
+    "selection_pairwise_loss": 0.0,
+    "selection_feasible_target_loss": 0.0,
+    "on_time_loss": 0.0,
+    "slack_loss": 0.0,
+    "quantile_loss": 0.0,
+    "next_hop_accuracy": 0.8615196277113522,
+    "selection_accuracy": 0.8615196277113522,
+    "value_mae": 2.8632478012758145,
+    "value_rmse": 3.382884895100313,
+    "slack_mae": 0.0,
+    "on_time_brier": 0.0,
+    "quantile_median_mae": 0.0
+  },
+  "test_rollout": {
+    "solved_rate": 0.3125,
+    "next_hop_accuracy": 0.5087228085289683,
+    "average_regret": 7396.26318359375,
+    "p95_regret": 19327.6015625,
+    "worst_regret": 19945.0234375,
+    "average_deadline_violations": 1.5625,
+    "deadline_miss_rate": 0.75,
+    "p95_deadline_violations": 3.25,
+    "priority_delivered_regret": 2.1875,
+    "average_oracle_cost": 50.65712467024379,
+    "average_model_cost": 7446.920145756258
+  },
+  "output_dir": "artifacts/experiments/e3_memory_hubs_rsm_round5_multiheavy_pathpolicy_seed312",
+  "bucket": "exploit",
+  "dagger_refresh_decisions": 0
+}

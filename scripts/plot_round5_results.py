@@ -190,6 +190,16 @@ def main() -> None:
     pathhead.to_csv(PLOTS / "round5_multiheavy_pathhead_vs_multiheavy.csv", index=False)
     _plot_compare(pathhead, "round5_multiheavy_pathhead_vs_multiheavy.png", "PathHead")
 
+    pathpolicy = _summary_frame(
+        [
+            (311, "e3_memory_hubs_rsm_round4_multiheavy_seed311", "e3_memory_hubs_rsm_round5_multiheavy_pathpolicy_seed311"),
+            (312, "e3_memory_hubs_rsm_round4_multiheavy_seed312", "e3_memory_hubs_rsm_round5_multiheavy_pathpolicy_seed312"),
+        ],
+        "PathPolicy",
+    )
+    pathpolicy.to_csv(PLOTS / "round5_multiheavy_pathpolicy_vs_multiheavy.csv", index=False)
+    _plot_compare(pathpolicy, "round5_multiheavy_pathpolicy_vs_multiheavy.png", "PathPolicy")
+
 
 if __name__ == "__main__":
     main()

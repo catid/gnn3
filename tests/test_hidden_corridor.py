@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from gnn3.data.hidden_corridor import (
     ROLE_TO_ID,
@@ -229,6 +230,36 @@ def test_candidate_path_reranker_forward_and_loss() -> None:
     assert float(output["path_reranker_gate"][valid_mask].max().detach()) <= 1.0
     assert float(output["path_scores"][valid_mask].abs().max().detach()) <= 1.25 + 1e-5
     assert float(losses["loss"].detach()) > 0.0
+
+
+def test_candidate_path_reranker_replace_mode_uses_path_scores() -> None:
+    cfg = HiddenCorridorConfig(
+        seed=115,
+        deadline_mode="oracle_calibrated",
+    )
+    dataset = HiddenCorridorDecisionDataset(config=cfg, num_episodes=2)
+    batch = collate_decisions([dataset[0], dataset[1]])
+    model = PacketMambaModel(
+        PacketMambaConfig(
+            node_feature_dim=batch["node_features"].shape[-1],
+            outer_steps=2,
+            inner_layers=2,
+            router_variant="memory_hubs",
+            detach_warmup=True,
+            path_reranker=True,
+            path_reranker_mode="replace",
+            path_reranker_bound=1.25,
+            path_reranker_traffic_gate=True,
+        )
+    )
+    output = model(batch)
+    valid_mask = batch["candidate_path_mask"].any(dim=-1) & batch["candidate_mask"] & batch["node_mask"]
+    assert torch.allclose(
+        output["selection_scores"][valid_mask],
+        output["path_scores"][valid_mask],
+        atol=1e-5,
+    )
+    assert (output["selection_scores"][~valid_mask] < -1e8).all()
 
 
 def test_candidate_path_verifier_filter_masks_infeasible_choices() -> None:

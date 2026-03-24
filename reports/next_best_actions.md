@@ -16,8 +16,9 @@
 14. Do not spend another cycle on slack-critical CE weighting alone. The matched three-seed slack-weight scout changed the main loss pressure directly, but every held-out rollout still matched plain multiheavy exactly.
 15. Do not spend another cycle on bounded DAgger state refresh alone. The matched three-seed DAgger scout relabeled 1,027 model-visited train decisions and ran two extra finetune epochs per seed, but every held-out rollout still matched plain multiheavy exactly.
 16. Do not spend another cycle on supervised path-head coupling alone. The first two matched seeds carried a live `path_soft_target_loss`, but one seed regressed on held-out rollout and the other merely matched baseline, so the branch was killed before a third seed.
-17. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract. The oracle already minimizes the same cumulative `_edge_cost` that defines on-time feasibility, so a feasible-first rollout would only differ on exact ties.
-18. The next highest-value batch is:
+17. Do not spend another cycle on the current path-first selection mode. Elevating the existing path head from an additive score to the primary policy was catastrophically worse than plain `multiheavy` on both matched seeds.
+18. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract. The oracle already minimizes the same cumulative `_edge_cost` that defines on-time feasibility, so a feasible-first rollout would only differ on exact ties.
+19. The next highest-value batch is:
    first, keep plain multiheavy as the exploit default;
-   second, stop testing new train-only weighting, oversampling, bounded state-refresh, or lightly supervised path-head variants that leave the actual deployment contract effectively unchanged;
+   second, stop testing new train-only weighting, oversampling, bounded state-refresh, lightly supervised path-head variants, or naive path-first promotion of the current path head;
    third, revisit auxiliary heads only if they move held-out rollout on plain multiheavy rather than calibration metrics alone.

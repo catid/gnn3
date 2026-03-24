@@ -53,6 +53,7 @@ class PacketMambaConfig:
     hazard_memory: bool = False
     hazard_memory_dim: int = 16
     path_reranker: bool = False
+    path_reranker_mode: str = "additive"
     path_reranker_weight: float = 1.0
     path_reranker_bound: float = 0.0
     path_reranker_traffic_gate: bool = False
@@ -767,8 +768,11 @@ class PacketMambaModel(nn.Module):
             path_reranker_gate = self._path_reranker_gate(batch)
             path_scores = path_scores * path_reranker_gate
             path_scores = path_scores.masked_fill(~path_valid, 0.0)
-            selection_scores = selection_scores + self.config.path_reranker_weight * path_scores
-            selection_scores = selection_scores.masked_fill(~path_valid, -1e9)
+            if self.config.path_reranker_mode == "replace":
+                selection_scores = path_scores.masked_fill(~path_valid, -1e9)
+            else:
+                selection_scores = selection_scores + self.config.path_reranker_weight * path_scores
+                selection_scores = selection_scores.masked_fill(~path_valid, -1e9)
 
         if self.config.path_verifier_filter:
             candidate_valid = batch["candidate_mask"] & batch["node_mask"]

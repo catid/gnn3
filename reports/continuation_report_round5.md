@@ -2,7 +2,7 @@
 
 ## Scope
 
-This pass tested ten bounded exploit changes on top of the robust plain `multiheavy` recipe: nine non-reranker tweaks plus one integrated candidate-path scout that was killed after two seeds.
+This pass tested eleven bounded exploit changes on top of the robust plain `multiheavy` recipe: nine non-reranker tweaks plus two integrated candidate-path scouts that were both killed early.
 
 1. risk-biased checkpoint selection
 2. tighter training-only oracle-calibrated deadlines with fixed validation and test manifests
@@ -14,6 +14,7 @@ This pass tested ten bounded exploit changes on top of the robust plain `multihe
 8. slack-critical weighting on the main next-hop CE
 9. bounded DAgger-style state-refresh finetuning on oracle-relabeled model-visited train states
 10. supervised traffic-gated candidate-path scoring on the existing integrated path head
+11. path-first candidate selection using the existing traffic-gated integrated path head
 
 Key artifacts:
 
@@ -37,6 +38,8 @@ Key artifacts:
 - [round5_multiheavy_dagger_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_dagger_vs_multiheavy.png)
 - [round5_multiheavy_pathhead_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round5_multiheavy_pathhead_vs_multiheavy.csv)
 - [round5_multiheavy_pathhead_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_pathhead_vs_multiheavy.png)
+- [round5_multiheavy_pathpolicy_vs_multiheavy.csv](/home/catid/gnn3/reports/plots/round5_multiheavy_pathpolicy_vs_multiheavy.csv)
+- [round5_multiheavy_pathpolicy_vs_multiheavy.png](/home/catid/gnn3/reports/plots/round5_multiheavy_pathpolicy_vs_multiheavy.png)
 - [experiment_summary.csv](/home/catid/gnn3/reports/plots/experiment_summary.csv)
 
 Implementation changes:
@@ -52,6 +55,7 @@ Implementation changes:
 - oracle relabel collection for model-visited train states in [rollout.py](/home/catid/gnn3/src/gnn3/eval/rollout.py)
 - bounded DAgger finetune loop in [trainer.py](/home/catid/gnn3/src/gnn3/train/trainer.py)
 - supervised path-head soft-target loss in [packet_mamba.py](/home/catid/gnn3/src/gnn3/models/packet_mamba.py)
+- path-first integrated selection mode in [packet_mamba.py](/home/catid/gnn3/src/gnn3/models/packet_mamba.py)
 - matched round-five configs in [e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed313.yaml)
 - matched tighter-train configs in [e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_tighttrain_seed313.yaml)
 - matched packets6-train configs in [e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_packets6_train_seed313.yaml)
@@ -62,10 +66,12 @@ Implementation changes:
 - matched slack-weight configs in [e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_slack_weight_seed313.yaml)
 - matched DAgger-refresh configs in [e3_memory_hubs_rsm_round5_multiheavy_dagger_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_dagger_seed311.yaml), [e3_memory_hubs_rsm_round5_multiheavy_dagger_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_dagger_seed312.yaml), and [e3_memory_hubs_rsm_round5_multiheavy_dagger_seed313.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_dagger_seed313.yaml)
 - killed-early path-head scout configs in [e3_memory_hubs_rsm_round5_multiheavy_pathhead_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_pathhead_seed311.yaml) and [e3_memory_hubs_rsm_round5_multiheavy_pathhead_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_pathhead_seed312.yaml)
+- killed-early path-first configs in [e3_memory_hubs_rsm_round5_multiheavy_pathpolicy_seed311.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_pathpolicy_seed311.yaml) and [e3_memory_hubs_rsm_round5_multiheavy_pathpolicy_seed312.yaml](/home/catid/gnn3/configs/experiments/e3_memory_hubs_rsm_round5_multiheavy_pathpolicy_seed312.yaml)
 - selection regression tests in [test_trainer_selection.py](/home/catid/gnn3/tests/test_trainer_selection.py)
 - split-override regression coverage in [test_config_split_overrides.py](/home/catid/gnn3/tests/test_config_split_overrides.py)
 - critical-sampling and DAgger-refresh regression coverage in [test_train_sampling.py](/home/catid/gnn3/tests/test_train_sampling.py)
 - soft-target and path-head loss regression coverage in [test_loss_coupling.py](/home/catid/gnn3/tests/test_loss_coupling.py)
+- integrated path-head forward coverage in [test_hidden_corridor.py](/home/catid/gnn3/tests/test_hidden_corridor.py)
 
 ## Matched Result
 
@@ -345,9 +351,35 @@ What did not change:
 - the scout did not beat plain `multiheavy` on any matched rollout metric across the first two seeds
 - the stronger path-level supervision still did not produce a trustworthy exploit gain, so the branch was killed before seed `313`
 
+## Path-First Integrated Selection Scout
+
+Killed-after-two-seeds comparison against the same plain `multiheavy` baseline, but with the existing traffic-gated integrated path head elevated from an additive score to the primary selection policy:
+
+- multiheavy mean next-hop accuracy on seeds `311/312`: `94.98%`
+- path-policy mean next-hop accuracy on seeds `311/312`: `85.91%`
+- multiheavy mean rollout next-hop accuracy on seeds `311/312`: `94.85%`
+- path-policy mean rollout next-hop accuracy on seeds `311/312`: `51.58%`
+- multiheavy mean regret on seeds `311/312`: `1.71`
+- path-policy mean regret on seeds `311/312`: `5232.47`
+- multiheavy mean p95 regret on seeds `311/312`: `5.70`
+- path-policy mean p95 regret on seeds `311/312`: `13806.12`
+- multiheavy mean deadline miss rate on seeds `311/312`: `43.8%`
+- path-policy mean deadline miss rate on seeds `311/312`: `81.2%`
+
+What changed:
+
+- this was a real policy-contract change rather than another loss-only tweak: `selection_scores` came directly from the traffic-gated path head
+- both seeds stayed catastrophically bad after the first validation checkpoints, with seed `311` dropping to zero solved rate by epoch `2`
+- best-checkpoint test evaluation from `best.pt` still stayed far worse than plain `multiheavy`, so the branch was killed immediately after the two-seed scout
+
+What did not change:
+
+- the path-first policy did not preserve any of the robust in-distribution behavior of plain `multiheavy`
+- there was no evidence that simply elevating the current path head to the primary policy is salvageable under the present training contract
+
 ## Decision
 
-All ten round-five exploit changes are negatives. Nine reached the full matched three-seed bar, and the integrated path-head scout was killed early after two seeds because it already trailed plain `multiheavy` on held-out rollout.
+All eleven round-five exploit changes are negatives. Nine reached the full matched three-seed bar, and both integrated candidate-path scouts were killed early after two seeds because they already trailed plain `multiheavy` on held-out rollout.
 
 Checkpoint-selection policy alone is not the next leverage point for this repo. Tightening the training-only deadline contract also is not enough on its own. Both changes moved internal training behavior, but neither changed the actual held-out rollout once the current plain `multiheavy` model had trained.
 Deadline-aware soft action targets also are not enough on their own. They changed selected checkpoints and introduced a stable auxiliary loss, but they still did not move held-out rollout quality.
@@ -357,6 +389,7 @@ Slack-critical CE weighting is also not enough on its own. It emphasized deadlin
 Critical-decision oversampling is also not enough on its own. It changed train-time replay pressure much more strongly than the loss-only tweaks, but the matched held-out rollout still converged back to plain `multiheavy`.
 Bounded DAgger state refresh is also not enough on its own. It changed the supervised state distribution much more directly than the earlier train-only tweaks, but even after `1,027` oracle-relabeled model-visited refresh decisions, the matched held-out rollout still converged back to plain `multiheavy`.
 Supervised path-head coupling is also not enough on its own. It moved path-level supervision into the existing integrated candidate-path head, but the first two matched seeds still underperformed plain `multiheavy` on held-out rollout, so the branch was killed before a third seed.
+Path-first integrated selection is much worse than plain `multiheavy`. Promoting the existing path head from an additive score to the actual policy caused immediate catastrophic rollout degradation on both matched seeds, so that direction is now closed unless the path head itself is redesigned substantially.
 
 ## Feasible-First Oracle-Policy Note
 
@@ -375,5 +408,6 @@ Updated recommendation:
 9. Do not spend another cycle on slack-critical CE weighting alone; it changed decision pressure inside the main loss, but the matched held-out rollout still stayed flat.
 10. Do not spend another cycle on bounded DAgger refresh alone; it changed the supervised state distribution directly, but the matched held-out rollout still stayed flat.
 11. Do not spend another cycle on supervised path-head coupling alone; the first two matched seeds already trailed plain `multiheavy` on held-out rollout.
-12. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract; it is equivalent to the existing oracle except for tie cases.
-13. If exploit work continues, the next lever must change the learned policy more materially than checkpoint ranking, train-distribution tightening, packet-cap widening, critical-decision oversampling, soft candidate coupling, pairwise ranking, feasible-first hard targets, slack-critical CE weighting, bounded DAgger refresh, or supervised path-head coupling alone.
+12. Do not spend another cycle on path-first integrated selection with the current path head. The two-seed scout was catastrophically worse than plain `multiheavy` on both matched rollouts.
+13. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract; it is equivalent to the existing oracle except for tie cases.
+14. If exploit work continues, the next lever must change the learned policy more materially than checkpoint ranking, train-distribution tightening, packet-cap widening, critical-decision oversampling, soft candidate coupling, pairwise ranking, feasible-first hard targets, slack-critical CE weighting, bounded DAgger refresh, supervised path-head coupling, or the current path-first selection mode.

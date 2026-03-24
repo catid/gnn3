@@ -67,6 +67,9 @@ class TrainConfig:
     train_critical_packet_weight: float = 0.0
     train_critical_infeasible_bonus: float = 0.0
     train_critical_max_multiplier: float = 1.0
+    dagger_refresh_episodes: int = 0
+    dagger_finetune_epochs: int = 0
+    dagger_finetune_lr_scale: float = 0.5
 
 
 @dataclass(frozen=True)

@@ -57,14 +57,15 @@
 | A11-R5-packets6-train | exploit | Test whether increasing plain multiheavy training-split packet pressure to 6 packets, while keeping validation/test manifests fixed, changes the held-out rollout policy. | 0.28 | 0.2447 | completed | Negative matched 3-seed result: train-manifest hashes changed and early checkpoints moved, but all held-out rollout metrics matched plain multiheavy exactly. |
 | A12-R5-feasible-oracle-policy | exploit | Check whether a separate train-only feasible-first oracle rollout is a distinct exploit lever before spending GPU time on it. | 0.00 | 0.0000 | scoped-out | No run needed: under the current benchmark contract, on-time feasibility is defined by the same cumulative `_edge_cost` already minimized by the oracle, so feasible-first is equivalent to cost-first except for tie cases. |
 | A13-R5-critical-sampling | exploit | Test whether train-only decision-level oversampling toward low-slack, infeasible, and higher-packet decisions can move plain multiheavy held-out rollout. | 0.44 | 0.4070 | completed | Negative matched 3-seed result: mean train sample weight rose to about 1.83x with 4.0x max clipping, but all held-out rollout metrics still matched plain multiheavy exactly. |
+| A14-R5-dagger-refresh | exploit | Test whether bounded DAgger-style state refresh on oracle-relabeled model-visited train states can move plain multiheavy held-out rollout. | 0.36 | 0.3393 | completed | Negative matched 3-seed result: 1,027 refresh decisions and two DAgger finetune epochs per seed still left all held-out rollout metrics identical to plain multiheavy. |
 
 Current cumulative GPU-hours:
 
 - Round-four-plus-follow-up exploit: `1.8310`
 - Round-four-plus-follow-up explore: `0.8678`
 - Round-four-plus-follow-up split: `67.8% / 32.2%`
-- Round-five exploit-only batch: `2.4164`
+- Round-five exploit-only batch: `2.7557`
 - Round-five split: `100.0% / 0.0%`
-- Overall exploit: `5.5161`
+- Overall exploit: `5.8554`
 - Overall explore: `2.0475`
-- Overall split: `72.9% / 27.1%`
+- Overall split: `74.1% / 25.9%`

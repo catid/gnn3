@@ -13,12 +13,12 @@ import torch.distributed as dist
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import AdamW
-from torch.utils.data import DataLoader, WeightedRandomSampler
+from torch.utils.data import ConcatDataset, DataLoader, WeightedRandomSampler
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
 
 from gnn3.data.hidden_corridor import HiddenCorridorDecisionDataset, collate_decisions
-from gnn3.eval.rollout import evaluate_rollouts
+from gnn3.eval.rollout import collect_policy_decisions, evaluate_rollouts
 from gnn3.models.packet_mamba import PacketMambaModel, compute_losses
 from gnn3.train.config import ExperimentConfig, hidden_corridor_config_for_split
 
@@ -106,6 +106,84 @@ def _selection_score(val_metrics: dict[str, float], rollout_metrics: Any, config
         + config.train.selection_rollout_miss_weight * miss_score
         + config.train.selection_rollout_deadline_weight * deadline_score
     )
+
+
+def _build_train_loader(
+    dataset: object,
+    *,
+    batch_size: int,
+    sampler: object | None,
+    num_workers: int,
+    device: torch.device,
+) -> DataLoader[dict[str, torch.Tensor]]:
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=sampler is None,
+        sampler=sampler,
+        num_workers=num_workers,
+        collate_fn=collate_decisions,
+        pin_memory=device.type == "cuda",
+    )
+
+
+def _train_one_epoch(
+    model: PacketMambaModel | DDP,
+    loader: DataLoader[dict[str, torch.Tensor]],
+    optimizer: AdamW,
+    *,
+    config: ExperimentConfig,
+    device: torch.device,
+    use_autocast: bool,
+) -> dict[str, float]:
+    epoch_totals = {
+        "loss": 0.0,
+        "next_hop_loss": 0.0,
+        "value_loss": 0.0,
+        "route_loss": 0.0,
+        "selection_soft_target_loss": 0.0,
+        "selection_pairwise_loss": 0.0,
+        "selection_feasible_target_loss": 0.0,
+        "on_time_loss": 0.0,
+        "slack_loss": 0.0,
+        "quantile_loss": 0.0,
+        "next_hop_accuracy": 0.0,
+        "selection_accuracy": 0.0,
+    }
+    for batch in loader:
+        batch = _move_batch(batch, device)
+        optimizer.zero_grad(set_to_none=True)
+        with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=use_autocast):
+            output = model(batch)
+            losses = compute_losses(
+                output,
+                batch,
+                final_step_only=config.model.final_step_only_loss,
+                value_weight=config.train.value_weight,
+                route_weight=config.train.route_weight,
+                deadline_bce_weight=config.train.deadline_bce_weight,
+                slack_weight=config.train.slack_loss_weight,
+                quantile_weight=config.train.quantile_loss_weight,
+                selection_soft_target_weight=config.train.selection_soft_target_weight,
+                selection_soft_target_temperature=config.train.selection_soft_target_temperature,
+                selection_soft_target_on_time_bonus=config.train.selection_soft_target_on_time_bonus,
+                selection_pairwise_weight=config.train.selection_pairwise_weight,
+                selection_pairwise_temperature=config.train.selection_pairwise_temperature,
+                selection_pairwise_on_time_bonus=config.train.selection_pairwise_on_time_bonus,
+                selection_pairwise_slack_bonus=config.train.selection_pairwise_slack_bonus,
+                selection_pairwise_margin=config.train.selection_pairwise_margin,
+                selection_feasible_target_weight=config.train.selection_feasible_target_weight,
+                selection_slack_critical_weight=config.train.selection_slack_critical_weight,
+                selection_slack_critical_scale=config.train.selection_slack_critical_scale,
+                quantiles=config.model.quantile_levels,
+                verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
+            )
+        losses["loss"].backward()
+        nn.utils.clip_grad_norm_(model.parameters(), config.train.grad_clip_norm)
+        optimizer.step()
+        for key in epoch_totals:
+            epoch_totals[key] += float(losses[key].detach().cpu())
+    return {key: value / max(len(loader), 1) for key, value in epoch_totals.items()}
 
 
 @torch.no_grad()
@@ -293,14 +371,12 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
             num_samples=len(train_sampling_weights),
             replacement=True,
         )
-    train_loader = DataLoader(
+    train_loader = _build_train_loader(
         train_dataset,
         batch_size=config.train.batch_size,
-        shuffle=train_sampler is None,
         sampler=train_sampler,
         num_workers=config.train.num_workers,
-        collate_fn=collate_decisions,
-        pin_memory=device.type == "cuda",
+        device=device,
     )
     eval_loader = DataLoader(
         val_dataset,
@@ -383,6 +459,11 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                 "max_weight": float(train_sampling_weights.max()) if train_sampling_weights is not None else 1.0,
                 "min_weight": float(train_sampling_weights.min()) if train_sampling_weights is not None else 1.0,
             },
+            "dagger_refresh": {
+                "episodes": config.train.dagger_refresh_episodes,
+                "finetune_epochs": config.train.dagger_finetune_epochs,
+                "lr_scale": config.train.dagger_finetune_lr_scale,
+            },
             "train_decisions": len(train_dataset),
             "val_decisions": len(val_dataset),
             "test_decisions": len(test_dataset),
@@ -391,62 +472,19 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
 
     best_metric = float("-inf")
     start_time = time.time()
-    step = 0
+    dagger_refresh_decisions = 0
     for epoch in range(1, config.train.epochs + 1):
         model.train()
         if isinstance(train_sampler, DistributedSampler):
             train_sampler.set_epoch(epoch)
-        epoch_totals = {
-            "loss": 0.0,
-            "next_hop_loss": 0.0,
-            "value_loss": 0.0,
-            "route_loss": 0.0,
-            "selection_soft_target_loss": 0.0,
-            "selection_pairwise_loss": 0.0,
-            "selection_feasible_target_loss": 0.0,
-            "on_time_loss": 0.0,
-            "slack_loss": 0.0,
-            "quantile_loss": 0.0,
-            "next_hop_accuracy": 0.0,
-            "selection_accuracy": 0.0,
-        }
-        for batch in train_loader:
-            step += 1
-            batch = _move_batch(batch, device)
-            optimizer.zero_grad(set_to_none=True)
-            with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=use_autocast):
-                output = model(batch)
-                losses = compute_losses(
-                    output,
-                    batch,
-                    final_step_only=config.model.final_step_only_loss,
-                    value_weight=config.train.value_weight,
-                    route_weight=config.train.route_weight,
-                    deadline_bce_weight=config.train.deadline_bce_weight,
-                    slack_weight=config.train.slack_loss_weight,
-                    quantile_weight=config.train.quantile_loss_weight,
-                    selection_soft_target_weight=config.train.selection_soft_target_weight,
-                    selection_soft_target_temperature=config.train.selection_soft_target_temperature,
-                    selection_soft_target_on_time_bonus=config.train.selection_soft_target_on_time_bonus,
-                    selection_pairwise_weight=config.train.selection_pairwise_weight,
-                    selection_pairwise_temperature=config.train.selection_pairwise_temperature,
-                    selection_pairwise_on_time_bonus=config.train.selection_pairwise_on_time_bonus,
-                    selection_pairwise_slack_bonus=config.train.selection_pairwise_slack_bonus,
-                    selection_pairwise_margin=config.train.selection_pairwise_margin,
-                    selection_feasible_target_weight=config.train.selection_feasible_target_weight,
-                    selection_slack_critical_weight=config.train.selection_slack_critical_weight,
-                    selection_slack_critical_scale=config.train.selection_slack_critical_scale,
-                    quantiles=config.model.quantile_levels,
-                    verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
-                )
-            losses["loss"].backward()
-            nn.utils.clip_grad_norm_(model.parameters(), config.train.grad_clip_norm)
-            optimizer.step()
-
-            for key in epoch_totals:
-                epoch_totals[key] += float(losses[key].detach().cpu())
-
-        train_metrics = {key: value / max(len(train_loader), 1) for key, value in epoch_totals.items()}
+        train_metrics = _train_one_epoch(
+            model,
+            train_loader,
+            optimizer,
+            config=config,
+            device=device,
+            use_autocast=use_autocast,
+        )
         if is_distributed:
             dist.barrier()
 
@@ -485,6 +523,7 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
 
             epoch_record = {
                 "epoch": epoch,
+                "phase": "base",
                 "elapsed_seconds": time.time() - start_time,
                 "selection_score": selection_score,
                 "manifest_hashes": {
@@ -528,6 +567,130 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
 
         if is_distributed:
             dist.barrier()
+
+    if config.train.dagger_refresh_episodes > 0 and config.train.dagger_finetune_epochs > 0:
+        if is_distributed:
+            raise ValueError("dagger_refresh is only supported for single-process runs")
+        if best_checkpoint.exists():
+            checkpoint_payload = torch.load(best_checkpoint, map_location=device)
+            eval_model.load_state_dict(checkpoint_payload["model"])
+        refresh_episodes = train_dataset.episodes[: config.train.dagger_refresh_episodes]
+        refresh_dataset = collect_policy_decisions(
+            eval_model,
+            refresh_episodes,
+            device=device,
+            config=train_hidden_cfg,
+        )
+        dagger_refresh_decisions = len(refresh_dataset)
+        mixed_train_loader = _build_train_loader(
+            ConcatDataset([train_dataset, refresh_dataset]),
+            batch_size=config.train.batch_size,
+            sampler=None,
+            num_workers=config.train.num_workers,
+            device=device,
+        )
+        for group in optimizer.param_groups:
+            group["lr"] = float(group["lr"]) * config.train.dagger_finetune_lr_scale
+        if is_main_process:
+            (output_dir / "dagger_refresh.json").write_text(
+                json.dumps(
+                    {
+                        "episodes": config.train.dagger_refresh_episodes,
+                        "decision_count": dagger_refresh_decisions,
+                        "lr_scale": config.train.dagger_finetune_lr_scale,
+                        "source_checkpoint": str(best_checkpoint),
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+        for offset in range(1, config.train.dagger_finetune_epochs + 1):
+            global_epoch = config.train.epochs + offset
+            model.train()
+            train_metrics = _train_one_epoch(
+                model,
+                mixed_train_loader,
+                optimizer,
+                config=config,
+                device=device,
+                use_autocast=use_autocast,
+            )
+            if is_main_process:
+                val_metrics = evaluate_decision_dataset(
+                    eval_model,
+                    eval_loader,
+                    device=device,
+                    final_step_only=config.model.final_step_only_loss,
+                    value_weight=config.train.value_weight,
+                    route_weight=config.train.route_weight,
+                    deadline_bce_weight=config.train.deadline_bce_weight,
+                    slack_loss_weight=config.train.slack_loss_weight,
+                    quantile_loss_weight=config.train.quantile_loss_weight,
+                    selection_soft_target_weight=config.train.selection_soft_target_weight,
+                    selection_soft_target_temperature=config.train.selection_soft_target_temperature,
+                    selection_soft_target_on_time_bonus=config.train.selection_soft_target_on_time_bonus,
+                    selection_pairwise_weight=config.train.selection_pairwise_weight,
+                    selection_pairwise_temperature=config.train.selection_pairwise_temperature,
+                    selection_pairwise_on_time_bonus=config.train.selection_pairwise_on_time_bonus,
+                    selection_pairwise_slack_bonus=config.train.selection_pairwise_slack_bonus,
+                    selection_pairwise_margin=config.train.selection_pairwise_margin,
+                    selection_feasible_target_weight=config.train.selection_feasible_target_weight,
+                    selection_slack_critical_weight=config.train.selection_slack_critical_weight,
+                    selection_slack_critical_scale=config.train.selection_slack_critical_scale,
+                    quantiles=config.model.quantile_levels,
+                    verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
+                )
+                rollout_metrics = evaluate_rollouts(
+                    eval_model,
+                    val_dataset.episodes[: config.train.rollout_eval_episodes],
+                    device=device,
+                    config=val_hidden_cfg,
+                )
+                selection_score = _selection_score(val_metrics, rollout_metrics, config)
+                epoch_record = {
+                    "epoch": global_epoch,
+                    "phase": "dagger",
+                    "elapsed_seconds": time.time() - start_time,
+                    "selection_score": selection_score,
+                    "refresh_decisions": dagger_refresh_decisions,
+                    "manifest_hashes": {
+                        "train": train_manifest["manifest_hash"],
+                        "val": val_manifest["manifest_hash"],
+                        "test": test_manifest["manifest_hash"],
+                    },
+                    "train": train_metrics,
+                    "val": val_metrics,
+                    "rollout": _rollout_metrics_to_dict(rollout_metrics),
+                }
+                with metrics_path.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(epoch_record) + "\n")
+
+                assert writer is not None
+                for split_name, split_metrics in (("train", train_metrics), ("val", val_metrics)):
+                    for key, value in split_metrics.items():
+                        writer.add_scalar(f"{split_name}/{key}", value, global_epoch)
+                writer.add_scalar("rollout/solved_rate", rollout_metrics.solved_rate, global_epoch)
+                writer.add_scalar("rollout/average_regret", rollout_metrics.average_regret, global_epoch)
+                writer.add_scalar("rollout/p95_regret", rollout_metrics.p95_regret, global_epoch)
+                writer.add_scalar("rollout/deadline_miss_rate", rollout_metrics.deadline_miss_rate, global_epoch)
+                writer.add_scalar(
+                    "rollout/priority_delivered_regret",
+                    rollout_metrics.priority_delivered_regret,
+                    global_epoch,
+                )
+                writer.add_scalar("selection/score", selection_score, global_epoch)
+
+                if selection_score > best_metric:
+                    best_metric = selection_score
+                    torch.save(
+                        {
+                            "model": eval_model.state_dict(),
+                            "config": asdict(config),
+                            "epoch": global_epoch,
+                            "selection_score": selection_score,
+                        },
+                        best_checkpoint,
+                    )
 
     if not is_main_process:
         if is_distributed:
@@ -608,6 +771,7 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
         "test_rollout": _rollout_metrics_to_dict(test_rollout),
         "output_dir": str(output_dir),
         "bucket": config.bucket,
+        "dagger_refresh_decisions": dagger_refresh_decisions,
     }
     (output_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     if is_distributed:

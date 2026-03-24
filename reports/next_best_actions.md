@@ -14,8 +14,9 @@
 12. Do not spend another cycle on pairwise action-ranking loss alone. The matched three-seed pairwise scout changed selected epochs and carried a stable ranking loss, but every held-out rollout still matched plain multiheavy exactly.
 13. Do not spend another cycle on feasible-first hard targets alone. The matched three-seed feasible-target scout changed the supervised choice directly, but the held-out rollout slightly worsened overall versus plain multiheavy.
 14. Do not spend another cycle on slack-critical CE weighting alone. The matched three-seed slack-weight scout changed the main loss pressure directly, but every held-out rollout still matched plain multiheavy exactly.
-15. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract. The oracle already minimizes the same cumulative `_edge_cost` that defines on-time feasibility, so a feasible-first rollout would only differ on exact ties.
-16. The next highest-value batch is:
+15. Do not spend another cycle on bounded DAgger state refresh alone. The matched three-seed DAgger scout relabeled 1,027 model-visited train decisions and ran two extra finetune epochs per seed, but every held-out rollout still matched plain multiheavy exactly.
+16. Do not open a separate train-only feasible-first oracle-policy branch under the current cost/deadline contract. The oracle already minimizes the same cumulative `_edge_cost` that defines on-time feasibility, so a feasible-first rollout would only differ on exact ties.
+17. The next highest-value batch is:
    first, keep plain multiheavy as the exploit default;
-   second, stop testing new train-only weighting or oversampling variants that leave the model architecture and per-decision contract unchanged;
+   second, stop testing new train-only weighting, oversampling, or bounded state-refresh variants that leave the model architecture and per-decision contract unchanged;
    third, revisit auxiliary heads only if they move held-out rollout on plain multiheavy rather than calibration metrics alone.

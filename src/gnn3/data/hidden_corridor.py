@@ -924,6 +924,17 @@ class HiddenCorridorDecisionDataset(Dataset[DecisionRecord]):
         }
 
 
+class DecisionListDataset(Dataset[DecisionRecord]):
+    def __init__(self, decisions: list[DecisionRecord]) -> None:
+        self._decisions = decisions
+
+    def __len__(self) -> int:
+        return len(self._decisions)
+
+    def __getitem__(self, index: int) -> DecisionRecord:
+        return self._decisions[index]
+
+
 def collate_decisions(records: list[DecisionRecord]) -> dict[str, torch.Tensor]:
     max_nodes = max(record.node_features.shape[0] for record in records)
     node_feature_dim = records[0].node_features.shape[-1]

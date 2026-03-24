@@ -4,9 +4,17 @@ import json
 from pathlib import Path
 
 import numpy as np
+import torch
 
-from gnn3.data.hidden_corridor import DecisionRecord, HiddenCorridorConfig, critical_decision_weight
-from gnn3.models.packet_mamba import PacketMambaConfig
+from gnn3.data.hidden_corridor import (
+    DecisionRecord,
+    HiddenCorridorConfig,
+    HiddenCorridorDecisionDataset,
+    collate_decisions,
+    critical_decision_weight,
+)
+from gnn3.eval.rollout import collect_policy_decisions
+from gnn3.models.packet_mamba import PacketMambaConfig, PacketMambaModel
 from gnn3.train.config import BenchmarkConfig, ExperimentConfig, TrainConfig
 from gnn3.train.trainer import train_experiment
 
@@ -126,3 +134,72 @@ def test_smoke_training_runs_with_critical_sampling(tmp_path: Path) -> None:
     metadata = json.loads(Path(summary["output_dir"], "metadata.json").read_text())
     assert metadata["train_sampling"]["mode"] == "critical"
     assert metadata["train_sampling"]["max_weight"] >= metadata["train_sampling"]["min_weight"] >= 1.0
+
+
+def test_collect_policy_decisions_returns_oracle_labeled_records() -> None:
+    cfg = HiddenCorridorConfig(seed=22, packets_max=2, deadline_mode="oracle_calibrated")
+    dataset = HiddenCorridorDecisionDataset(
+        config=cfg,
+        num_episodes=2,
+        curriculum_levels=("single_dynamic", "multi_dynamic"),
+    )
+    batch = collate_decisions([dataset[0]])
+    model = PacketMambaModel(
+        PacketMambaConfig(
+            node_feature_dim=batch["node_features"].shape[-1],
+            d_model=32,
+            d_state=4,
+            inner_layers=1,
+            outer_steps=1,
+            router_variant="local",
+        )
+    )
+    refresh_dataset = collect_policy_decisions(
+        model,
+        dataset.episodes[:1],
+        device=torch.device("cpu"),
+        config=cfg,
+    )
+    assert len(refresh_dataset) > 0
+    record = refresh_dataset[0]
+    assert record.candidate_mask[record.target_next_hop]
+    assert record.curriculum_level in {"single_dynamic", "multi_dynamic"}
+
+
+def test_smoke_training_runs_with_dagger_refresh(tmp_path: Path) -> None:
+    benchmark = BenchmarkConfig(
+        train_episodes=8,
+        val_episodes=2,
+        test_episodes=2,
+        curriculum_levels=("single_static", "single_dynamic"),
+        hidden_corridor=HiddenCorridorConfig(seed=23, packets_max=2),
+    )
+    experiment = ExperimentConfig(
+        name="pytest_dagger_smoke",
+        bucket="exploit",
+        seed=23,
+        output_dir=str(tmp_path / "pytest_dagger_smoke"),
+        benchmark=benchmark,
+        model=PacketMambaConfig(
+            d_model=32,
+            d_state=4,
+            inner_layers=1,
+            outer_steps=1,
+            router_variant="local",
+        ),
+        train=TrainConfig(
+            batch_size=4,
+            eval_batch_size=4,
+            epochs=1,
+            device="cpu",
+            bf16=False,
+            rollout_eval_episodes=2,
+            dagger_refresh_episodes=2,
+            dagger_finetune_epochs=1,
+            dagger_finetune_lr_scale=0.5,
+        ),
+    )
+    summary = train_experiment(experiment)
+    assert summary is not None
+    assert summary["dagger_refresh_decisions"] > 0
+    assert Path(summary["output_dir"], "dagger_refresh.json").exists()

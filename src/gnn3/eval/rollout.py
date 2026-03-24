@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import torch
 
 from gnn3.data.hidden_corridor import (
+    DecisionListDataset,
     DecisionRecord,
     EpisodeRecord,
     HiddenCorridorConfig,
@@ -128,6 +129,72 @@ def _rollout_episode(
             delivered_priority += packet.priority
 
     return solved, total_steps, correct_steps, total_cost, deadline_violations, int(delivered_priority)
+
+
+@torch.no_grad()
+def collect_policy_decisions(
+    model: PacketMambaModel,
+    episodes: list[EpisodeRecord],
+    *,
+    device: torch.device,
+    config: HiddenCorridorConfig,
+) -> DecisionListDataset:
+    decisions: list[DecisionRecord] = []
+    was_training = model.training
+    model.eval()
+    for episode in episodes:
+        working_graph = episode.graph.copy()
+        ordered_packets = sorted(
+            enumerate(episode.packets),
+            key=lambda item: (-item[1].priority, item[1].deadline),
+        )
+        max_steps = working_graph.num_nodes * config.max_steps_multiplier
+        for packet_index, packet in ordered_packets:
+            current = packet.source
+            remaining_deadline = packet.deadline
+            steps = 0
+            while current != packet.destination and steps < max_steps:
+                path, path_cost = shortest_path(
+                    working_graph,
+                    packet,
+                    start=current,
+                    remaining_deadline=remaining_deadline,
+                    config=config,
+                )
+                if len(path) < 2:
+                    break
+                oracle_next_hop = path[1]
+                record = make_decision_record(
+                    working_graph,
+                    packet,
+                    config=config,
+                    current_node=current,
+                    target_next_hop=oracle_next_hop,
+                    cost_to_go=path_cost,
+                    route_nodes=path,
+                    packet_index=packet_index,
+                    packet_count=len(episode.packets),
+                    curriculum_level=episode.curriculum_level,
+                )
+                decisions.append(record)
+                chosen_next_hop = _predict_next_hop(model, record, device)
+                if not working_graph.adj[current, chosen_next_hop]:
+                    break
+                transition_cost = _edge_cost(
+                    working_graph,
+                    packet,
+                    current,
+                    chosen_next_hop,
+                    remaining_deadline=remaining_deadline,
+                    config=config,
+                )
+                remaining_deadline = max(remaining_deadline - transition_cost, 0.0)
+                _apply_transition(working_graph, current, chosen_next_hop, packet)
+                current = chosen_next_hop
+                steps += 1
+    if was_training:
+        model.train()
+    return DecisionListDataset(decisions)
 
 
 @torch.no_grad()

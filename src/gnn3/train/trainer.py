@@ -92,19 +92,19 @@ def _move_batch(batch: dict[str, torch.Tensor], device: torch.device) -> dict[st
     return {key: value.to(device) for key, value in batch.items()}
 
 
-def _selection_score(val_metrics: dict[str, float], rollout_metrics: Any) -> float:
+def _selection_score(val_metrics: dict[str, float], rollout_metrics: Any, config: ExperimentConfig) -> float:
     regret_score = 1.0 / (1.0 + max(float(rollout_metrics.average_regret), 0.0))
     tail_regret_score = 1.0 / (1.0 + max(float(rollout_metrics.p95_regret), 0.0))
     deadline_score = 1.0 / (1.0 + max(float(rollout_metrics.average_deadline_violations), 0.0))
     miss_score = 1.0 - max(min(float(rollout_metrics.deadline_miss_rate), 1.0), 0.0)
     return (
-        0.35 * float(val_metrics["next_hop_accuracy"])
-        + 0.20 * float(rollout_metrics.solved_rate)
-        + 0.10 * float(rollout_metrics.next_hop_accuracy)
-        + 0.15 * regret_score
-        + 0.10 * tail_regret_score
-        + 0.05 * miss_score
-        + 0.05 * deadline_score
+        config.train.selection_val_next_hop_weight * float(val_metrics["next_hop_accuracy"])
+        + config.train.selection_rollout_solved_weight * float(rollout_metrics.solved_rate)
+        + config.train.selection_rollout_next_hop_weight * float(rollout_metrics.next_hop_accuracy)
+        + config.train.selection_rollout_regret_weight * regret_score
+        + config.train.selection_rollout_tail_regret_weight * tail_regret_score
+        + config.train.selection_rollout_miss_weight * miss_score
+        + config.train.selection_rollout_deadline_weight * deadline_score
     )
 
 
@@ -412,7 +412,7 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                 device=device,
                 config=val_hidden_cfg,
             )
-            selection_score = _selection_score(val_metrics, rollout_metrics)
+            selection_score = _selection_score(val_metrics, rollout_metrics, config)
 
             epoch_record = {
                 "epoch": epoch,

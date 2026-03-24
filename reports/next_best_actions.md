@@ -6,7 +6,8 @@
 4. Do not promote either deadline-head add-on. The combined recipe stayed flat on the held-out rollout, and the plain-multiheavy deadline-head rerun remained flat even after fixing best-checkpoint evaluation in the trainer.
 5. Preserve the rebalanced `oracle_calibrated` deadline suites and the split-manifest discipline. Old corrected deadline suites remain diagnostic-only because the oracle itself misses them.
 6. Keep `detach_warmup` in every shortlist. That remains the strongest causal architectural requirement in the repo.
-7. The next highest-value batch is no longer another reranker follow-up. It is:
-   first, keep pushing exploit work on plain multiheavy;
-   second, focus on non-reranker ways to improve tail regret and deadline behavior on the shared suites;
+7. Do not spend another cycle on checkpoint-selection tuning alone. The matched round-five tail-select scout chose earlier checkpoints on all three seeds, but every held-out rollout stayed identical to plain multiheavy.
+8. The next highest-value batch is:
+   first, keep plain multiheavy as the exploit default;
+   second, focus on non-reranker changes that alter the learned policy or training signal on the shared suites;
    third, revisit auxiliary heads only if they move held-out rollout on plain multiheavy rather than calibration metrics alone.

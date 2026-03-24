@@ -1,0 +1,40 @@
+name: e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed311
+bucket: exploit
+seed: 311
+stage: candidate
+notes: round5 exploit scout using risk-biased checkpoint selection on the robust multiheavy baseline
+output_dir: artifacts/experiments/e3_memory_hubs_rsm_round5_multiheavy_tail_select_seed311
+benchmark:
+  train_episodes: 180
+  val_episodes: 48
+  test_episodes: 48
+  curriculum_levels: [single_dynamic, multi_dynamic, multi_dynamic]
+  hidden_corridor:
+    seed: 311
+    packets_max: 4
+    deadline_mode: oracle_calibrated
+    deadline_slack_ratio_range: [0.05, 0.15]
+    deadline_slack_abs_range: [0.25, 1.0]
+train:
+  batch_size: 24
+  eval_batch_size: 48
+  epochs: 7
+  device: cuda:0
+  bf16: true
+  rollout_eval_episodes: 16
+  selection_val_next_hop_weight: 0.15
+  selection_rollout_solved_weight: 0.10
+  selection_rollout_next_hop_weight: 0.05
+  selection_rollout_regret_weight: 0.20
+  selection_rollout_tail_regret_weight: 0.25
+  selection_rollout_miss_weight: 0.15
+  selection_rollout_deadline_weight: 0.10
+model:
+  d_model: 128
+  d_state: 16
+  inner_layers: 2
+  outer_steps: 3
+  router_variant: memory_hubs
+  final_step_only_loss: true
+  detach_warmup: true
+  penultimate_grad_prob: 0.25

@@ -41,6 +41,13 @@ class TrainConfig:
     slack_loss_weight: float = 0.0
     quantile_loss_weight: float = 0.0
     rollout_eval_episodes: int = 16
+    selection_val_next_hop_weight: float = 0.35
+    selection_rollout_solved_weight: float = 0.20
+    selection_rollout_next_hop_weight: float = 0.10
+    selection_rollout_regret_weight: float = 0.15
+    selection_rollout_tail_regret_weight: float = 0.10
+    selection_rollout_miss_weight: float = 0.05
+    selection_rollout_deadline_weight: float = 0.05
 
 
 @dataclass(frozen=True)

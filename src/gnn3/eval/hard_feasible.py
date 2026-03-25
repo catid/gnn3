@@ -9,6 +9,8 @@ import pandas as pd
 class HardFeasibleThresholds:
     gap_threshold: float
     gap_ratio_threshold: float
+    near_tie_gap_threshold: float
+    model_margin_threshold: float
 
 
 def slack_band(value: float) -> str:
@@ -90,16 +92,41 @@ def annotate_hard_feasible(
     hard_slice = merged.loc[merged["hard_feasible_case"]]
     if thresholds is None:
         if hard_slice.empty:
-            thresholds = HardFeasibleThresholds(gap_threshold=0.5, gap_ratio_threshold=0.10)
+            thresholds = HardFeasibleThresholds(
+                gap_threshold=0.5,
+                gap_ratio_threshold=0.10,
+                near_tie_gap_threshold=0.25,
+                model_margin_threshold=0.10,
+            )
         else:
+            positive_hard_gaps = hard_slice.loc[hard_slice["oracle_action_gap"] > 0.0, "oracle_action_gap"]
+            hard_margins = hard_slice.loc[hard_slice["model_margin"] > 0.0, "model_margin"]
             thresholds = HardFeasibleThresholds(
                 gap_threshold=max(float(hard_slice["oracle_action_gap"].median()), 0.5),
                 gap_ratio_threshold=max(float(hard_slice["oracle_action_gap_ratio"].median()), 0.10),
+                near_tie_gap_threshold=max(
+                    float(positive_hard_gaps.quantile(0.25)) if not positive_hard_gaps.empty else 0.25,
+                    0.05,
+                ),
+                model_margin_threshold=max(
+                    float(hard_margins.quantile(0.25)) if not hard_margins.empty else 0.10,
+                    0.01,
+                ),
             )
     merged["large_gap_hard_feasible_case"] = (
         merged["hard_feasible_case"]
         & (merged["oracle_action_gap"] >= thresholds.gap_threshold)
         & (merged["oracle_action_gap_ratio"] >= thresholds.gap_ratio_threshold)
+    )
+    merged["oracle_near_tie_case"] = (
+        merged["hard_feasible_case"] & (merged["oracle_action_gap"] <= thresholds.near_tie_gap_threshold)
+    )
+    merged["model_near_tie_case"] = (
+        merged["hard_feasible_case"] & (merged["model_margin"] <= thresholds.model_margin_threshold)
+    )
+    merged["hard_near_tie_intersection_case"] = merged["oracle_near_tie_case"] & merged["model_near_tie_case"]
+    merged["baseline_error_hard_near_tie_case"] = merged["hard_near_tie_intersection_case"] & (
+        merged["strictly_suboptimal"] | (~merged["predicted_on_time"])
     )
     positive_gaps = merged.loc[merged["oracle_action_gap"] > 0.0, "oracle_action_gap"]
     medium_threshold = float(positive_gaps.quantile(0.25)) if not positive_gaps.empty else 0.25
@@ -136,4 +163,6 @@ def build_probe_labels(frame: pd.DataFrame) -> pd.DataFrame:
     labels["oracle_gap_bucket"] = frame["gap_bucket"].map(gap_order).astype(int)
     labels["depth_load_regime"] = frame["depth_load_regime"].map(depth_load_vocab).astype(int)
     labels["baseline_strictly_suboptimal"] = frame["strictly_suboptimal"].astype(int)
+    labels["hard_near_tie_baseline_error"] = frame["baseline_error_hard_near_tie_case"].astype(int)
+    labels["oracle_near_tie"] = frame["oracle_near_tie_case"].astype(int)
     return labels

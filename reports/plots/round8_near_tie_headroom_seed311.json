@@ -1,0 +1,103 @@
+{
+  "suite_meta": [
+    {
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed311",
+      "config_path": "configs/experiments/e3_memory_hubs_rsm_round8_multiheavy_seed311.yaml",
+      "manifest_hash": "40be2a89c9264e65730a6dd5921969adac3096b0b95ed715df8dc4f1dc4dc147",
+      "episodes": 48,
+      "decisions": 774
+    },
+    {
+      "suite": "a1_multiheavy_ood_branching3_round8_eval_seed311",
+      "config_path": "configs/experiments/a1_multiheavy_ood_branching3_round8_eval_seed311.yaml",
+      "manifest_hash": "9707217a51c67053b344412d446176a52f8269fd28949f22a20d0f26ebad5e0c",
+      "episodes": 48,
+      "decisions": 1152
+    },
+    {
+      "suite": "a1_multiheavy_ood_deeper_packets6_round8_eval_seed311",
+      "config_path": "configs/experiments/a1_multiheavy_ood_deeper_packets6_round8_eval_seed311.yaml",
+      "manifest_hash": "262f1833cc4a05625ab87bffe9fdcadeb03de7ebc43e33578b0c96df897c2168",
+      "episodes": 48,
+      "decisions": 1520
+    },
+    {
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round8_eval_seed311",
+      "config_path": "configs/experiments/a1_multiheavy_ood_heavy_dynamic_round8_eval_seed311.yaml",
+      "manifest_hash": "3e65468a78c059ea670871f4addcbda735dbceb273ef8e58ce18ee3e6ced6a5f",
+      "episodes": 48,
+      "decisions": 1215
+    }
+  ],
+  "thresholds": {
+    "large_gap_threshold": 4.479719161987305,
+    "large_gap_ratio_threshold": 0.2625985467051859,
+    "near_tie_gap_threshold": 4.334263801574707,
+    "model_margin_threshold": 3.705449730157852
+  },
+  "slice_summary": [
+    {
+      "slice": "hard_feasible",
+      "decisions": 1637,
+      "episodes": 104,
+      "baseline_error_rate": 0.029932803909590716,
+      "mean_regret_headroom": 1.5672186637411312,
+      "p95_regret_headroom": 3.9476711273193352,
+      "deadline_rescue_rate": 0.0,
+      "effective_tie_rate": 0.013439218081857055
+    },
+    {
+      "slice": "oracle_near_tie",
+      "decisions": 789,
+      "episodes": 104,
+      "baseline_error_rate": 0.059569074778200254,
+      "mean_regret_headroom": 1.3916990807715883,
+      "p95_regret_headroom": 3.777794075012206,
+      "deadline_rescue_rate": 0.0,
+      "effective_tie_rate": 0.02788339670468948
+    },
+    {
+      "slice": "model_near_tie",
+      "decisions": 623,
+      "episodes": 104,
+      "baseline_error_rate": 0.07865168539325842,
+      "mean_regret_headroom": 1.5672186637411312,
+      "p95_regret_headroom": 3.9476711273193352,
+      "deadline_rescue_rate": 0.0,
+      "effective_tie_rate": 0.03531300160513644
+    },
+    {
+      "slice": "hard_near_tie_intersection",
+      "decisions": 470,
+      "episodes": 104,
+      "baseline_error_rate": 0.1,
+      "mean_regret_headroom": 1.3916990807715883,
+      "p95_regret_headroom": 3.777794075012206,
+      "deadline_rescue_rate": 0.0,
+      "effective_tie_rate": 0.04680851063829787
+    },
+    {
+      "slice": "baseline_error_intersection",
+      "decisions": 47,
+      "episodes": 25,
+      "baseline_error_rate": 1.0,
+      "mean_regret_headroom": 1.3916990807715883,
+      "p95_regret_headroom": 3.777794075012206,
+      "deadline_rescue_rate": 0.0,
+      "effective_tie_rate": 0.2127659574468085
+    },
+    {
+      "slice": "large_gap_control",
+      "decisions": 734,
+      "episodes": 36,
+      "baseline_error_rate": 0.0027247956403269754,
+      "mean_regret_headroom": 5.691928863525391,
+      "p95_regret_headroom": 5.956732845306396,
+      "deadline_rescue_rate": 0.0,
+      "effective_tie_rate": 0.0
+    }
+  ],
+  "hard_near_tie_error_count": 47,
+  "hard_near_tie_decision_count": 470,
+  "hard_near_tie_effective_tie_rate": 0.04680851063829787
+}

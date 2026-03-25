@@ -1,0 +1,5 @@
+suite,decisions,hard_near_tie_decisions,hard_near_tie_errors,mean_model_margin,mean_oracle_gap
+a1_multiheavy_ood_branching3_round8_eval_seed313,1128,7,0,4.061656615518509,3.3607132266810598
+a1_multiheavy_ood_deeper_packets6_round8_eval_seed313,1300,140,15,3.372624963934605,4.088970302526768
+a1_multiheavy_ood_heavy_dynamic_round8_eval_seed313,1113,196,23,4.544018584529486,3.702040325920537
+e3_memory_hubs_rsm_round8_multiheavy_seed313,675,1,0,4.54674841961375,3.2418935627407497

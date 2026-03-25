@@ -1,0 +1,30 @@
+name: a1_multiheavy_ood_heavy_dynamic_round8_eval_seed313
+bucket: exploit
+seed: 313
+stage: eval
+notes: round8 OOD heavy dynamic evaluation manifest for multiheavy near-tie critic/search work on seed313
+output_dir: artifacts/experiments/a1_multiheavy_ood_heavy_dynamic_round8_eval_seed313
+benchmark:
+  train_episodes: 180
+  val_episodes: 48
+  test_episodes: 48
+  curriculum_levels: [multi_dynamic]
+  hidden_corridor:
+    seed: 313
+    packets_max: 6
+    dynamic_capacities: true
+    community_base_queue: [2.5, 5.5]
+    deadline_mode: oracle_calibrated
+    deadline_slack_ratio_range: [0.04, 0.10]
+    deadline_slack_abs_range: [0.15, 0.6]
+train:
+  device: cuda:1
+model:
+  d_model: 128
+  d_state: 16
+  inner_layers: 2
+  outer_steps: 3
+  router_variant: memory_hubs
+  final_step_only_loss: true
+  detach_warmup: true
+  penultimate_grad_prob: 0.25

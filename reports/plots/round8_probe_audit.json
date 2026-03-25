@@ -1,0 +1,251 @@
+{
+  "train_suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312_train",
+  "eval_suites": [
+    "e3_memory_hubs_rsm_round8_multiheavy_seed312",
+    "a1_multiheavy_ood_branching3_round8_eval",
+    "a1_multiheavy_ood_deeper_packets6_round8_eval",
+    "a1_multiheavy_ood_heavy_dynamic_round8_eval"
+  ],
+  "summary": [
+    {
+      "task": "oracle_gap_bucket",
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312_train",
+      "split": "train",
+      "accuracy": 0.7835583686828613,
+      "num_classes": 3,
+      "binary": false
+    },
+    {
+      "task": "oracle_gap_bucket",
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312",
+      "split": "eval",
+      "accuracy": 0.762273907661438,
+      "num_classes": 3,
+      "binary": false
+    },
+    {
+      "task": "oracle_gap_bucket",
+      "suite": "a1_multiheavy_ood_branching3_round8_eval",
+      "split": "eval",
+      "accuracy": 0.7345132827758789,
+      "num_classes": 3,
+      "binary": false
+    },
+    {
+      "task": "oracle_gap_bucket",
+      "suite": "a1_multiheavy_ood_deeper_packets6_round8_eval",
+      "split": "eval",
+      "accuracy": 0.6569536328315735,
+      "num_classes": 3,
+      "binary": false
+    },
+    {
+      "task": "oracle_gap_bucket",
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round8_eval",
+      "split": "eval",
+      "accuracy": 0.7330543994903564,
+      "num_classes": 3,
+      "binary": false
+    },
+    {
+      "task": "oracle_near_tie",
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312_train",
+      "split": "train",
+      "accuracy": 0.9833201169967651,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "oracle_near_tie",
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312",
+      "split": "eval",
+      "accuracy": 0.975452184677124,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "oracle_near_tie",
+      "suite": "a1_multiheavy_ood_branching3_round8_eval",
+      "split": "eval",
+      "accuracy": 0.9778761267662048,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "oracle_near_tie",
+      "suite": "a1_multiheavy_ood_deeper_packets6_round8_eval",
+      "split": "eval",
+      "accuracy": 0.7496688961982727,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "oracle_near_tie",
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round8_eval",
+      "split": "eval",
+      "accuracy": 0.8820083737373352,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "hard_near_tie_baseline_error",
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312_train",
+      "split": "train",
+      "accuracy": 1.0,
+      "num_classes": 1,
+      "binary": true
+    },
+    {
+      "task": "hard_near_tie_baseline_error",
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312",
+      "split": "eval",
+      "accuracy": 1.0,
+      "num_classes": 1,
+      "binary": true
+    },
+    {
+      "task": "hard_near_tie_baseline_error",
+      "suite": "a1_multiheavy_ood_branching3_round8_eval",
+      "split": "eval",
+      "accuracy": 1.0,
+      "num_classes": 1,
+      "binary": true
+    },
+    {
+      "task": "hard_near_tie_baseline_error",
+      "suite": "a1_multiheavy_ood_deeper_packets6_round8_eval",
+      "split": "eval",
+      "accuracy": 0.9887416958808899,
+      "num_classes": 1,
+      "binary": true
+    },
+    {
+      "task": "hard_near_tie_baseline_error",
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round8_eval",
+      "split": "eval",
+      "accuracy": 0.9941422343254089,
+      "num_classes": 1,
+      "binary": true
+    },
+    {
+      "task": "deadline_miss_risk_bucket",
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312_train",
+      "split": "train",
+      "accuracy": 0.9273232817649841,
+      "num_classes": 5,
+      "binary": false
+    },
+    {
+      "task": "deadline_miss_risk_bucket",
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312",
+      "split": "eval",
+      "accuracy": 0.9018087983131409,
+      "num_classes": 5,
+      "binary": false
+    },
+    {
+      "task": "deadline_miss_risk_bucket",
+      "suite": "a1_multiheavy_ood_branching3_round8_eval",
+      "split": "eval",
+      "accuracy": 0.8971238732337952,
+      "num_classes": 5,
+      "binary": false
+    },
+    {
+      "task": "deadline_miss_risk_bucket",
+      "suite": "a1_multiheavy_ood_deeper_packets6_round8_eval",
+      "split": "eval",
+      "accuracy": 0.8927152156829834,
+      "num_classes": 5,
+      "binary": false
+    },
+    {
+      "task": "deadline_miss_risk_bucket",
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round8_eval",
+      "split": "eval",
+      "accuracy": 0.8769874572753906,
+      "num_classes": 5,
+      "binary": false
+    },
+    {
+      "task": "search_helpful",
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312_train",
+      "split": "train",
+      "accuracy": 1.0,
+      "num_classes": 1,
+      "binary": true
+    },
+    {
+      "task": "search_helpful",
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312",
+      "split": "eval",
+      "accuracy": 1.0,
+      "num_classes": 1,
+      "binary": true
+    },
+    {
+      "task": "search_helpful",
+      "suite": "a1_multiheavy_ood_branching3_round8_eval",
+      "split": "eval",
+      "accuracy": 1.0,
+      "num_classes": 1,
+      "binary": true
+    },
+    {
+      "task": "search_helpful",
+      "suite": "a1_multiheavy_ood_deeper_packets6_round8_eval",
+      "split": "eval",
+      "accuracy": 0.9887416958808899,
+      "num_classes": 1,
+      "binary": true
+    },
+    {
+      "task": "search_helpful",
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round8_eval",
+      "split": "eval",
+      "accuracy": 0.9941422343254089,
+      "num_classes": 1,
+      "binary": true
+    },
+    {
+      "task": "pairwise_top2_ranking",
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312_train",
+      "split": "train",
+      "accuracy": 0.9491525292396545,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "pairwise_top2_ranking",
+      "suite": "e3_memory_hubs_rsm_round8_multiheavy_seed312",
+      "split": "eval",
+      "accuracy": 0.9507299065589905,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "pairwise_top2_ranking",
+      "suite": "a1_multiheavy_ood_branching3_round8_eval",
+      "split": "eval",
+      "accuracy": 0.9512743353843689,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "pairwise_top2_ranking",
+      "suite": "a1_multiheavy_ood_deeper_packets6_round8_eval",
+      "split": "eval",
+      "accuracy": 0.963373064994812,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "pairwise_top2_ranking",
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round8_eval",
+      "split": "eval",
+      "accuracy": 0.9418317079544067,
+      "num_classes": 2,
+      "binary": true
+    }
+  ]
+}

@@ -67,6 +67,8 @@ def main() -> None:
         selection_slack_critical_scale=config.train.selection_slack_critical_scale,
         quantiles=config.model.quantile_levels,
         verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
+        planner_cost_weight=config.train.planner_cost_weight,
+        planner_on_time_weight=config.train.planner_on_time_weight,
     )
     rollout_metrics = evaluate_rollouts(
         model,

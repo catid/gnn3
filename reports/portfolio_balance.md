@@ -61,6 +61,14 @@
 | A15-R5-pathhead | exploit | Test whether direct soft-target supervision on the integrated traffic-gated path head can move plain multiheavy held-out rollout. | 0.18 | 0.1426 | killed-early | Negative 2-seed scout: seed312 matched baseline and seed311 regressed, so mean regret rose from 1.71 to 1.80 and mean miss from 43.8% to 46.9%. |
 | A16-R5-pathpolicy | exploit | Test whether the existing traffic-gated integrated path head can serve as the primary path-first selection policy on plain multiheavy. | 0.20 | 0.2629 | killed-early | Strong negative 2-seed scout: mean regret jumped from 1.71 to 5232.47, mean p95 from 5.70 to 13806.12, and mean miss from 43.8% to 81.2%. |
 | A17-R5-outer-step | exploit | Test whether inference-time selection among existing outer refinement steps can improve plain multiheavy held-out rollout without retraining. | 0.08 | 0.0743 | completed | Three-seed scout showed `earliest_final_agreement` matched `final` exactly, while `first` and `max_margin` were catastrophic. |
+| A1-R6-baseline | exploit | Fresh 3-seed `multiheavy` guardrail reproduction on the corrected feasible suites before opening new architecture work. | 0.40 | 0.3604 | completed | Mean test next-hop accuracy 96.10%, mean rollout regret 1.32, mean p95 regret 4.77, mean miss 41.7%. |
+| A2-R6-regime-audit | exploit | Stratify `multiheavy` failures by slack, packet pressure, load, depth, and hub asymmetry before promoting any architectural branch. | 0.02 | 0.0000 | completed | Every audited episode stayed feasible and solved; the actual failure slice is critical/very-tight slack, `5+` packets, high load, depth `4`. |
+| B1-R6-regime-experts | explore | Add small regime-conditioned experts on top of `multiheavy` to test whether one shared policy is averaging across incompatible constraint regimes. | 0.12 | 0.0606 | killed-early | Shared-seed rollout matched baseline exactly and hard-feasible disagreement stayed at 0 across all checked suites. |
+| B1-R6-regime-compare | explore | Run a full baseline-vs-branch suite comparison for the regime-expert scout to measure policy movement on the hard feasible slice. | 0.18 | 0.3644 | stopped | Diagnostic compare consumed 21m52s on one GPU and was aborted because the existing policy-movement table had already shown zero hard-case movement. |
+| C1-R6-planner | explore | Add a plannerized candidate-path decoder that predicts path cost / on-time scores and lets the decoder influence the final policy directly. | 0.14 | 0.1010 | killed-early | Slight shared-seed regret gain, but 0 hard-feasible disagreement and catastrophic heavy_dynamic OOD; not promoted. |
+| E1-R6-hazard-memory | explore | Add a narrow structured hazard-memory side channel instead of another generic history bank. | 0.12 | 0.1070 | killed-early | Epoch 1 collapsed badly, then the selected shared-seed test rollout snapped back to the exact baseline by epoch 2. |
+| E1-R6-hazard-compare | explore | Run a full baseline-vs-branch suite comparison for the hazard-memory scout to verify whether any hidden hard-case policy movement survives. | 0.18 | 0.3644 | stopped | Diagnostic compare consumed 21m52s on one GPU and was aborted because the scout had already failed promotion on the shared-seed rollout. |
+| D1-R6-repair | explore | Open a bounded constructor-plus-repair branch only if an earlier round-six constructor shows real hard-case policy movement. | 0.00 | 0.0000 | scoped-out | Not opened because neither regime experts nor the plannerized decoder cleared the round-six policy-movement gate. |
 
 Current cumulative GPU-hours:
 
@@ -69,6 +77,9 @@ Current cumulative GPU-hours:
 - Round-four-plus-follow-up split: `67.8% / 32.2%`
 - Round-five exploit-only batch: `3.2356`
 - Round-five split: `100.0% / 0.0%`
-- Overall exploit: `6.3353`
-- Overall explore: `2.0475`
-- Overall split: `75.6% / 24.4%`
+- Round-six exploit: `0.3604`
+- Round-six explore: `0.9976`
+- Round-six split: `26.5% / 73.5%`
+- Overall exploit: `6.6957`
+- Overall explore: `3.0451`
+- Overall split: `68.7% / 31.3%`

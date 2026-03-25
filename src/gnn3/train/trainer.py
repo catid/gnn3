@@ -148,6 +148,8 @@ def _train_one_epoch(
         "on_time_loss": 0.0,
         "slack_loss": 0.0,
         "quantile_loss": 0.0,
+        "planner_cost_loss": 0.0,
+        "planner_on_time_loss": 0.0,
         "next_hop_accuracy": 0.0,
         "selection_accuracy": 0.0,
     }
@@ -181,6 +183,8 @@ def _train_one_epoch(
                 selection_slack_critical_scale=config.train.selection_slack_critical_scale,
                 quantiles=config.model.quantile_levels,
                 verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
+                planner_cost_weight=config.train.planner_cost_weight,
+                planner_on_time_weight=config.train.planner_on_time_weight,
             )
         losses["loss"].backward()
         nn.utils.clip_grad_norm_(model.parameters(), config.train.grad_clip_norm)
@@ -218,6 +222,8 @@ def evaluate_decision_dataset(
     selection_slack_critical_scale: float,
     quantiles: tuple[float, ...],
     verifier_aux_last_k_steps: int,
+    planner_cost_weight: float,
+    planner_on_time_weight: float,
 ) -> dict[str, float]:
     was_training = model.training
     model.eval()
@@ -233,6 +239,8 @@ def evaluate_decision_dataset(
         "on_time_loss": 0.0,
         "slack_loss": 0.0,
         "quantile_loss": 0.0,
+        "planner_cost_loss": 0.0,
+        "planner_on_time_loss": 0.0,
         "next_hop_accuracy": 0.0,
         "selection_accuracy": 0.0,
         "value_mae": 0.0,
@@ -270,6 +278,8 @@ def evaluate_decision_dataset(
             selection_slack_critical_scale=selection_slack_critical_scale,
             quantiles=quantiles,
             verifier_aux_last_k_steps=verifier_aux_last_k_steps,
+            planner_cost_weight=planner_cost_weight,
+            planner_on_time_weight=planner_on_time_weight,
         )
         for key, value in losses.items():
             totals[key] += float(value.detach().cpu())
@@ -526,6 +536,8 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                 selection_slack_critical_scale=config.train.selection_slack_critical_scale,
                 quantiles=config.model.quantile_levels,
                 verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
+                planner_cost_weight=config.train.planner_cost_weight,
+                planner_on_time_weight=config.train.planner_on_time_weight,
             )
             rollout_metrics = evaluate_rollouts(
                 eval_model,
@@ -656,6 +668,8 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
                     selection_slack_critical_scale=config.train.selection_slack_critical_scale,
                     quantiles=config.model.quantile_levels,
                     verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
+                    planner_cost_weight=config.train.planner_cost_weight,
+                    planner_on_time_weight=config.train.planner_on_time_weight,
                 )
                 rollout_metrics = evaluate_rollouts(
                     eval_model,
@@ -748,6 +762,8 @@ def train_experiment(config: ExperimentConfig) -> dict[str, Any] | None:
         selection_slack_critical_scale=config.train.selection_slack_critical_scale,
         quantiles=config.model.quantile_levels,
         verifier_aux_last_k_steps=config.model.verifier_aux_last_k_steps,
+        planner_cost_weight=config.train.planner_cost_weight,
+        planner_on_time_weight=config.train.planner_on_time_weight,
     )
     test_rollout = evaluate_rollouts(
         eval_model,

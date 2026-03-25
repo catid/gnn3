@@ -1,0 +1,10 @@
+experiment_id,bucket,actual_gpu_hours,status,key_result
+A1-R6-baseline,exploit,0.3604230656226476,completed,Fresh 3-seed multiheavy guardrail reproduction.
+A2-R6-regime-audit,exploit,0.0,completed,Regime audit completed from the guardrail checkpoint.
+B1-R6-regime-experts,explore,0.060636690391434565,killed-early,Shared-seed rollout matched baseline exactly and hard-feasible disagreement stayed at 0.
+B1-R6-regime-compare,explore,0.36444444444444446,stopped,Full-suite compare was aborted after 21m52s once zero hard-case movement was already established.
+C1-R6-planner,explore,0.10101607700188954,killed-early,"Slight seed312 gains, but 0 hard-feasible disagreement and catastrophic heavy_dynamic OOD."
+E1-R6-hazard-memory,explore,0.10703421148988936,killed-early,"Epoch1 collapsed, then selected test rollout snapped back to the baseline exactly."
+E1-R6-hazard-compare,explore,0.36444444444444446,stopped,Full-suite compare was aborted after 21m52s because the scout was already non-promotable.
+D1-R6-repair,explore,0.0,scoped-out,Not opened because regime experts and planner failed the policy-movement gate.
+round6_total,summary,1.35799893339475,completed,"exploit=0.265, explore=0.735"

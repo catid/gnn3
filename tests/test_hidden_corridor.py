@@ -201,6 +201,35 @@ def test_hazard_memory_forward_path() -> None:
     assert output["node_logits"].shape[0] == 2
 
 
+def test_regime_experts_forward_path() -> None:
+    cfg = HiddenCorridorConfig(
+        seed=114,
+        deadline_mode="oracle_calibrated",
+    )
+    dataset = HiddenCorridorDecisionDataset(config=cfg, num_episodes=2)
+    batch = collate_decisions([dataset[0], dataset[1]])
+    model = PacketMambaModel(
+        PacketMambaConfig(
+            node_feature_dim=batch["node_features"].shape[-1],
+            outer_steps=2,
+            inner_layers=2,
+            router_variant="memory_hubs",
+            detach_warmup=True,
+            regime_experts=True,
+            regime_num_experts=3,
+            regime_hidden_dim=32,
+        )
+    )
+    output = model(batch)
+    assert output["node_logits"].shape[0] == 2
+    assert output["regime_gate_weights"].shape == (2, 3)
+    assert torch.allclose(
+        output["regime_gate_weights"].sum(dim=-1),
+        torch.ones((2,), dtype=output["regime_gate_weights"].dtype),
+        atol=1e-5,
+    )
+
+
 def test_candidate_path_reranker_forward_and_loss() -> None:
     cfg = HiddenCorridorConfig(
         seed=15,
@@ -221,7 +250,6 @@ def test_candidate_path_reranker_forward_and_loss() -> None:
         )
     )
     output = model(batch)
-    losses = compute_losses(output, batch, final_step_only=True)
     assert output["path_scores"].shape == output["node_logits"].shape
     assert output["path_reranker_gate"].shape == output["node_logits"].shape
     assert output["selection_scores"].shape == output["node_logits"].shape
@@ -229,6 +257,42 @@ def test_candidate_path_reranker_forward_and_loss() -> None:
     assert float(output["path_reranker_gate"][valid_mask].min().detach()) >= 0.0
     assert float(output["path_reranker_gate"][valid_mask].max().detach()) <= 1.0
     assert float(output["path_scores"][valid_mask].abs().max().detach()) <= 1.25 + 1e-5
+
+
+def test_planner_decoder_forward_and_loss() -> None:
+    cfg = HiddenCorridorConfig(
+        seed=16,
+        deadline_mode="oracle_calibrated",
+    )
+    dataset = HiddenCorridorDecisionDataset(config=cfg, num_episodes=2)
+    batch = collate_decisions([dataset[0], dataset[1]])
+    model = PacketMambaModel(
+        PacketMambaConfig(
+            node_feature_dim=batch["node_features"].shape[-1],
+            outer_steps=2,
+            inner_layers=2,
+            router_variant="memory_hubs",
+            detach_warmup=True,
+            planner_decoder=True,
+            planner_hidden_dim=64,
+        )
+    )
+    output = model(batch)
+    losses = compute_losses(
+        output,
+        batch,
+        final_step_only=True,
+        planner_cost_weight=0.2,
+        planner_on_time_weight=0.1,
+        path_soft_target_weight=0.1,
+    )
+    assert output["planner_costs"].shape == output["node_logits"].shape
+    assert output["planner_on_time_logits"].shape == output["node_logits"].shape
+    assert output["selection_scores"].shape == output["node_logits"].shape
+    valid_mask = batch["candidate_path_mask"].any(dim=-1) & batch["candidate_mask"] & batch["node_mask"]
+    assert float(output["planner_costs"][valid_mask].min().detach()) >= 0.0
+    assert float(losses["planner_cost_loss"].detach()) >= 0.0
+    assert float(losses["planner_on_time_loss"].detach()) >= 0.0
     assert float(losses["loss"].detach()) > 0.0
 
 

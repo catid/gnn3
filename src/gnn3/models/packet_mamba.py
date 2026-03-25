@@ -64,6 +64,17 @@ class PacketMambaConfig:
     path_verifier_hard_mask: bool = True
     path_verifier_slack_margin: float = 0.0
     path_verifier_penalty: float = 4.0
+    planner_decoder: bool = False
+    planner_hidden_dim: int = 128
+    planner_cost_score_weight: float = 1.0
+    planner_on_time_score_weight: float = 2.5
+    repair_decoder: bool = False
+    repair_hidden_dim: int = 128
+    repair_slack_margin: float = 0.0
+    regime_experts: bool = False
+    regime_num_experts: int = 4
+    regime_hidden_dim: int = 64
+    regime_expert_weight: float = 0.75
 
 
 class DenseEdgeMixer(nn.Module):
@@ -508,6 +519,33 @@ class PacketMambaModel(nn.Module):
             if config.path_reranker
             else None
         )
+        self.planner_cost_head = (
+            nn.Sequential(
+                nn.Linear(4 * config.d_model + 5, config.planner_hidden_dim),
+                nn.GELU(),
+                nn.Linear(config.planner_hidden_dim, 1),
+            )
+            if config.planner_decoder
+            else None
+        )
+        self.planner_on_time_head = (
+            nn.Sequential(
+                nn.Linear(4 * config.d_model + 5, config.planner_hidden_dim),
+                nn.GELU(),
+                nn.Linear(config.planner_hidden_dim, 1),
+            )
+            if config.planner_decoder
+            else None
+        )
+        self.repair_head = (
+            nn.Sequential(
+                nn.Linear(5 * config.d_model + 14, config.repair_hidden_dim),
+                nn.GELU(),
+                nn.Linear(config.repair_hidden_dim, 1),
+            )
+            if config.repair_decoder
+            else None
+        )
         self.hazard_encoder = (
             nn.Sequential(
                 nn.Linear(7, config.hazard_memory_dim),
@@ -515,6 +553,38 @@ class PacketMambaModel(nn.Module):
                 nn.Linear(config.hazard_memory_dim, config.d_model),
             )
             if config.hazard_memory
+            else None
+        )
+        self.regime_encoder = (
+            nn.Sequential(
+                nn.Linear(9, config.d_model),
+                nn.GELU(),
+                nn.Linear(config.d_model, config.d_model),
+            )
+            if config.regime_experts
+            else None
+        )
+        self.regime_gate = (
+            nn.Sequential(
+                nn.Linear(9, config.regime_hidden_dim),
+                nn.GELU(),
+                nn.Linear(config.regime_hidden_dim, config.regime_num_experts),
+            )
+            if config.regime_experts
+            else None
+        )
+        self.regime_expert_heads = (
+            nn.ModuleList(
+                [
+                    nn.Sequential(
+                        nn.Linear(action_input_dim + config.d_model, config.regime_hidden_dim),
+                        nn.GELU(),
+                        nn.Linear(config.regime_hidden_dim, 1),
+                    )
+                    for _ in range(config.regime_num_experts)
+                ]
+            )
+            if config.regime_experts
             else None
         )
 
@@ -584,6 +654,73 @@ class PacketMambaModel(nn.Module):
         return torch.sigmoid(
             (self.config.path_reranker_gate_bias - risk_score)
             * self.config.path_reranker_gate_sharpness
+        )
+
+    def _candidate_path_context(
+        self,
+        state: torch.Tensor,
+        batch: dict[str, torch.Tensor],
+        current_expand: torch.Tensor,
+        destination_expand: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        safe_path_nodes = batch["candidate_path_nodes"].clamp(min=0)
+        path_state = torch.gather(
+            state[:, None, :, :].expand(-1, state.size(1), -1, -1),
+            2,
+            safe_path_nodes.unsqueeze(-1).expand(-1, -1, -1, state.size(-1)),
+        )
+        path_mask = batch["candidate_path_mask"].unsqueeze(-1)
+        path_denom = path_mask.float().sum(dim=2).clamp(min=1.0)
+        path_mean = (path_state * path_mask.float()).sum(dim=2) / path_denom
+        path_valid = batch["candidate_path_mask"].any(dim=-1) & batch["candidate_mask"] & batch["node_mask"]
+        path_input = torch.cat(
+            [
+                current_expand,
+                destination_expand,
+                state,
+                path_mean,
+                batch["candidate_path_features"],
+            ],
+            dim=-1,
+        )
+        return path_input, path_valid
+
+    def _regime_features(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
+        node_mask = batch["node_mask"].float()
+        denom = node_mask.sum(dim=-1).clamp(min=1.0)
+        queue_feature = batch["node_features"][..., 0]
+        mean_queue = (queue_feature * node_mask).sum(dim=-1) / denom
+        max_queue = queue_feature.masked_fill(~batch["node_mask"], 0.0).max(dim=-1).values
+        current_queue = batched_index_select(queue_feature.unsqueeze(-1), batch["current_node"]).squeeze(-1)
+
+        candidate_valid = batch["candidate_mask"] & batch["node_mask"]
+        candidate_denom = candidate_valid.float().sum(dim=-1).clamp(min=1.0)
+        feasible_fraction = (batch["candidate_on_time"] * candidate_valid.float()).sum(dim=-1) / candidate_denom
+        best_slack = batch["candidate_slack"].masked_fill(~candidate_valid, -1e9).max(dim=-1).values
+        best_slack_ratio = best_slack / batch["packet_deadline"].clamp(min=1.0)
+        candidate_degree = candidate_denom / denom
+
+        path_lengths = batch["candidate_path_mask"].float().sum(dim=-1)
+        max_path_length = path_lengths.masked_fill(~candidate_valid, 0.0).max(dim=-1).values / denom
+        hidden_path_share = (
+            batch["candidate_path_features"][..., 4].masked_fill(~candidate_valid, 0.0).sum(dim=-1) / candidate_denom
+        )
+
+        packet_priority = batch["packet_priority"] / 3.0
+        packet_count = batch["packet_count"].float() / 8.0
+        return torch.stack(
+            [
+                best_slack_ratio,
+                feasible_fraction,
+                candidate_degree,
+                max_path_length,
+                mean_queue,
+                max_queue,
+                current_queue,
+                packet_priority,
+                packet_count + 0.25 * hidden_path_share,
+            ],
+            dim=-1,
         )
 
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
@@ -666,6 +803,15 @@ class PacketMambaModel(nn.Module):
         stacked_logits = torch.stack(per_step_logits, dim=1)
         stacked_values = torch.stack(per_step_values, dim=1)
         final_outputs = readout_outputs
+        if final_outputs.get("regime_gate_weights") is not None:
+            gate_weights = final_outputs["regime_gate_weights"]
+            gate_entropy = -(gate_weights * (gate_weights + 1e-8).log()).sum(dim=-1).mean()
+            diagnostics = {
+                **diagnostics,
+                "regime_gate_entropy": gate_entropy,
+                "regime_gate_max_weight": gate_weights.max(dim=-1).values.mean(),
+                "regime_gate_mean": gate_weights.mean(dim=0),
+            }
         return {
             "node_logits": final_outputs["node_logits"],
             "selection_scores": final_outputs["selection_scores"],
@@ -677,7 +823,10 @@ class PacketMambaModel(nn.Module):
             "candidate_slack": final_outputs["candidate_slack"],
             "candidate_cost_quantiles": final_outputs["candidate_cost_quantiles"],
             "path_scores": final_outputs["path_scores"],
+            "planner_costs": final_outputs["planner_costs"],
+            "planner_on_time_logits": final_outputs["planner_on_time_logits"],
             "path_reranker_gate": final_outputs["path_reranker_gate"],
+            "regime_gate_weights": final_outputs["regime_gate_weights"],
             "per_step_candidate_on_time_logits": (
                 torch.stack(per_step_on_time_logits, dim=1) if per_step_on_time_logits else None
             ),
@@ -702,11 +851,26 @@ class PacketMambaModel(nn.Module):
         destination_expand = destination_repr[:, None, :].expand(-1, num_nodes, -1)
         batch_index = torch.arange(batch_size, device=state.device)
         edge_context = batch["edge_features"][batch_index, batch["current_node"]]
+        regime_gate_weights = None
+        if self.regime_encoder is not None and self.regime_gate is not None and self.regime_expert_heads is not None:
+            regime_features = self._regime_features(batch)
+            regime_token = self.regime_encoder(regime_features)[:, None, :]
+            current_expand = current_expand + regime_token
+            destination_expand = destination_expand + 0.5 * regime_token
 
         action_input = torch.cat([current_expand, destination_expand, state, edge_context], dim=-1)
         node_logits = self.action_head(action_input).squeeze(-1)
         invalid = ~(batch["candidate_mask"] & batch["node_mask"])
         node_logits = node_logits.masked_fill(invalid, -1e9)
+        if self.regime_gate is not None and self.regime_expert_heads is not None and self.regime_encoder is not None:
+            regime_features = self._regime_features(batch)
+            regime_token = self.regime_encoder(regime_features)
+            regime_gate_weights = torch.softmax(self.regime_gate(regime_features), dim=-1)
+            expert_input = torch.cat([action_input, regime_token[:, None, :].expand(-1, num_nodes, -1)], dim=-1)
+            expert_scores = torch.stack([head(expert_input).squeeze(-1) for head in self.regime_expert_heads], dim=1)
+            expert_delta = torch.einsum("be,ben->bn", regime_gate_weights, expert_scores)
+            node_logits = node_logits + self.config.regime_expert_weight * expert_delta.masked_fill(invalid, 0.0)
+            node_logits = node_logits.masked_fill(invalid, -1e9)
 
         value_input = torch.cat([current_repr, destination_repr], dim=-1)
         values = self.value_head(value_input).squeeze(-1)
@@ -718,10 +882,17 @@ class PacketMambaModel(nn.Module):
         candidate_slack = None
         candidate_cost_quantiles = None
         path_scores = None
+        planner_costs = None
+        planner_on_time_logits = None
+        repair_scores = None
+        repair_trigger = None
+        repair_keep_mask = None
         path_reranker_gate = None
         path_verifier_penalty = None
         path_verifier_keep_mask = None
         selection_scores = node_logits
+        path_input = None
+        path_valid = None
         if self.deadline_head is not None and self.slack_head is not None and self.quantile_head is not None:
             candidate_on_time_logits = self.deadline_head(action_input).squeeze(-1)
             candidate_slack = self.slack_head(action_input).squeeze(-1)
@@ -741,27 +912,69 @@ class PacketMambaModel(nn.Module):
                 )
                 selection_scores = node_logits + on_time_bonus + slack_bonus - tail_penalty
                 selection_scores = selection_scores.masked_fill(candidate_invalid, -1e9)
-        if self.path_reranker_head is not None:
-            safe_path_nodes = batch["candidate_path_nodes"].clamp(min=0)
-            path_state = torch.gather(
-                state[:, None, :, :].expand(-1, num_nodes, -1, -1),
-                2,
-                safe_path_nodes.unsqueeze(-1).expand(-1, -1, -1, state.size(-1)),
+        if self.planner_cost_head is not None and self.planner_on_time_head is not None:
+            path_input, path_valid = self._candidate_path_context(
+                state,
+                batch,
+                current_expand,
+                destination_expand,
             )
-            path_mask = batch["candidate_path_mask"].unsqueeze(-1)
-            path_denom = path_mask.float().sum(dim=2).clamp(min=1.0)
-            path_mean = (path_state * path_mask.float()).sum(dim=2) / path_denom
-            path_valid = batch["candidate_path_mask"].any(dim=-1) & batch["candidate_mask"] & batch["node_mask"]
-            path_input = torch.cat(
-                [
+            planner_costs = F.softplus(self.planner_cost_head(path_input).squeeze(-1))
+            planner_on_time_logits = self.planner_on_time_head(path_input).squeeze(-1)
+            planner_costs = planner_costs.masked_fill(~path_valid, 0.0)
+            planner_on_time_logits = planner_on_time_logits.masked_fill(~path_valid, -1e9)
+            deadline_scale = batch["packet_deadline"][:, None].clamp(min=1.0)
+            path_scores = (
+                -self.config.planner_cost_score_weight * (planner_costs / deadline_scale)
+                + self.config.planner_on_time_score_weight * F.logsigmoid(planner_on_time_logits)
+            )
+            selection_scores = path_scores.masked_fill(~path_valid, -1e9)
+        if self.repair_head is not None:
+            if path_input is None or path_valid is None:
+                path_input, path_valid = self._candidate_path_context(
+                    state,
+                    batch,
                     current_expand,
                     destination_expand,
-                    state,
-                    path_mean,
-                    batch["candidate_path_features"],
+                )
+            candidate_valid = batch["candidate_mask"] & batch["node_mask"]
+            constructor_choice = node_logits.argmax(dim=-1)
+            constructor_repr = batched_index_select(state, constructor_choice)
+            batch_index = torch.arange(batch_size, device=state.device)
+            constructor_path_features = batch["candidate_path_features"][batch_index, constructor_choice]
+            constructor_on_time = batch["candidate_on_time"][batch_index, constructor_choice]
+            constructor_slack = batch["candidate_slack"][batch_index, constructor_choice]
+            has_feasible = (candidate_valid & (batch["candidate_on_time"] > 0.5)).any(dim=-1)
+            constructor_safe = (constructor_on_time > 0.5) & (constructor_slack >= self.config.repair_slack_margin)
+            repair_trigger = has_feasible & (~constructor_safe)
+            repair_keep_mask = candidate_valid & (
+                ~has_feasible[:, None] | (batch["candidate_on_time"] > 0.5)
+            )
+            deadline_scale = batch["packet_deadline"][:, None].clamp(min=1.0)
+            repair_input = torch.cat(
+                [
+                    path_input,
+                    constructor_repr[:, None, :].expand(-1, num_nodes, -1),
+                    constructor_path_features[:, None, :].expand(-1, num_nodes, -1),
+                    batch["candidate_on_time"].unsqueeze(-1),
+                    (batch["candidate_slack"] / deadline_scale).unsqueeze(-1),
+                    constructor_on_time[:, None, None].expand(-1, num_nodes, -1),
+                    (constructor_slack[:, None] / deadline_scale).unsqueeze(-1),
                 ],
                 dim=-1,
             )
+            repair_scores = self.repair_head(repair_input).squeeze(-1)
+            repair_scores = repair_scores.masked_fill(~repair_keep_mask, -1e9)
+            selection_scores = torch.where(repair_trigger[:, None], repair_scores, selection_scores)
+            path_scores = repair_scores
+        if self.path_reranker_head is not None:
+            if path_input is None or path_valid is None:
+                path_input, path_valid = self._candidate_path_context(
+                    state,
+                    batch,
+                    current_expand,
+                    destination_expand,
+                )
             path_scores = self.path_reranker_head(path_input).squeeze(-1)
             if self.config.path_reranker_bound > 0.0:
                 path_scores = self.config.path_reranker_bound * torch.tanh(path_scores)
@@ -805,7 +1018,13 @@ class PacketMambaModel(nn.Module):
             "candidate_slack": candidate_slack,
             "candidate_cost_quantiles": candidate_cost_quantiles,
             "path_scores": path_scores,
+            "planner_costs": planner_costs,
+            "planner_on_time_logits": planner_on_time_logits,
+            "repair_scores": repair_scores,
+            "repair_trigger": repair_trigger,
+            "repair_keep_mask": repair_keep_mask,
             "path_reranker_gate": path_reranker_gate,
+            "regime_gate_weights": regime_gate_weights,
             "path_verifier_penalty": path_verifier_penalty,
             "path_verifier_keep_mask": path_verifier_keep_mask,
         }
@@ -964,6 +1183,8 @@ def compute_losses(
     selection_slack_critical_scale: float = 1.0,
     quantiles: tuple[float, ...] = (0.1, 0.5, 0.9),
     verifier_aux_last_k_steps: int = 1,
+    planner_cost_weight: float = 0.0,
+    planner_on_time_weight: float = 0.0,
 ) -> dict[str, torch.Tensor]:
     target = batch["target_next_hop"]
     feasible_target_loss = output["selection_scores"].new_tensor(0.0)
@@ -999,6 +1220,8 @@ def compute_losses(
     on_time_loss = output["selection_scores"].new_tensor(0.0)
     slack_loss = output["selection_scores"].new_tensor(0.0)
     quantile_loss = output["selection_scores"].new_tensor(0.0)
+    planner_cost_loss = output["selection_scores"].new_tensor(0.0)
+    planner_on_time_loss = output["selection_scores"].new_tensor(0.0)
     if selection_soft_target_weight > 0.0:
         selection_soft_target_loss = _selection_soft_target_loss(
             selection_scores=output["selection_scores"],
@@ -1057,6 +1280,17 @@ def compute_losses(
                 batch=batch,
                 quantiles=quantiles,
             )
+    valid_mask = batch["candidate_mask"] & batch["node_mask"]
+    if planner_cost_weight > 0.0 and output.get("planner_costs") is not None and valid_mask.any():
+        planner_cost_loss = F.smooth_l1_loss(
+            output["planner_costs"][valid_mask],
+            batch["candidate_cost_to_go"][valid_mask],
+        )
+    if planner_on_time_weight > 0.0 and output.get("planner_on_time_logits") is not None and valid_mask.any():
+        planner_on_time_loss = F.binary_cross_entropy_with_logits(
+            output["planner_on_time_logits"][valid_mask],
+            batch["candidate_on_time"][valid_mask],
+        )
     total_loss = (
         ce_loss
         + value_weight * value_loss
@@ -1068,6 +1302,8 @@ def compute_losses(
         + deadline_bce_weight * on_time_loss
         + slack_weight * slack_loss
         + quantile_weight * quantile_loss
+        + planner_cost_weight * planner_cost_loss
+        + planner_on_time_weight * planner_on_time_loss
     )
     with torch.no_grad():
         accuracy = (output["selection_scores"].argmax(dim=-1) == target).float().mean()
@@ -1084,6 +1320,8 @@ def compute_losses(
         "on_time_loss": on_time_loss.detach(),
         "slack_loss": slack_loss.detach(),
         "quantile_loss": quantile_loss.detach(),
+        "planner_cost_loss": planner_cost_loss.detach(),
+        "planner_on_time_loss": planner_on_time_loss.detach(),
         "next_hop_accuracy": accuracy.detach(),
         "selection_accuracy": selection_accuracy.detach(),
     }

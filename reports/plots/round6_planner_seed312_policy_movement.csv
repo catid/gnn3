@@ -1,0 +1,5 @@
+suite,decisions,action_agreement,overall_disagreement,hard_feasible_cases,hard_feasible_disagreement
+e3_memory_hubs_rsm_round6_multiheavy_seed312,774,0.9974160206718347,0.002583979328165375,46,0.0
+a2_multiheavy_ood_branching3_round6_eval,1892,0.9941860465116279,0.005813953488372093,124,0.0
+a2_multiheavy_ood_deeper_packets6_round6_eval,2289,0.9969418960244648,0.0030581039755351682,95,0.0
+a2_multiheavy_ood_heavy_dynamic_round6_eval,2981,0.9949681314994968,0.005031868500503187,160,0.0

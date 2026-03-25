@@ -1,0 +1,216 @@
+{
+  "suite_meta": [
+    {
+      "suite": "e3_memory_hubs_rsm_round6_multiheavy_seed311",
+      "config_path": "configs/experiments/e3_memory_hubs_rsm_round6_multiheavy_seed311.yaml",
+      "manifest_hash": "40be2a89c9264e65730a6dd5921969adac3096b0b95ed715df8dc4f1dc4dc147"
+    },
+    {
+      "suite": "a2_multiheavy_ood_branching3_round6_eval",
+      "config_path": "configs/experiments/a2_multiheavy_ood_branching3_round6_eval.yaml",
+      "manifest_hash": "7a04360cf4a1fc3b1e6025b7f324fa8c4c422787c1363857ab88cd963812dff8"
+    },
+    {
+      "suite": "a2_multiheavy_ood_deeper_packets6_round6_eval",
+      "config_path": "configs/experiments/a2_multiheavy_ood_deeper_packets6_round6_eval.yaml",
+      "manifest_hash": "6137b4f2df378f2712d361d9f15b28e1093559d9cb2328938128b8931796de4f"
+    },
+    {
+      "suite": "a2_multiheavy_ood_heavy_dynamic_round6_eval",
+      "config_path": "configs/experiments/a2_multiheavy_ood_heavy_dynamic_round6_eval.yaml",
+      "manifest_hash": "f3e613939e676beb3211f4c6b176ecb8c5a50b62bc61fc18de725f42a4987c8c"
+    }
+  ],
+  "summary": [
+    {
+      "bucket": "critical",
+      "episodes": 130,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 6.589029743006463,
+      "p95_regret": 22.54474290195736,
+      "deadline_miss_rate": 1.0,
+      "group": "slack_band"
+    },
+    {
+      "bucket": "loose",
+      "episodes": 4,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 1.1801338608909564,
+      "p95_regret": 3.6537298760536285,
+      "deadline_miss_rate": 0.25,
+      "group": "slack_band"
+    },
+    {
+      "bucket": "moderate",
+      "episodes": 4,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 0.0,
+      "p95_regret": 0.0,
+      "deadline_miss_rate": 0.0,
+      "group": "slack_band"
+    },
+    {
+      "bucket": "tight",
+      "episodes": 22,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 2.6977120734437405,
+      "p95_regret": 9.531710451862686,
+      "deadline_miss_rate": 0.4090909090909091,
+      "group": "slack_band"
+    },
+    {
+      "bucket": "very_tight",
+      "episodes": 80,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 4.6045988942805485,
+      "p95_regret": 13.666058198014277,
+      "deadline_miss_rate": 0.7625,
+      "group": "slack_band"
+    },
+    {
+      "bucket": "1",
+      "episodes": 20,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 0.8366441798026127,
+      "p95_regret": 4.277509180288431,
+      "deadline_miss_rate": 0.3,
+      "group": "packet_band"
+    },
+    {
+      "bucket": "2",
+      "episodes": 39,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 2.211775281462554,
+      "p95_regret": 9.237234866142474,
+      "deadline_miss_rate": 0.6923076923076923,
+      "group": "packet_band"
+    },
+    {
+      "bucket": "3",
+      "episodes": 42,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 3.801640703068264,
+      "p95_regret": 13.142204947600794,
+      "deadline_miss_rate": 0.8571428571428571,
+      "group": "packet_band"
+    },
+    {
+      "bucket": "4",
+      "episodes": 45,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 4.355207787026628,
+      "p95_regret": 13.36281770829751,
+      "deadline_miss_rate": 0.9111111111111111,
+      "group": "packet_band"
+    },
+    {
+      "bucket": "5+",
+      "episodes": 94,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 8.833687230579287,
+      "p95_regret": 25.342176062489752,
+      "deadline_miss_rate": 0.9680851063829787,
+      "group": "packet_band"
+    },
+    {
+      "bucket": "high_load",
+      "episodes": 82,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 7.348140496200121,
+      "p95_regret": 26.375981290217812,
+      "deadline_miss_rate": 0.9634146341463414,
+      "group": "load_band"
+    },
+    {
+      "bucket": "low_load",
+      "episodes": 79,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 3.53145892864774,
+      "p95_regret": 13.673796122563784,
+      "deadline_miss_rate": 0.6962025316455697,
+      "group": "load_band"
+    },
+    {
+      "bucket": "mid_load",
+      "episodes": 79,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 5.157964596721882,
+      "p95_regret": 13.23531817445372,
+      "deadline_miss_rate": 0.8481012658227848,
+      "group": "load_band"
+    },
+    {
+      "bucket": "2",
+      "episodes": 8,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 5.419870382034608,
+      "p95_regret": 19.392760022143204,
+      "deadline_miss_rate": 0.75,
+      "group": "depth_band"
+    },
+    {
+      "bucket": "3",
+      "episodes": 111,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 3.459866709837335,
+      "p95_regret": 11.810494309366945,
+      "deadline_miss_rate": 0.7747747747747747,
+      "group": "depth_band"
+    },
+    {
+      "bucket": "4",
+      "episodes": 121,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 7.120725713589993,
+      "p95_regret": 25.00443709370124,
+      "deadline_miss_rate": 0.9008264462809917,
+      "group": "depth_band"
+    },
+    {
+      "bucket": "high_gap",
+      "episodes": 82,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 1.632483023671265,
+      "p95_regret": 9.358277076945027,
+      "deadline_miss_rate": 0.7439024390243902,
+      "group": "hub_gap_band"
+    },
+    {
+      "bucket": "low_gap",
+      "episodes": 79,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 8.171314354768647,
+      "p95_regret": 20.813478065517714,
+      "deadline_miss_rate": 0.9620253164556962,
+      "group": "hub_gap_band"
+    },
+    {
+      "bucket": "mid_gap",
+      "episodes": 79,
+      "feasible_episode_fraction": 1.0,
+      "solved_rate": 1.0,
+      "average_regret": 6.450816926896752,
+      "p95_regret": 25.00260103601872,
+      "deadline_miss_rate": 0.810126582278481,
+      "group": "hub_gap_band"
+    }
+  ]
+}

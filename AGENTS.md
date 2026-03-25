@@ -6,6 +6,7 @@ This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get sta
 
 - Never create or use side branches for work in this repo.
 - Do all work directly on `main`.
+- If a user explicitly asks for branch-based work, merge that branch back into `main` immediately after the work is complete and before handoff.
 - If you ever find local commits on any branch other than `main`, merge or fast-forward them back into `main` immediately and return to `main`.
 - Before starting work, switch to `main` and keep it current with `git pull --rebase`.
 - Before handing off, make sure `main` contains the latest local commits.

@@ -4,8 +4,9 @@ This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get sta
 
 ## Branch Policy
 
-- Do not create or use feature branches for routine work in this repo.
-- Keep all work on `main` unless the user explicitly asks for a different branch.
+- Never create or use side branches for work in this repo.
+- Do all work directly on `main`.
+- If you ever find local commits on any branch other than `main`, merge or fast-forward them back into `main` immediately and return to `main`.
 - Before starting work, switch to `main` and keep it current with `git pull --rebase`.
 - Before handing off, make sure `main` contains the latest local commits.
 - Do not edit git configuration, remotes, tracking branches, or credential settings unless the user explicitly asks.

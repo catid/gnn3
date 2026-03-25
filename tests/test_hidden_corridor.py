@@ -201,6 +201,33 @@ def test_hazard_memory_forward_path() -> None:
     assert output["node_logits"].shape[0] == 2
 
 
+def test_delay_mailbox_forward_path() -> None:
+    cfg = HiddenCorridorConfig(
+        seed=115,
+        deadline_mode="oracle_calibrated",
+    )
+    dataset = HiddenCorridorDecisionDataset(config=cfg, num_episodes=2)
+    batch = collate_decisions([dataset[0], dataset[1]])
+    model = PacketMambaModel(
+        PacketMambaConfig(
+            node_feature_dim=batch["node_features"].shape[-1],
+            outer_steps=3,
+            inner_layers=2,
+            router_variant="memory_hubs",
+            detach_warmup=True,
+            delay_mailbox=True,
+            delay_mailbox_delays=(1, 2),
+            delay_mailbox_target="monitor_only",
+            delay_mailbox_fusion="slow_only",
+        )
+    )
+    output = model(batch)
+    assert output["per_step_selection_scores"].shape[:2] == (2, 3)
+    assert output["per_step_probe_features"].shape[:2] == (2, 3)
+    assert "delay_mailbox_release_mean" in output["diagnostics"]
+    assert "delay_mailbox_active" in output["diagnostics"]
+
+
 def test_regime_experts_forward_path() -> None:
     cfg = HiddenCorridorConfig(
         seed=114,

@@ -1,0 +1,2 @@
+target_col,top_k,decision_horizon,branch_rows,teacher_decisions,teacher_disagreement,teacher_recovery,teacher_new_error,teacher_target_match
+hard_near_tie_intersection_case,2,2,28,16,0.0625,0.0,0.0625,0.875

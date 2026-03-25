@@ -1,0 +1,42 @@
+{
+  "target_col": "hard_near_tie_intersection_case",
+  "max_hops": 4,
+  "summary": [
+    {
+      "suite": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "target_decisions": 16,
+      "oracle_hub_defined_rate": 0.8125,
+      "model_hub_defined_rate": 0.5,
+      "oracle_stable_h1": 0.5384615384615384,
+      "model_flip_h1_given_oracle_stable": 0.0,
+      "model_unnecessary_flip_h1": 0.0,
+      "oracle_stable_h2": 0.5384615384615384,
+      "model_flip_h2_given_oracle_stable": 0.0,
+      "model_unnecessary_flip_h2": 0.0,
+      "oracle_stable_h3": 0.38461538461538464,
+      "model_flip_h3_given_oracle_stable": 0.0,
+      "model_unnecessary_flip_h3": 0.0,
+      "oracle_stable_h4": 0.38461538461538464,
+      "model_flip_h4_given_oracle_stable": 0.0,
+      "model_unnecessary_flip_h4": 0.0
+    },
+    {
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314",
+      "target_decisions": 1,
+      "oracle_hub_defined_rate": 0.0,
+      "model_hub_defined_rate": 0.0,
+      "oracle_stable_h1": 0.0,
+      "model_flip_h1_given_oracle_stable": 0.0,
+      "model_unnecessary_flip_h1": 0.0,
+      "oracle_stable_h2": 0.0,
+      "model_flip_h2_given_oracle_stable": 0.0,
+      "model_unnecessary_flip_h2": 0.0,
+      "oracle_stable_h3": 0.0,
+      "model_flip_h3_given_oracle_stable": 0.0,
+      "model_unnecessary_flip_h3": 0.0,
+      "oracle_stable_h4": 0.0,
+      "model_flip_h4_given_oracle_stable": 0.0,
+      "model_unnecessary_flip_h4": 0.0
+    }
+  ]
+}

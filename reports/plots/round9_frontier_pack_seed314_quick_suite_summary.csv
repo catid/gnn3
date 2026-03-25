@@ -1,0 +1,6 @@
+suite,decisions,hard_near_tie_decisions,baseline_error_decisions,stable_near_tie_decisions,high_headroom_decisions,large_gap_control_decisions
+a1_multiheavy_mixed_compute_round9_eval_seed314,1359,264,49,249,28,478
+a1_multiheavy_ood_branching3_round9_eval_seed314,897,2,0,2,0,0
+a1_multiheavy_ood_deeper_packets6_round9_eval_seed314,1890,321,44,302,21,448
+a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314,1189,190,31,181,13,290
+e3_memory_hubs_rsm_round9_multiheavy_seed314,720,0,0,0,0,0

@@ -84,6 +84,27 @@
 | B2-R8-critics | explore | Train a small family of near-tie critics on cached counterfactual supervision and kill weak direct policies quickly. | 0.25 | 0.2100 | completed | Five critic variants settled the family: `pairwise_rank` was the safest direct critic; scalar and late-unfreeze had real recovery signal but were too destructive directly. |
 | C1-R8-search | explore | Test whether critic signal can be turned into useful bounded ambiguity correction rather than another global architecture family. | 1.30 | 1.1519 | killed-early | Both full-suite and targeted two-suite search scouts were stopped on runtime before they justified promotion. |
 | E1-R8-path-tiebreak | explore | Try a cheaper near-tie-only local suffix-cost tie-breaker as a backup after bounded search proved too slow. | 0.20 | 0.1725 | killed-early | The backup was cheaper than bounded search but still crossed the scout runtime bar before proving enough value. |
+| A1-R9-baseline-seed314 | exploit | Fresh seed314 `multiheavy` guardrail on the corrected round-nine feasible suite before reopening compute/state branches. | 0.10 | 0.0655 | completed | Seed314 base rollout was `1.898` regret, `8.140` p95 regret, and `43.8%` miss, establishing the first matched round-nine baseline. |
+| A1-R9-baseline-seed315 | exploit | Fresh seed315 `multiheavy` guardrail for matched round-nine compute comparisons. | 0.20 | 0.1868 | completed | Seed315 base rollout was `2.107` regret, `6.164` p95 regret, and `56.2%` miss. |
+| A1-R9-baseline-seed316 | exploit | Fresh seed316 `multiheavy` guardrail to close the matched three-seed compute comparison cleanly. | 0.15 | 0.1277 | completed | Seed316 base rollout was `1.508` regret, `7.307` p95 regret, and `50.0%` miss. |
+| B1-R9-compute5-seed314 | explore | Test whether five outer refinement steps can improve the hard near-tie frontier on the first matched seed. | 0.25 | 0.2380 | completed | Positive first seed: rollout improved from `1.898` to `1.302` regret, `8.140` to `5.277` p95, and `43.8%` to `31.2%` miss. |
+| B1-R9-compute5-seed315 | explore | Confirm the fixed extra-compute signal on a second matched seed before promotion. | 0.35 | 0.3465 | completed | Negative second seed: selected rollout matched the seed315 baseline exactly at `2.107` regret, `6.164` p95, and `56.2%` miss. |
+| B1-R9-compute5-seed316 | explore | Settle the fixed extra-compute family on a third matched seed before opening adaptive compute compression work. | 0.20 | 0.1843 | completed | Negative third seed: selected rollout matched the seed316 baseline exactly at `1.508` regret, `7.307` p95, and `50.0%` miss. |
+| B2-R9-compute7-seed314 | explore | Probe whether deeper fixed compute adds headroom beyond the successful `compute5` scout. | 0.25 | 0.2376 | killed-early | Hard negative at epoch 1: rollout regret `8893.68`, p95 `24061.70`, miss `100%`; killed immediately. |
+| D1-R9-mailbox-monitor12-seed314 | explore | Test the smallest explicit delayed-state mailbox before spending on heavier state variants. | 0.10 | 0.0409 | killed-early | Negative early read: by epoch 3, rollout was still `7.542` regret, `23.491` p95, and `68.8%` miss, far behind the seed314 baseline. |
+| D1-R9-mailbox-hubmonitor124-seed314 | explore | Test whether broader hub-plus-monitor placement and a larger delay set rescue the mailbox idea. | 0.15 | 0.1327 | killed-early | Negative early read: epoch 2 rollout stayed at `7.029` regret, `21.113` p95, and `56.2%` miss, so the family failed its scout gate. |
+| A2-R9-route-persistence | exploit | Audit whether short-lived route commitment is actually missing on the hard near-tie frontier before opening route-option work. | 0.00 | 0.0000 | completed | Negative audit: oracle hub stability was only moderate on `deeper_packets6`, and model unnecessary flip rate was `0%` at all measured horizons. |
+| A2-R9-frontier-guard-rollup | exploit | Spend one more exploit lane on a machine-checked frontier guard compare before closing the compute family. | 0.20 | 0.2330 | stopped | Useful but too slow as a monolithic wrapper; the concrete guard verdict was reconstructed from the completed decision-slice audits instead of waiting on the full rollup artifact. |
+| B3-R9-branch-teacher-k2h1 | explore | First offline branch-teacher cell on the audited near-tie frontier. | 0.10 | 0.0940 | completed | `top_k=2`, horizon `1`: `12.5%` disagreement, `0%` recovery, `12.5%` new-error. |
+| B3-R9-branch-teacher-k2h2 | explore | Test whether one extra branch-local refinement step rescues the small branch teacher. | 0.12 | 0.1070 | completed | `top_k=2`, horizon `2`: least harmful teacher cell, but still `0%` recovery and `6.25%` new-error. |
+| B3-R9-branch-teacher-k3h1 | explore | Widen the teacher branch set to test whether more candidate diversity reveals a better teacher. | 0.10 | 0.0800 | completed | `top_k=3`, horizon `1`: disagreement rose to `25%` with `0%` recovery and `25%` new-error. |
+| B3-R9-branch-teacher-k3h2 | explore | Finish the teacher grid with both wider branching and deeper branch-local refinement. | 0.12 | 0.1070 | completed | `top_k=3`, horizon `2`: still `0%` recovery with `18.75%` new-error; family closed. |
+| C1-R9-fixed-middle-deeper | explore | Audit whether stopping at the middle outer step improves the frontier slice cheaply. | 0.02 | 0.0020 | completed | Hard negative: hard near-tie target-match fell to `72.27%` and large-gap control to `31.47%`. |
+| C1-R9-fixed-final-deeper | explore | Audit the full final-step policy on the `compute5` checkpoint against the seed314 frontier baseline. | 0.02 | 0.0020 | completed | Real signal but net negative: `59.1%` baseline-error recovery on hard near-tie, but hard near-tie target-match still slipped to `85.36%`. |
+| C1-R9-margin050-deeper | explore | Test a low-margin continuation trigger as a cheaper selective-compute policy. | 0.02 | 0.0017 | completed | Negative: hard near-tie target-match `81.31%`, large-gap control `59.60%`. |
+| C1-R9-risktight-deeper | explore | Test a risk-bucket continuation trigger on the same frontier slice. | 0.02 | 0.0015 | completed | Matched `fixed_final` on the frontier slice without improving the tradeoff; not promoted. |
+| C1-R9-margin100-deeper | explore | Test a looser margin trigger before closing margin-based continuation. | 0.02 | 0.0015 | completed | Still negative: hard near-tie target-match `81.31%`, large-gap control `67.86%`. |
+| C1-R9-learnedgate-deeper | explore | Test a learned middle-vs-final compute gate trained on the matched train split. | 0.03 | 0.0064 | completed | Negative: hard near-tie target-match `79.13%`, large-gap control `85.49%`. |
 
 Current cumulative GPU-hours:
 
@@ -101,6 +122,9 @@ Current cumulative GPU-hours:
 - Round-eight exploit: `0.7760`
 - Round-eight explore: `1.5844`
 - Round-eight split: `32.9% / 67.1%`
-- Overall exploit: `7.6047`
-- Overall explore: `5.0101`
-- Overall split: `60.3% / 39.7%`
+- Round-nine exploit final: `0.6130`
+- Round-nine explore final: `1.5830`
+- Round-nine split final: `27.9% / 72.1%`
+- Overall exploit: `8.2177`
+- Overall explore: `6.5931`
+- Overall split: `55.5% / 44.5%`

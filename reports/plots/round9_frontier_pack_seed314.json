@@ -1,0 +1,183 @@
+{
+  "suite_meta": [
+    {
+      "suite": "e3_memory_hubs_rsm_round9_multiheavy_seed314",
+      "config_path": "configs/experiments/e3_memory_hubs_rsm_round9_multiheavy_seed314.yaml",
+      "manifest_hash": "75580822a84519a1f7f2d06ad05abb39b7bcbc3572b108d385a81c5777f16cec",
+      "episodes": 48,
+      "decisions": 720
+    },
+    {
+      "suite": "a1_multiheavy_ood_branching3_round9_eval_seed314",
+      "config_path": "configs/experiments/a1_multiheavy_ood_branching3_round9_eval_seed314.yaml",
+      "manifest_hash": "850a560228df597ba0ce7ff625b0669131ca17e9025a5597f67d4d07cfd00aee",
+      "episodes": 48,
+      "decisions": 897
+    },
+    {
+      "suite": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "config_path": "configs/experiments/a1_multiheavy_ood_deeper_packets6_round9_eval_seed314.yaml",
+      "manifest_hash": "19cbbff7d2088836e25336cde5b30157c9a13e6f8da89beb6ab1aa851a6a55c0",
+      "episodes": 48,
+      "decisions": 1890
+    },
+    {
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314",
+      "config_path": "configs/experiments/a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314.yaml",
+      "manifest_hash": "054e7ff7b235e3b52a81fab2f65d212c03e65794b261fa80acf5c6475bee434f",
+      "episodes": 48,
+      "decisions": 1189
+    },
+    {
+      "suite": "a1_multiheavy_mixed_compute_round9_eval_seed314",
+      "config_path": "configs/experiments/a1_multiheavy_mixed_compute_round9_eval_seed314.yaml",
+      "manifest_hash": "4799298ee34c1bb62e7704fe5fd6f6383e839bc383ed7a16b9ae9fc4310eca1b",
+      "episodes": 64,
+      "decisions": 1359
+    }
+  ],
+  "thresholds": {
+    "large_gap_threshold": 4.726127624511719,
+    "large_gap_ratio_threshold": 0.2915989835341228,
+    "near_tie_gap_threshold": 4.245488405227661,
+    "model_margin_threshold": 4.049409866333008,
+    "high_headroom_threshold": 1.4241371154785156
+  },
+  "slice_summary": [
+    {
+      "slice": "hard_feasible",
+      "decisions": 2819,
+      "episodes": 129,
+      "baseline_error_rate": 0.049308265342319975,
+      "mean_headroom": 0.1169800773585422,
+      "p95_headroom": 0.0,
+      "target_match": 0.95069173465768,
+      "predicted_on_time": 0.998226321390564,
+      "effective_tie_rate": 0.013834693153600568
+    },
+    {
+      "slice": "oracle_near_tie",
+      "decisions": 1282,
+      "episodes": 129,
+      "baseline_error_rate": 0.0967238689547582,
+      "mean_headroom": 0.17722553396001806,
+      "p95_headroom": 1.3970154285430914,
+      "target_match": 0.9032761310452418,
+      "predicted_on_time": 0.9984399375975039,
+      "effective_tie_rate": 0.030421216848673948
+    },
+    {
+      "slice": "model_near_tie",
+      "decisions": 1007,
+      "episodes": 129,
+      "baseline_error_rate": 0.13803376365441908,
+      "mean_headroom": 0.3274745164585208,
+      "p95_headroom": 2.390959167480468,
+      "target_match": 0.8619662363455809,
+      "predicted_on_time": 0.9950347567030785,
+      "effective_tie_rate": 0.038728897715988087
+    },
+    {
+      "slice": "hard_near_tie_intersection",
+      "decisions": 777,
+      "episodes": 129,
+      "baseline_error_rate": 0.15958815958815958,
+      "mean_headroom": 0.292410726559515,
+      "p95_headroom": 2.2847747802734335,
+      "target_match": 0.8404118404118404,
+      "predicted_on_time": 0.9974259974259975,
+      "effective_tie_rate": 0.05019305019305019
+    },
+    {
+      "slice": "stable_near_tie",
+      "decisions": 738,
+      "episodes": 129,
+      "baseline_error_rate": 0.14092140921409213,
+      "mean_headroom": 0.30166802109095464,
+      "p95_headroom": 2.3657996177673333,
+      "target_match": 0.8590785907859079,
+      "predicted_on_time": 0.997289972899729,
+      "effective_tie_rate": 0.0
+    },
+    {
+      "slice": "high_headroom_near_tie",
+      "decisions": 62,
+      "episodes": 44,
+      "baseline_error_rate": 1.0,
+      "mean_headroom": 2.992741584777832,
+      "p95_headroom": 7.6713678359985265,
+      "target_match": 0.0,
+      "predicted_on_time": 0.967741935483871,
+      "effective_tie_rate": 0.0
+    },
+    {
+      "slice": "baseline_error_intersection",
+      "decisions": 124,
+      "episodes": 59,
+      "baseline_error_rate": 1.0,
+      "mean_headroom": 1.8322833430382512,
+      "p95_headroom": 4.04839277267456,
+      "target_match": 0.008064516129032258,
+      "predicted_on_time": 0.9838709677419355,
+      "effective_tie_rate": 0.16129032258064516
+    },
+    {
+      "slice": "large_gap_control",
+      "decisions": 1216,
+      "episodes": 75,
+      "baseline_error_rate": 0.003289473684210526,
+      "mean_headroom": 0.03344885063798804,
+      "p95_headroom": 0.0,
+      "target_match": 0.9967105263157895,
+      "predicted_on_time": 0.9983552631578947,
+      "effective_tie_rate": 0.0
+    }
+  ],
+  "suite_summary": [
+    {
+      "suite": "a1_multiheavy_mixed_compute_round9_eval_seed314",
+      "decisions": 1359,
+      "hard_near_tie_decisions": 264,
+      "baseline_error_decisions": 49,
+      "stable_near_tie_decisions": 252,
+      "high_headroom_decisions": 28,
+      "large_gap_control_decisions": 478
+    },
+    {
+      "suite": "a1_multiheavy_ood_branching3_round9_eval_seed314",
+      "decisions": 897,
+      "hard_near_tie_decisions": 2,
+      "baseline_error_decisions": 0,
+      "stable_near_tie_decisions": 2,
+      "high_headroom_decisions": 0,
+      "large_gap_control_decisions": 0
+    },
+    {
+      "suite": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "decisions": 1890,
+      "hard_near_tie_decisions": 321,
+      "baseline_error_decisions": 44,
+      "stable_near_tie_decisions": 302,
+      "high_headroom_decisions": 21,
+      "large_gap_control_decisions": 448
+    },
+    {
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314",
+      "decisions": 1189,
+      "hard_near_tie_decisions": 190,
+      "baseline_error_decisions": 31,
+      "stable_near_tie_decisions": 182,
+      "high_headroom_decisions": 13,
+      "large_gap_control_decisions": 290
+    },
+    {
+      "suite": "e3_memory_hubs_rsm_round9_multiheavy_seed314",
+      "decisions": 720,
+      "hard_near_tie_decisions": 0,
+      "baseline_error_decisions": 0,
+      "stable_near_tie_decisions": 0,
+      "high_headroom_decisions": 0,
+      "large_gap_control_decisions": 0
+    }
+  ]
+}

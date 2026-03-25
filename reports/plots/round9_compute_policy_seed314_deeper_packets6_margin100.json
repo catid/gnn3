@@ -1,0 +1,60 @@
+{
+  "decision_summary": [
+    {
+      "suite": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "policy": "margin_gate_100",
+      "slice": "overall",
+      "decisions": 1890,
+      "disagreement": 0.24232804232804234,
+      "correction_rate": 0.025396825396825397,
+      "new_error_rate": 0.21693121693121692,
+      "target_match": 0.7656084656084656,
+      "average_selected_step": 4.148148148148148
+    },
+    {
+      "suite": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "policy": "margin_gate_100",
+      "slice": "hard_near_tie",
+      "decisions": 321,
+      "disagreement": 0.2118380062305296,
+      "correction_rate": 0.08099688473520249,
+      "new_error_rate": 0.1308411214953271,
+      "target_match": 0.8130841121495327,
+      "average_selected_step": 3.9781931464174454
+    },
+    {
+      "suite": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "policy": "margin_gate_100",
+      "slice": "baseline_error_near_tie",
+      "decisions": 44,
+      "disagreement": 0.5909090909090909,
+      "correction_rate": 0.5909090909090909,
+      "new_error_rate": 0.0,
+      "target_match": 0.5909090909090909,
+      "average_selected_step": 5.0
+    },
+    {
+      "suite": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "policy": "margin_gate_100",
+      "slice": "large_gap_control",
+      "decisions": 448,
+      "disagreement": 0.32142857142857145,
+      "correction_rate": 0.0,
+      "new_error_rate": 0.32142857142857145,
+      "target_match": 0.6785714285714286,
+      "average_selected_step": 4.107142857142857
+    }
+  ],
+  "episode_summary": [
+    {
+      "suite": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "policy": "margin_gate_100",
+      "episodes": 0,
+      "next_hop_accuracy": null,
+      "average_regret": null,
+      "p95_regret": null,
+      "deadline_miss_rate": null,
+      "average_selected_step": 4.148148148148148
+    }
+  ]
+}

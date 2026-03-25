@@ -444,11 +444,17 @@ def main() -> None:
             for horizon in range(1, args.max_hops + 1):
                 oracle_mask = suite_frame["initial_oracle_hub"] >= 0
                 model_mask = oracle_mask & (suite_frame["initial_model_hub"] >= 0)
-                stable = suite_frame[f"oracle_stable_h{horizon}"]
-                flip = suite_frame[f"model_flip_h{horizon}"]
-                summary[f"oracle_stable_h{horizon}"] = float(suite_frame.loc[oracle_mask, f"oracle_stable_h{horizon}"].mean()) if oracle_mask.any() else 0.0
+                stable = suite_frame.get(
+                    f"oracle_stable_h{horizon}",
+                    pd.Series(False, index=suite_frame.index, dtype=bool),
+                ).astype(bool)
+                flip = suite_frame.get(
+                    f"model_flip_h{horizon}",
+                    pd.Series(False, index=suite_frame.index, dtype=bool),
+                ).astype(bool)
+                summary[f"oracle_stable_h{horizon}"] = float(stable.loc[oracle_mask].mean()) if oracle_mask.any() else 0.0
                 summary[f"model_flip_h{horizon}_given_oracle_stable"] = float(
-                    suite_frame.loc[model_mask & stable, f"model_flip_h{horizon}"].mean()
+                    flip.loc[model_mask & stable].mean()
                 ) if (model_mask & stable).any() else 0.0
                 summary[f"model_unnecessary_flip_h{horizon}"] = float(
                     (flip & stable & model_mask).mean()

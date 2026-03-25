@@ -1,0 +1,16 @@
+{
+  "summary": [
+    {
+      "target_col": "hard_near_tie_intersection_case",
+      "top_k": 2,
+      "decision_horizon": 1,
+      "branch_rows": 28,
+      "teacher_decisions": 16,
+      "teacher_disagreement": 0.125,
+      "teacher_recovery": 0.0,
+      "teacher_new_error": 0.125,
+      "teacher_target_match": 0.8125
+    }
+  ],
+  "teacher_rows": 16
+}

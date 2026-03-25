@@ -103,6 +103,27 @@ def _slice_summary(frame: pd.DataFrame, strategy: str) -> list[dict[str, object]
     return rows
 
 
+def _write_outputs(
+    output_prefix: Path,
+    decision_rows: list[dict[str, object]],
+    episode_rows: list[dict[str, object]],
+) -> None:
+    decision_summary = pd.DataFrame(decision_rows)
+    episode_summary = pd.DataFrame(episode_rows)
+    decision_summary.to_csv(output_prefix.with_name(output_prefix.name + "_decisions.csv"), index=False)
+    episode_summary.to_csv(output_prefix.with_name(output_prefix.name + "_episodes.csv"), index=False)
+    output_prefix.with_suffix(".json").write_text(
+        json.dumps(
+            {
+                "decision_summary": decision_summary.to_dict(orient="records"),
+                "episode_summary": episode_summary.to_dict(orient="records"),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
 def main() -> None:
     args = parse_args()
     output_prefix = Path(args.output_prefix)
@@ -175,21 +196,9 @@ def main() -> None:
                     "solved_rate": float(episode_df["solved"].mean()),
                 }
             )
+            _write_outputs(output_prefix, decision_rows, episode_rows)
 
-    decision_summary = pd.DataFrame(decision_rows)
     episode_summary = pd.DataFrame(episode_rows)
-    decision_summary.to_csv(output_prefix.with_name(output_prefix.name + "_decisions.csv"), index=False)
-    episode_summary.to_csv(output_prefix.with_name(output_prefix.name + "_episodes.csv"), index=False)
-    output_prefix.with_suffix(".json").write_text(
-        json.dumps(
-            {
-                "decision_summary": decision_summary.to_dict(orient="records"),
-                "episode_summary": episode_summary.to_dict(orient="records"),
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
     print(episode_summary.to_json(orient="records", indent=2))
 
 

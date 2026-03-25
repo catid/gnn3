@@ -47,6 +47,11 @@ def parse_args() -> argparse.Namespace:
         default="reports/plots/round9_compute_policy",
         help="Prefix for CSV/JSON outputs.",
     )
+    parser.add_argument(
+        "--skip-episodes",
+        action="store_true",
+        help="Skip rollout episode summaries and emit only decision-slice outputs.",
+    )
     return parser.parse_args()
 
 
@@ -279,6 +284,38 @@ def _policy_decisions(
     return pd.DataFrame(rows)
 
 
+def _write_outputs(
+    output_prefix: Path,
+    decision_summary_rows: list[dict[str, object]],
+    episode_summary_rows: list[dict[str, object]],
+    all_policy_decisions: list[pd.DataFrame],
+) -> None:
+    decision_summary = pd.DataFrame(decision_summary_rows)
+    episode_summary = pd.DataFrame(episode_summary_rows)
+    policy_decisions = pd.concat(all_policy_decisions, ignore_index=True) if all_policy_decisions else pd.DataFrame()
+    decision_summary.to_csv(output_prefix.with_name(output_prefix.name + "_summary.csv"), index=False)
+    episode_summary.to_csv(output_prefix.with_name(output_prefix.name + "_episodes.csv"), index=False)
+    policy_decisions.to_csv(output_prefix.with_name(output_prefix.name + "_decisions.csv"), index=False)
+    output_prefix.with_suffix(".json").write_text(
+        json.dumps(
+            {
+                "decision_summary": decision_summary.to_dict(orient="records"),
+                "episode_summary": episode_summary.to_dict(orient="records"),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
+def _rollout_strategy_for_policy(policy: str) -> str:
+    if policy == "fixed_first":
+        return "first"
+    if policy == "fixed_middle":
+        return "middle"
+    return "final"
+
+
 def main() -> None:
     args = parse_args()
     output_prefix = Path(args.output_prefix)
@@ -300,6 +337,7 @@ def main() -> None:
             curriculum_levels=suite_config.benchmark.curriculum_levels,
         )
         suite_frontier = frontier_df.loc[frontier_df["suite"] == suite_config.name].copy()
+        episode_cache: dict[str, pd.DataFrame] = {}
         for policy in args.policies:
             decision_df = _policy_decisions(
                 model,
@@ -354,49 +392,50 @@ def main() -> None:
                     }
                 )
 
-            episode_df = pd.DataFrame(
-                collect_episode_policy_rows(
-                    model,
-                    dataset.episodes,
-                    device=device,
-                    config=hidden_cfg,
-                    suite=suite_config.name,
-                    selection_strategy="final" if policy == "fixed_final" else ("middle" if policy == "fixed_middle" else ("first" if policy == "fixed_first" else "final")),
+            if args.skip_episodes:
+                episode_summary_rows.append(
+                    {
+                        "suite": suite_config.name,
+                        "policy": policy,
+                        "episodes": 0,
+                        "next_hop_accuracy": None,
+                        "average_regret": None,
+                        "p95_regret": None,
+                        "deadline_miss_rate": None,
+                        "average_selected_step": float(decision_df["selected_steps"].mean()) if len(decision_df) else 0.0,
+                    }
                 )
-            )
-            # For triggered policies, rollout metrics are approximated from the decision policy surface.
-            # The frontier decision metrics are the primary gate; rollout summary remains a secondary guardrail here.
-            episode_summary_rows.append(
-                {
-                    "suite": suite_config.name,
-                    "policy": policy,
-                    "episodes": len(episode_df),
-                    "next_hop_accuracy": float(episode_df["next_hop_accuracy"].mean()),
-                    "average_regret": float(episode_df["regret"].mean()),
-                    "p95_regret": float(episode_df["regret"].quantile(0.95)),
-                    "deadline_miss_rate": float(episode_df["deadline_miss"].mean()),
-                    "average_selected_step": float(decision_df["selected_steps"].mean()) if len(decision_df) else 0.0,
-                }
-            )
+            else:
+                rollout_strategy = _rollout_strategy_for_policy(policy)
+                if rollout_strategy not in episode_cache:
+                    episode_cache[rollout_strategy] = pd.DataFrame(
+                        collect_episode_policy_rows(
+                            model,
+                            dataset.episodes,
+                            device=device,
+                            config=hidden_cfg,
+                            suite=suite_config.name,
+                            selection_strategy=rollout_strategy,
+                        )
+                    )
+                episode_df = episode_cache[rollout_strategy]
+                # For triggered policies, rollout metrics are approximated from the decision policy surface.
+                # The frontier decision metrics are the primary gate; rollout summary remains a secondary guardrail here.
+                episode_summary_rows.append(
+                    {
+                        "suite": suite_config.name,
+                        "policy": policy,
+                        "episodes": len(episode_df),
+                        "next_hop_accuracy": float(episode_df["next_hop_accuracy"].mean()),
+                        "average_regret": float(episode_df["regret"].mean()),
+                        "p95_regret": float(episode_df["regret"].quantile(0.95)),
+                        "deadline_miss_rate": float(episode_df["deadline_miss"].mean()),
+                        "average_selected_step": float(decision_df["selected_steps"].mean()) if len(decision_df) else 0.0,
+                    }
+                )
+            _write_outputs(output_prefix, decision_summary_rows, episode_summary_rows, all_policy_decisions)
 
-    decision_summary = pd.DataFrame(decision_summary_rows)
-    episode_summary = pd.DataFrame(episode_summary_rows)
-    policy_decisions = pd.concat(all_policy_decisions, ignore_index=True) if all_policy_decisions else pd.DataFrame()
-
-    decision_summary.to_csv(output_prefix.with_name(output_prefix.name + "_summary.csv"), index=False)
-    episode_summary.to_csv(output_prefix.with_name(output_prefix.name + "_episodes.csv"), index=False)
-    policy_decisions.to_csv(output_prefix.with_name(output_prefix.name + "_decisions.csv"), index=False)
-    output_prefix.with_suffix(".json").write_text(
-        json.dumps(
-            {
-                "decision_summary": decision_summary.to_dict(orient="records"),
-                "episode_summary": episode_summary.to_dict(orient="records"),
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    print(decision_summary.to_json(orient="records", indent=2))
+    print(pd.DataFrame(decision_summary_rows).to_json(orient="records", indent=2))
 
 
 if __name__ == "__main__":

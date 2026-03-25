@@ -1,35 +1,28 @@
 # Next Best Actions
 
-1. Keep plain `multiheavy` as the default exploit policy. The fresh round-eight guardrail batch on seeds `311 / 312 / 313` stayed in the established round-four / round-six band, so there is still no evidence that a new default constructor has beaten it.
-2. Preserve the corrected `oracle_calibrated` suite discipline and the round-eight cached near-tie slice definitions. Future work should keep using:
+1. Keep plain `multiheavy` as the default exploit policy. Round nine did not find a compute-state branch that beat it cleanly on the hard near-tie frontier without unacceptable new errors.
+2. Preserve the corrected `oracle_calibrated` suite discipline and the round-nine frontier pack. Future work should keep using:
    - score-based hard oracle-feasible slice
-   - oracle near-tie slice
-   - model near-tie slice
    - hard near-tie intersection
+   - stable near-tie
+   - high-headroom near-tie
    - baseline-error subset inside the intersection
    - large-gap control slice
-3. Treat the remaining opportunity as a **hard near-tie ambiguity** problem, not a large-gap problem. Across fresh round-eight audits, the hard near-tie intersection stays around a `9%` to `11%` baseline-error slice, while the large-gap control stays near solved (`0.0%` to `0.3%` error).
-4. Keep reading the plateau as primarily a **decision-rule bottleneck**, not a missing-feature bottleneck. The frozen-feature audits show that the backbone already exposes useful local signals for:
-   - oracle gap bucket
-   - near-tie classification
-   - deadline-risk bucket
-   - pairwise top-2 ranking
-5. Do not promote the round-eight direct critics as standalone policies. Their ordering is now clear:
-   - `pairwise_rank` is the safest direct critic and the only one with low-harm nonzero recovery
-   - `scalar_q` has real recovery signal but is too destructive directly
-   - `risk_multi` is clearly worse than scalar
-   - `late_unfreeze` and its tighter gate are still too harmful for direct deployment
-6. Do not reopen bounded search in its current form. Round-eight full-suite and targeted two-suite search scouts were killed on runtime before they justified promotion.
-7. Do not reopen the local path-cost tie-break backup in its current form. It was cheaper than critic-guided bounded search, but it still crossed the scout runtime line before it proved enough value.
-8. Do not open distillation from round-eight results. No search-time correction branch first earned promotion, so distilling it would have violated the round-eight ladder.
-9. If another round opens, bias it toward **cheaper offline or semi-offline ambiguity correction**, not heavier online search. The most plausible remaining directions are:
-   - off-policy near-tie decision-set distillation from cached counterfactual comparisons
-   - very small near-tie-only delta policies that are trained offline and evaluated directly, without runtime search
-   - better calibration of when to abstain from changing the base policy, rather than more global constructor diversification
-10. Keep the same hard gate for any future branch:
+3. Treat the remaining opportunity as a **hard near-tie ambiguity** problem, not a large-gap or route-persistence problem. Round nine kept the large-gap controls effectively solved and found no evidence that short-lived route commitment is the missing mechanism.
+4. Keep reading the plateau as primarily a **decision-rule bottleneck**, not a missing-feature bottleneck. The frozen-feature audits still support that interpretation, and round nine showed that extra compute can correct some right decisions without learning how to abstain from the harmful ones.
+5. Do not promote fixed extra compute. `compute5` helped on seed314 but matched baseline exactly on seeds `315` and `316`; `compute7` was catastrophically bad.
+6. Do not promote the tested adaptive-halting or triggered-continuation policies. The best direct policy (`fixed_final`) recovered `59.1%` of audited baseline near-tie errors on `deeper_packets6`, but still ended slightly below baseline target-match on the full hard near-tie slice and hurt large-gap controls. `risk_gate_tight` did not improve that trade, and the margin / learned gates were clearly worse.
+7. Do not reopen the offline branch-teacher family in its current form. All `top_k {2,3}` by horizon `{1,2}` variants moved the frontier in the wrong direction: `0%` recovery with positive new-error in every cell.
+8. Do not reopen the plain delay-mailbox family in its current form. Both seed314 mailbox scouts failed early and badly.
+9. Do not open route-option persistence work from the current evidence. The route-persistence audit showed moderate oracle hub stability but `0%` unnecessary model flips on the audited frontier slice.
+10. If another round opens, bias it toward **more conservative ambiguity correction**, not more raw compute. The most plausible remaining directions are:
+   - tiny near-tie-only delta policies with explicit abstention penalties
+   - offline correction rules that optimize net corrected errors, not just recovery
+   - stricter conservative filters on when to override the base policy
+11. Keep the same hard gate for any future branch:
    - baseline-error correction rate on the hard near-tie slice
    - new-error rate on baseline-correct near-tie states
    - net corrected errors
    - slice regret / miss delta
    - runtime overhead
-11. Keep `detach_warmup` mandatory in every future shortlist. That model contract is still unbroken by every round since it was established.
+12. Keep `detach_warmup` mandatory in every future shortlist. That model contract is still unbroken by every round since it was established.

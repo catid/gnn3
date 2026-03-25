@@ -1,0 +1,5 @@
+suite,policy,slice,decisions,disagreement,correction_rate,new_error_rate,target_match,average_selected_step
+a1_multiheavy_ood_deeper_packets6_round9_eval_seed314,risk_gate_tight,overall,1890,0.2698412698412698,0.02486772486772487,0.24497354497354498,0.737037037037037,4.258201058201058
+a1_multiheavy_ood_deeper_packets6_round9_eval_seed314,risk_gate_tight,hard_near_tie,321,0.17133956386292834,0.08099688473520249,0.09034267912772585,0.8535825545171339,5.0
+a1_multiheavy_ood_deeper_packets6_round9_eval_seed314,risk_gate_tight,baseline_error_near_tie,44,0.5909090909090909,0.5909090909090909,0.0,0.5909090909090909,5.0
+a1_multiheavy_ood_deeper_packets6_round9_eval_seed314,risk_gate_tight,large_gap_control,448,0.026785714285714284,0.0,0.026785714285714284,0.9732142857142857,5.0

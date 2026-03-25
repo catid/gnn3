@@ -1,14 +1,14 @@
 # Round 9 Continuation Report
 
-## Current Status
+## Round Objective
 
-Round nine is testing the remaining compute-and-state thesis:
+Round nine tested the remaining compute-and-state thesis:
 
 > extra conditional compute and/or explicit delayed state may improve the
 > hard near-tie frontier without breaking the robust `multiheavy` baseline.
 
-The round is running on branch `round9/compute-state-near-tie` and will merge
-back into local `main` once the queued experiments finish and the repo is green.
+The round ran on branch `round9/compute-state-near-tie` and will merge back
+into local `main` once the final validation pass is green.
 
 ## Accepted Baseline
 
@@ -79,7 +79,74 @@ its early gate immediately:
 That branch was killed before spending full scout budget. The current compute
 thesis remains focused on `compute5`, not unboundedly increasing outer rounds.
 
-## Delay Mailbox Early Read
+## Compute Compression Verdict
+
+Round nine then tested whether the seed314 `compute5` signal could be
+compressed into cheaper depth-selection rules on the main frontier suite
+`deeper_packets6`.
+
+Key context:
+
+- `321` hard near-tie decisions
+- `44` baseline hard near-tie errors
+- baseline hard near-tie target-match `86.29%`
+
+Best direct compute policy:
+
+- `fixed_final`
+  - hard near-tie disagreement `17.13%`
+  - baseline-error near-tie recovery `59.09%`
+  - hard near-tie new-error `9.03%`
+  - hard near-tie target-match `85.36%`
+  - large-gap control target-match `97.32%`
+
+Other tested policies:
+
+- `risk_gate_tight`
+  - effectively matched `fixed_final` on the frontier and control slices, but
+    did not improve the tradeoff
+- `margin_gate_050`
+  - hard near-tie target-match `81.31%`
+  - large-gap control target-match `59.60%`
+- `margin_gate_100`
+  - hard near-tie target-match `81.31%`
+  - large-gap control target-match `67.86%`
+- `learned_gate`
+  - hard near-tie target-match `79.13%`
+  - large-gap control target-match `85.49%`
+- `fixed_middle`
+  - catastrophically bad on large-gap controls
+
+Verdict:
+
+- extra compute really does change some of the right hard near-tie decisions
+- none of the tested compression rules preserve a net win on the frontier
+- no adaptive-halting or triggered-continuation policy is promoted
+
+## Offline Branch Teacher Verdict
+
+The offline branch-refinement teacher family was tested directly on the
+seed314 `compute5` checkpoint over the same `deeper_packets6` hard near-tie
+slice.
+
+Teacher grid:
+
+- `top_k=2`, horizon `1`
+  - disagreement `12.5%`, recovery `0.0%`, new-error `12.5%`
+- `top_k=2`, horizon `2`
+  - disagreement `6.25%`, recovery `0.0%`, new-error `6.25%`
+- `top_k=3`, horizon `1`
+  - disagreement `25.0%`, recovery `0.0%`, new-error `25.0%`
+- `top_k=3`, horizon `2`
+  - disagreement `18.75%`, recovery `0.0%`, new-error `18.75%`
+
+Verdict:
+
+- branching and refining does move decisions
+- every tested teacher variant was net harmful
+- no teacher-for-compute distillation branch is justified from this family
+
+## Delay Mailbox Verdict
 
 The first two minimal delay-mailbox scouts both failed their early gates on the
 same seed314 corrected benchmark:
@@ -94,14 +161,31 @@ Both remained far worse than the matched seed314 `multiheavy` baseline, so the
 plain mailbox family is currently tracking as a negative unless a later combo
 branch changes the picture materially.
 
-## Active Queue
+## Route Persistence Verdict
 
-Running or queued at this stage:
+The route-persistence audit on the hard near-tie frontier was also negative.
 
-- seed314 compute-policy sweep on the positive `compute5` checkpoint
-- seed314 outer-step headroom audit on the same checkpoint
-- offline branch-teacher grid after the audit pair clears
-- report and portfolio refresh once the long-running audits land
+On `deeper_packets6`:
+
+- oracle hub defined rate `81.25%`
+- oracle stable rate only `53.85%` at horizons `1` and `2`
+- oracle stable rate `38.46%` at horizons `3` and `4`
+- model unnecessary flip rate `0.0%` at every measured horizon
+
+So the remaining frontier does not currently look like gratuitous short-lived
+route flipping. Route-option work stays closed.
+
+## Round-Nine Verdict
+
+Round nine closes the compute-and-state campaign in its tested forms:
+
+- fixed extra compute is real but non-robust
+- adaptive halting / triggered continuation did not localize that gain well
+- offline branch teachers were decisively anti-helpful
+- plain delay mailboxes were early negatives
+- route persistence did not look like the missing mechanism
+
+The default policy therefore stays plain `multiheavy`.
 
 ## Closed Doors Still Closed
 

@@ -1,0 +1,6 @@
+variant,family,minutes_to_kill,status
+scalar_q_full_suite,search,24.266666666666666,killed_runtime
+pairwise_full_suite,search,12.183333333333334,killed_runtime
+scalar_q_top2d1_targeted,search,16.333333333333332,killed_runtime
+pairwise_top2d1_targeted,search,16.333333333333332,killed_runtime
+path_tiebreak_top2_targeted,backup,10.35,killed_runtime

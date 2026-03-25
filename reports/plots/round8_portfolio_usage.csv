@@ -1,0 +1,8 @@
+experiment_id,bucket,actual_gpu_hours,status,key_result
+A1-R8-baseline-batch,exploit,0.2662317642238405,completed,Fresh round-eight multiheavy guardrail batch on seeds 311/312/313 reproduced the established regret and miss band.
+A2-R8-near-tie-audit,exploit,0.2891666666666667,completed,Three fresh near-tie audits confirmed that large-gap stays solved while the hard near-tie intersection remains the real residual error slice.
+A3-R8-probe-audit,exploit,0.22055555555555556,stopped,Seed312 probe completed and supported the decision-rule bottleneck diagnosis; seed311 confirmatory probe was stopped after the round decision was already fixed.
+B1-R8-counterfactual-dataset,explore,0.05,completed,"Cached 25,007 all-action candidate rows, with near-tie baseline-error coverage concentrated in deeper_packets6 and heavy_dynamic."
+B2-R8-critics,explore,0.21,completed,"Five critic variants settled the family: pairwise was the safest direct critic, while scalar and late-unfreeze were informative but too destructive."
+C1-R8-search,explore,1.1519444444444444,killed-early,Full-suite and targeted bounded-search scouts were killed on runtime before earning promotion.
+E1-R8-path-tiebreak,explore,0.1725,killed-early,The near-tie-only local suffix-cost tie-break backup was cheaper than bounded search but still crossed the scout runtime bar.

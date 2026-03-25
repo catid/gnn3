@@ -1,33 +1,35 @@
 # Next Best Actions
 
-1. Keep plain `multiheavy` as the exploit default. The corrected feasible-suite guardrail remains the stable reference, and no round-seven constructor branch beat it.
-2. Preserve the corrected `oracle_calibrated` feasible suites and split-manifest discipline. Round seven did not find any hidden replay issue; the remaining uncertainty is architectural, not dataset drift.
-3. Do not reopen the round-seven “large-gap hard-feasible constructor” thesis in its current form. The new action-gap audit showed that the audited large-gap hard-feasible slice is already almost solved by `multiheavy`:
-   - score-based hard-feasible error: `2.68%`
-   - thresholded large-gap hard-feasible error: `0.30%`
-   - quartile-defined large-gap hard-feasible error: `0.00%`
-4. Treat the remaining opportunity as a hard near-tie problem, not a clear-gap problem. On the corrected score-based hard slice, `37 / 40` baseline mistakes sit in `near_tie`, not `large_gap`.
-5. Do not reopen the poly-constructor branch in its current form. It failed before the disagreement gate mattered: epoch 1 collapsed to `5419.82` regret, `13497.61` p95 regret, and `93.8%` miss.
-6. Do not reopen the self-improving constructor in its current form. It produced exact policy identity on the audited hard slice:
-   - overall disagreement: `0.0%`
-   - hard-feasible disagreement: `0.0%`
-   - large-gap hard-feasible disagreement: `0.0%`
-7. Do not reopen the tight-slack or depth-4 specialist teachers in their current form. They were also exactly policy-identical on the audited hard slice.
-8. Do not promote the heavy specialist teacher. It was the only round-seven branch with real hard-slice movement, but the movement was anti-oracle:
-   - `deeper_packets6` hard-slice disagreement: `8.0%`
-   - `deeper_packets6` large-gap hard-slice disagreement: `7.69%`
-   - `deeper_packets6` target-match fell from `0.98` to `0.90`
-   - aggregate large-gap target-match fell from `1.00` to `0.949`
-9. Use the frozen probe audit as the main diagnosis for the plateau. The current `multiheavy` encoder already linearly exposes most of the relevant local signals:
-   - slack bucket: `0.87` to `0.90` OOD accuracy
-   - critical packet proxy: `0.97+`
-   - feasible continuation: essentially `1.0`
-   - baseline strictly suboptimal: `0.95+`
-   - oracle gap bucket: `0.65` to `0.77`
-10. Read the probe result as “constructor bottleneck, not missing-signal bottleneck,” with one caveat: explicit depth/load regime generalization is weak under OOD label shift. If another architecture round opens, it should only do so with a materially stronger mechanism for hard near-tie ambiguity resolution or explicit structured credit assignment, not another side channel or small-head variant.
-11. Keep the hard gate for any future architecture round:
-   - report disagreement on the corrected score-based hard slice
-   - report disagreement on the large-gap subset
-   - report whether movement helps or hurts the hard near-tie slice
-   - kill branches that stay policy-identical or move away from oracle targets on the audited hard slice
-12. Keep `detach_warmup` mandatory in every future shortlist. That remains the strongest causal model contract in the repo.
+1. Keep plain `multiheavy` as the default exploit policy. The fresh round-eight guardrail batch on seeds `311 / 312 / 313` stayed in the established round-four / round-six band, so there is still no evidence that a new default constructor has beaten it.
+2. Preserve the corrected `oracle_calibrated` suite discipline and the round-eight cached near-tie slice definitions. Future work should keep using:
+   - score-based hard oracle-feasible slice
+   - oracle near-tie slice
+   - model near-tie slice
+   - hard near-tie intersection
+   - baseline-error subset inside the intersection
+   - large-gap control slice
+3. Treat the remaining opportunity as a **hard near-tie ambiguity** problem, not a large-gap problem. Across fresh round-eight audits, the hard near-tie intersection stays around a `9%` to `11%` baseline-error slice, while the large-gap control stays near solved (`0.0%` to `0.3%` error).
+4. Keep reading the plateau as primarily a **decision-rule bottleneck**, not a missing-feature bottleneck. The frozen-feature audits show that the backbone already exposes useful local signals for:
+   - oracle gap bucket
+   - near-tie classification
+   - deadline-risk bucket
+   - pairwise top-2 ranking
+5. Do not promote the round-eight direct critics as standalone policies. Their ordering is now clear:
+   - `pairwise_rank` is the safest direct critic and the only one with low-harm nonzero recovery
+   - `scalar_q` has real recovery signal but is too destructive directly
+   - `risk_multi` is clearly worse than scalar
+   - `late_unfreeze` and its tighter gate are still too harmful for direct deployment
+6. Do not reopen bounded search in its current form. Round-eight full-suite and targeted two-suite search scouts were killed on runtime before they justified promotion.
+7. Do not reopen the local path-cost tie-break backup in its current form. It was cheaper than critic-guided bounded search, but it still crossed the scout runtime line before it proved enough value.
+8. Do not open distillation from round-eight results. No search-time correction branch first earned promotion, so distilling it would have violated the round-eight ladder.
+9. If another round opens, bias it toward **cheaper offline or semi-offline ambiguity correction**, not heavier online search. The most plausible remaining directions are:
+   - off-policy near-tie decision-set distillation from cached counterfactual comparisons
+   - very small near-tie-only delta policies that are trained offline and evaluated directly, without runtime search
+   - better calibration of when to abstain from changing the base policy, rather than more global constructor diversification
+10. Keep the same hard gate for any future branch:
+   - baseline-error correction rate on the hard near-tie slice
+   - new-error rate on baseline-correct near-tie states
+   - net corrected errors
+   - slice regret / miss delta
+   - runtime overhead
+11. Keep `detach_warmup` mandatory in every future shortlist. That model contract is still unbroken by every round since it was established.

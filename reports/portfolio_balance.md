@@ -84,6 +84,11 @@
 | B2-R8-critics | explore | Train a small family of near-tie critics on cached counterfactual supervision and kill weak direct policies quickly. | 0.25 | 0.2100 | completed | Five critic variants settled the family: `pairwise_rank` was the safest direct critic; scalar and late-unfreeze had real recovery signal but were too destructive directly. |
 | C1-R8-search | explore | Test whether critic signal can be turned into useful bounded ambiguity correction rather than another global architecture family. | 1.30 | 1.1519 | killed-early | Both full-suite and targeted two-suite search scouts were stopped on runtime before they justified promotion. |
 | E1-R8-path-tiebreak | explore | Try a cheaper near-tie-only local suffix-cost tie-breaker as a backup after bounded search proved too slow. | 0.20 | 0.1725 | killed-early | The backup was cheaper than bounded search but still crossed the scout runtime bar before proving enough value. |
+| A1-R9-baseline-seed314 | exploit | Fresh seed314 `multiheavy` guardrail on the corrected round-nine feasible suite before reopening compute/state branches. | 0.10 | 0.0655 | completed | Seed314 base rollout was `1.898` regret, `8.140` p95 regret, and `43.8%` miss, establishing the first matched round-nine baseline. |
+| A1-R9-baseline-seed315 | exploit | Fresh seed315 `multiheavy` guardrail for matched round-nine compute comparisons. | 0.20 | 0.1868 | completed | Seed315 base rollout was `2.107` regret, `6.164` p95 regret, and `56.2%` miss. |
+| B1-R9-compute5-seed314 | explore | Test whether five outer refinement steps can improve the hard near-tie frontier on the first matched seed. | 0.25 | 0.2380 | completed | Positive first seed: rollout improved from `1.898` to `1.302` regret, `8.140` to `5.277` p95, and `43.8%` to `31.2%` miss. |
+| B1-R9-compute5-seed315 | explore | Confirm the fixed extra-compute signal on a second matched seed before promotion. | 0.35 | 0.3465 | completed | Negative second seed: selected rollout matched the seed315 baseline exactly at `2.107` regret, `6.164` p95, and `56.2%` miss. |
+| B2-R9-compute7-seed314 | explore | Probe whether deeper fixed compute adds headroom beyond the successful `compute5` scout. | 0.25 | 0.2376 | killed-early | Hard negative at epoch 1: rollout regret `8893.68`, p95 `24061.70`, miss `100%`; killed immediately. |
 
 Current cumulative GPU-hours:
 
@@ -101,6 +106,9 @@ Current cumulative GPU-hours:
 - Round-eight exploit: `0.7760`
 - Round-eight explore: `1.5844`
 - Round-eight split: `32.9% / 67.1%`
-- Overall exploit: `7.6047`
-- Overall explore: `5.0101`
-- Overall split: `60.3% / 39.7%`
+- Round-nine exploit so far: `0.2523`
+- Round-nine explore so far: `0.8220`
+- Round-nine split so far: `23.5% / 76.5%`
+- Overall exploit: `7.8570`
+- Overall explore: `5.8321`
+- Overall split: `57.4% / 42.6%`

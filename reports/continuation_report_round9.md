@@ -59,19 +59,35 @@ seed314 `multiheavy` baseline:
 - baseline seed314 rollout: regret `1.898`, p95 `8.140`, miss `43.75%`
 - compute5 seed314 rollout: regret `1.302`, p95 `5.277`, miss `31.25%`
 
-This is the first round-nine result that clearly justifies promotion beyond a
-single seed. The matched seed315 confirmation is now running, along with a
-deeper `compute7` headroom scout and the seed314 frontier guard.
+This was enough to justify promotion beyond a single seed, but the second seed
+did not hold:
+
+- baseline seed315 rollout: regret `2.107`, p95 `6.164`, miss `56.25%`
+- compute5 seed315 rollout: regret `2.107`, p95 `6.164`, miss `56.25%`
+
+So the family is no longer a clear win. It now needs the third matched seed to
+decide whether the seed314 gain is a real near-tie signal or just variance.
+
+## Deeper Fixed Compute
+
+The first deeper fixed-compute headroom scout (`compute7` on seed314) failed
+its early gate immediately:
+
+- epoch-1 rollout regret `8893.68`
+- epoch-1 p95 regret `24061.70`
+- epoch-1 miss `100%`
+
+That branch was killed before spending full scout budget. The current compute
+thesis remains focused on `compute5`, not unboundedly increasing outer rounds.
 
 ## Active Queue
 
 Running or queued at this stage:
 
-- seed315 matched `compute5` confirmation
-- seed314 deeper `compute7` headroom scout
-- seed314 frontier guard: `multiheavy` vs `compute5`
-- seed314 mailbox scouts
-- seed316 matched contender pair if seed315 confirms the compute5 signal
+- seed316 matched `multiheavy` baseline
+- seed316 matched `compute5` contender
+- seed314 frontier guard rerun after the seed316 pair clears the machine
+- seed314 mailbox scouts after the compute family verdict
 
 ## Closed Doors Still Closed
 

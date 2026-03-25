@@ -69,6 +69,14 @@
 | E1-R6-hazard-memory | explore | Add a narrow structured hazard-memory side channel instead of another generic history bank. | 0.12 | 0.1070 | killed-early | Epoch 1 collapsed badly, then the selected shared-seed test rollout snapped back to the exact baseline by epoch 2. |
 | E1-R6-hazard-compare | explore | Run a full baseline-vs-branch suite comparison for the hazard-memory scout to verify whether any hidden hard-case policy movement survives. | 0.18 | 0.3644 | stopped | Diagnostic compare consumed 21m52s on one GPU and was aborted because the scout had already failed promotion on the shared-seed rollout. |
 | D1-R6-repair | explore | Open a bounded constructor-plus-repair branch only if an earlier round-six constructor shows real hard-case policy movement. | 0.00 | 0.0000 | scoped-out | Not opened because neither regime experts nor the plannerized decoder cleared the round-six policy-movement gate. |
+| A1-R7-baseline | exploit | Refresh the `multiheavy` guardrail on the corrected round-seven suites before opening another architecture pass. | 0.14 | 0.1330 | completed | Seed312 guardrail stayed in the round-six band, with `1.92` regret, `5.45` p95 regret, and `43.8%` miss on the base corrected feasible suite. |
+| A2-R7-hard-gap-audit | exploit | Audit the hard-feasible slice directly with oracle action-gap and continuation-gap information instead of assuming the round-six regime slice is also the constructor opportunity. | 0.00 | 0.0000 | completed | Decisive result: the score-based hard slice is real, but large-gap hard-feasible mistakes are almost absent; the remaining errors concentrate in hard near-tie states. |
+| A3-R7-probe-audit | exploit | Fit frozen probes on the round-seven `multiheavy` backbone to test whether the plateau is a missing-signal problem or a constructor problem. | 0.00 | 0.0000 | completed | The backbone linearly exposes slack, critical-packet identity, feasibility, and baseline suboptimality well; the main bottleneck is not missing local signal. |
+| B1-R7-poly-constructor | explore | Test a shared-trunk multi-head constructor with explicit strategy diversity pressure on the hard slice. | 0.12 | 0.0860 | killed-early | Hard negative: epoch-1 rollout regret exploded to `5419.82` and miss to `93.8%`, so the branch was killed before any promotion compare. |
+| B2-R7-self-improve | explore | Test a bounded self-improving constructor that imitates the best sampled hard-slice alternative while keeping the easy-state supervised anchor. | 0.10 | 0.1030 | killed-early | Exact policy identity: `0.0%` disagreement on the audited hard slice and no selected-rollout gain over baseline. |
+| B3-R7-teacher-heavy | explore | Train an independent heavy-packets specialist teacher to test whether a materially different hard-slice policy exists at all. | 0.08 | 0.0741 | killed-early | Only round-seven branch with real movement: `7.7%` large-gap disagreement on `deeper_packets6`, but target-match on that slice worsened from `0.98` to `0.90`. |
+| B3-R7-teacher-tight | explore | Train an independent very-tight-slack specialist teacher as a direct test of whether the baseline is averaging across incompatible deadline regimes. | 0.08 | 0.0796 | killed-early | Exact hard-slice policy match to baseline; no disagreement and no promotion path. |
+| B3-R7-teacher-depth4 | explore | Train an independent depth-4 specialist teacher to test whether deeper graphs admit a different constructive policy. | 0.04 | 0.0380 | killed-early | Exact hard-slice policy match to baseline; no disagreement and no promotion path. |
 
 Current cumulative GPU-hours:
 
@@ -80,6 +88,9 @@ Current cumulative GPU-hours:
 - Round-six exploit: `0.3604`
 - Round-six explore: `0.9976`
 - Round-six split: `26.5% / 73.5%`
-- Overall exploit: `6.6957`
-- Overall explore: `3.0451`
-- Overall split: `68.7% / 31.3%`
+- Round-seven exploit: `0.1330`
+- Round-seven explore: `0.3806`
+- Round-seven split: `25.9% / 74.1%`
+- Overall exploit: `6.8287`
+- Overall explore: `3.4257`
+- Overall split: `66.6% / 33.4%`

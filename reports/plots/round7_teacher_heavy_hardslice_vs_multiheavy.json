@@ -1,0 +1,41 @@
+{
+  "summary": [
+    {
+      "suite": "a1_multiheavy_ood_branching3_round7_eval",
+      "decisions": 24,
+      "overall_disagreement": 0.0,
+      "hard_feasible_disagreement": 0.0,
+      "large_gap_hard_feasible_disagreement": 0.0,
+      "hard_near_tie_disagreement": 0.0,
+      "candidate_target_match": 1.0,
+      "base_target_match": 1.0
+    },
+    {
+      "suite": "a1_multiheavy_ood_deeper_packets6_round7_eval",
+      "decisions": 50,
+      "overall_disagreement": 0.08,
+      "hard_feasible_disagreement": 0.08,
+      "large_gap_hard_feasible_disagreement": 0.07692307692307693,
+      "hard_near_tie_disagreement": 0.06666666666666667,
+      "candidate_target_match": 0.9,
+      "base_target_match": 0.98
+    },
+    {
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round7_eval",
+      "decisions": 35,
+      "overall_disagreement": 0.0,
+      "hard_feasible_disagreement": 0.0,
+      "large_gap_hard_feasible_disagreement": 0.0,
+      "hard_near_tie_disagreement": 0.0,
+      "candidate_target_match": 0.9428571428571428,
+      "base_target_match": 0.9428571428571428
+    }
+  ],
+  "overall": {
+    "decisions": 109,
+    "overall_disagreement": 0.03669724770642202,
+    "hard_feasible_disagreement": 0.047058823529411764,
+    "large_gap_hard_feasible_disagreement": 0.05128205128205128,
+    "hard_near_tie_disagreement": 0.029411764705882353
+  }
+}

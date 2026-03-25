@@ -67,6 +67,17 @@ class TrainConfig:
     selection_slack_critical_scale: float = 1.0
     planner_cost_weight: float = 0.0
     planner_on_time_weight: float = 0.0
+    poly_constructor_weight: float = 0.0
+    poly_on_time_bonus: float = 0.0
+    poly_slack_bonus: float = 0.0
+    poly_hard_slack_ratio: float = 0.10
+    poly_packet_min: int = 3
+    self_improve_weight: float = 0.0
+    self_improve_top_k: int = 2
+    self_improve_on_time_bonus: float = 0.0
+    self_improve_slack_bonus: float = 0.0
+    self_improve_hard_slack_ratio: float = 0.10
+    self_improve_packet_min: int = 3
     train_decision_sampling: str = "uniform"
     train_critical_slack_weight: float = 0.0
     train_critical_packet_weight: float = 0.0

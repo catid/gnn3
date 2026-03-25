@@ -1,0 +1,5 @@
+branch,base_suite_overall_disagreement,max_overall_disagreement,max_hard_feasible_disagreement,max_large_gap_hard_feasible_disagreement,max_improves_base_failures,max_breaks_base_successes,hard_slice_decisions,large_gap_hard_slice_decisions,hard_slice_candidate_target_match,hard_slice_base_target_match,large_gap_candidate_target_match,large_gap_base_target_match
+SelfImprove,0.0,0.0,0.0,0.0,0.0,0.0,85.0,39.0,0.9647058823529412,0.9647058823529412,1.0,1.0
+TeacherDepth4,0.0,0.0,0.0,0.0,0.0,0.0,85.0,39.0,0.9647058823529412,0.9647058823529412,1.0,1.0
+TeacherHeavy,0.0,0.08,0.08,0.0769230769230769,0.0,0.0,85.0,39.0,0.9176470588235294,0.9647058823529412,0.9487179487179487,1.0
+TeacherTight,0.0,0.0,0.0,0.0,0.0,0.0,85.0,39.0,0.9647058823529412,0.9647058823529412,1.0,1.0

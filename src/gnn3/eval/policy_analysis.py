@@ -17,7 +17,7 @@ from gnn3.data.hidden_corridor import (
     collate_decisions,
     shortest_path,
 )
-from gnn3.eval.rollout import _move_batch, _predict_next_hop
+from gnn3.eval.rollout import _move_batch, _predict_next_hop, _selection_scores_from_output
 from gnn3.models.packet_mamba import PacketMambaModel
 
 
@@ -51,6 +51,7 @@ class EpisodePolicyRow:
 @dataclass(frozen=True)
 class DecisionPredictionRow:
     suite: str
+    episode_index: int
     decision_index: int
     packet_count: int
     packet_priority: float
@@ -63,6 +64,15 @@ class DecisionPredictionRow:
     max_candidate_path_length: int
     target_next_hop: int
     predicted_next_hop: int
+    best_candidate_cost: float
+    second_best_candidate_cost: float
+    oracle_action_gap: float
+    oracle_action_gap_ratio: float
+    predicted_cost_to_go: float
+    predicted_slack: float
+    predicted_on_time: bool
+    predicted_continuation_gap: float
+    strictly_suboptimal: bool
     target_match: bool
 
 
@@ -293,16 +303,28 @@ def collect_decision_prediction_rows(
         batch_records = records[start : start + batch_size]
         batch = _move_batch(collate_decisions(batch_records), device)
         output = model(batch)
-        scores = output["selection_scores"]
-        if selection_strategy != "final":
-            from gnn3.eval.step_policy import select_step_scores
-
-            scores = select_step_scores(output, batch["candidate_mask"], strategy=selection_strategy)
+        scores = _selection_scores_from_output(output, batch, selection_strategy=selection_strategy)
         predicted = scores.argmax(dim=-1).detach().cpu().tolist()
         for offset, record in enumerate(batch_records):
             valid_mask = record.candidate_mask.astype(bool)
             feasible = record.candidate_on_time[valid_mask] > 0.5
             feasible_fraction = float(feasible.mean()) if feasible.size else 0.0
+            if feasible.any():
+                reference_costs = record.candidate_cost_to_go[valid_mask][feasible]
+            else:
+                reference_costs = record.candidate_cost_to_go[valid_mask]
+            sorted_costs = np.sort(reference_costs.astype(np.float32)) if reference_costs.size else np.zeros((0,), dtype=np.float32)
+            if sorted_costs.size:
+                best_cost = float(sorted_costs[0])
+                second_best_cost = float(sorted_costs[1]) if sorted_costs.size > 1 else float(sorted_costs[0])
+            else:
+                best_cost = 0.0
+                second_best_cost = 0.0
+            predicted_next_hop = int(predicted[offset])
+            predicted_cost = float(record.candidate_cost_to_go[predicted_next_hop])
+            predicted_slack = float(record.candidate_slack[predicted_next_hop])
+            predicted_on_time = bool(record.candidate_on_time[predicted_next_hop] > 0.5)
+            continuation_gap = predicted_cost - best_cost
             if valid_mask.any():
                 best_slack = float(record.candidate_slack[valid_mask].max())
                 max_path_length = int(record.candidate_path_mask[valid_mask].sum(axis=-1).max())
@@ -311,6 +333,7 @@ def collect_decision_prediction_rows(
                 max_path_length = 0
             row = DecisionPredictionRow(
                 suite=suite,
+                episode_index=int(record.episode_index),
                 decision_index=start + offset,
                 packet_count=int(record.packet_count),
                 packet_priority=float(record.packet_priority),
@@ -322,10 +345,42 @@ def collect_decision_prediction_rows(
                 any_feasible_candidate=bool(feasible.any()) if feasible.size else False,
                 max_candidate_path_length=max_path_length,
                 target_next_hop=int(record.target_next_hop),
-                predicted_next_hop=int(predicted[offset]),
-                target_match=bool(int(predicted[offset]) == int(record.target_next_hop)),
+                predicted_next_hop=predicted_next_hop,
+                best_candidate_cost=best_cost,
+                second_best_candidate_cost=second_best_cost,
+                oracle_action_gap=max(second_best_cost - best_cost, 0.0),
+                oracle_action_gap_ratio=max(second_best_cost - best_cost, 0.0) / max(abs(best_cost), 1e-6),
+                predicted_cost_to_go=predicted_cost,
+                predicted_slack=predicted_slack,
+                predicted_on_time=predicted_on_time,
+                predicted_continuation_gap=continuation_gap,
+                strictly_suboptimal=bool(continuation_gap > 1e-6),
+                target_match=bool(predicted_next_hop == int(record.target_next_hop)),
             )
             rows.append(asdict(row))
     if was_training:
         model.train()
     return rows
+
+
+@torch.no_grad()
+def extract_probe_features(
+    model: PacketMambaModel,
+    records: list[DecisionRecord],
+    *,
+    device: torch.device,
+    batch_size: int = 64,
+) -> torch.Tensor:
+    was_training = model.training
+    model.eval()
+    feature_chunks: list[torch.Tensor] = []
+    for start in range(0, len(records), batch_size):
+        batch_records = records[start : start + batch_size]
+        batch = _move_batch(collate_decisions(batch_records), device)
+        output = model(batch)
+        feature_chunks.append(output["probe_features"].detach().cpu())
+    if was_training:
+        model.train()
+    if not feature_chunks:
+        return torch.empty((0, 0), dtype=torch.float32)
+    return torch.cat(feature_chunks, dim=0)

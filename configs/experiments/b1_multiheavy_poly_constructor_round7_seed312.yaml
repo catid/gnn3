@@ -1,0 +1,43 @@
+name: b1_multiheavy_poly_constructor_round7_seed312
+bucket: explore
+seed: 312
+stage: scout
+notes: round7 poly-constructor scout with complementary hard-slice action heads on top of the shared multiheavy trunk
+output_dir: artifacts/experiments/b1_multiheavy_poly_constructor_round7_seed312
+benchmark:
+  train_episodes: 180
+  val_episodes: 48
+  test_episodes: 48
+  curriculum_levels: [single_dynamic, multi_dynamic, multi_dynamic]
+  hidden_corridor:
+    seed: 312
+    packets_max: 4
+    deadline_mode: oracle_calibrated
+    deadline_slack_ratio_range: [0.05, 0.15]
+    deadline_slack_abs_range: [0.25, 1.0]
+train:
+  batch_size: 24
+  eval_batch_size: 48
+  epochs: 7
+  device: cuda:1
+  bf16: true
+  rollout_eval_episodes: 16
+  poly_constructor_weight: 0.45
+  poly_on_time_bonus: 1.25
+  poly_slack_bonus: 0.5
+  poly_hard_slack_ratio: 0.10
+  poly_packet_min: 3
+model:
+  d_model: 128
+  d_state: 16
+  inner_layers: 2
+  outer_steps: 3
+  router_variant: memory_hubs
+  final_step_only_loss: true
+  detach_warmup: true
+  penultimate_grad_prob: 0.25
+  poly_constructor: true
+  poly_num_heads: 3
+  poly_hidden_dim: 64
+  poly_head_delta_weight: 0.75
+

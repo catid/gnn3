@@ -120,6 +120,17 @@ def _evaluate_config(
         verifier_aux_last_k_steps=deployment.config.model.verifier_aux_last_k_steps,
         planner_cost_weight=deployment.config.train.planner_cost_weight,
         planner_on_time_weight=deployment.config.train.planner_on_time_weight,
+        poly_constructor_weight=deployment.config.train.poly_constructor_weight,
+        poly_on_time_bonus=deployment.config.train.poly_on_time_bonus,
+        poly_slack_bonus=deployment.config.train.poly_slack_bonus,
+        poly_hard_slack_ratio=deployment.config.train.poly_hard_slack_ratio,
+        poly_packet_min=deployment.config.train.poly_packet_min,
+        self_improve_weight=deployment.config.train.self_improve_weight,
+        self_improve_top_k=deployment.config.train.self_improve_top_k,
+        self_improve_on_time_bonus=deployment.config.train.self_improve_on_time_bonus,
+        self_improve_slack_bonus=deployment.config.train.self_improve_slack_bonus,
+        self_improve_hard_slack_ratio=deployment.config.train.self_improve_hard_slack_ratio,
+        self_improve_packet_min=deployment.config.train.self_improve_packet_min,
     )
     rollout_metrics = evaluate_rollouts(
         deployment.model,

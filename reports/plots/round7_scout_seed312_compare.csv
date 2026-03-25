@@ -1,0 +1,6 @@
+variant,overall_disagreement,hard_feasible_disagreement,large_gap_hard_feasible_disagreement,target_match_delta
+SelfImprove,0.0,0.0,0.0,0.0
+Multiheavy,0.0,0.0,0.0,0.0
+TeacherHeavy,0.03669724770642202,0.03669724770642202,0.03528581510232885,-0.03669724770642202
+TeacherTight,0.0,0.0,0.0,0.0
+TeacherDepth4,0.0,0.0,0.0,0.0

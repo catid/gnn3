@@ -88,6 +88,7 @@ class DecisionRecord:
     packet_index: int
     packet_count: int
     curriculum_level: str
+    episode_index: int = -1
 
 
 @dataclass(frozen=True)
@@ -584,6 +585,7 @@ def make_decision_record(
     packet_count: int,
     curriculum_level: str,
     include_candidate_targets: bool = True,
+    episode_index: int = -1,
 ) -> DecisionRecord:
     del include_candidate_targets
     num_nodes = graph.num_nodes
@@ -710,6 +712,7 @@ def make_decision_record(
         packet_index=packet_index,
         packet_count=packet_count,
         curriculum_level=curriculum_level,
+        episode_index=episode_index,
     )
 
 
@@ -720,6 +723,7 @@ def oracle_rollout(
     config: HiddenCorridorConfig,
     *,
     curriculum_level: str,
+    episode_index: int = -1,
 ) -> tuple[list[DecisionRecord], EpisodeRecord]:
     del rng
     working_graph = graph.copy()
@@ -758,6 +762,7 @@ def oracle_rollout(
                     packet_index=packet_index,
                     packet_count=len(packets),
                     curriculum_level=curriculum_level,
+                    episode_index=episode_index,
                 )
             )
             transition_cost = _edge_cost(
@@ -829,6 +834,15 @@ class HiddenCorridorDecisionDataset(Dataset[DecisionRecord]):
                 config,
                 curriculum_level=level,
             )
+            episode_decisions = [
+                DecisionRecord(
+                    **{
+                        **decision.__dict__,
+                        "episode_index": episode_idx,
+                    }
+                )
+                for decision in episode_decisions
+            ]
             decisions.extend(episode_decisions)
             episodes.append(episode)
         self._decisions = decisions

@@ -1,0 +1,15 @@
+experiment_id,bucket,actual_gpu_hours,status,key_result
+A2-R7-hard-gap-audit,exploit,0.0,completed,Hard-feasible action-gap audit ran CPU-side on the fresh round-seven guardrail.
+A3-R7-probe-audit,exploit,0.0,completed,Frozen-feature representation probe audit ran CPU-side on the fresh round-seven guardrail.
+A1-R7-baseline-eval,exploit,0.05082777777777778,completed,Guardrail OOD evaluation sweep on corrected round-seven suites.
+A1-R7-baseline,exploit,0.08221258925067054,completed,Multiheavy
+B1-R7-poly-constructor,explore,0.0859747980038325,killed-early,PolyConstructor
+B2-R7-self-improve,explore,0.10068010224236382,killed-early,SelfImprove
+B3-R7-teacher-heavy,explore,0.07182326833407084,killed-early,TeacherHeavy
+B3-R7-teacher-tight,explore,0.07729254629876879,killed-early,TeacherTight
+B3-R7-teacher-depth4,explore,0.0356764104631212,killed-early,TeacherDepth4
+SelfImprove-compare,explore,0.002288888888888889,completed,SelfImprove disagreement compare.
+TeacherHeavy-compare,explore,0.002297222222222222,completed,TeacherHeavy disagreement compare.
+TeacherTight-compare,explore,0.002288888888888889,completed,TeacherTight disagreement compare.
+TeacherDepth4-compare,explore,0.0023,completed,TeacherDepth4 disagreement compare.
+round7_total,summary,0.5136624923706055,completed,"exploit=0.259, explore=0.741"

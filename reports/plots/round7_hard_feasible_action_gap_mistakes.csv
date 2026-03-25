@@ -1,0 +1,5 @@
+gap_bucket,slack_band,mistakes
+large_gap,critical,1
+medium_gap,loose,10
+near_tie,critical,29
+near_tie,loose,142

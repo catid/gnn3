@@ -1,0 +1,251 @@
+{
+  "train_suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312_train",
+  "eval_suites": [
+    "e3_memory_hubs_rsm_round7_multiheavy_seed312",
+    "a1_multiheavy_ood_branching3_round7_eval",
+    "a1_multiheavy_ood_deeper_packets6_round7_eval",
+    "a1_multiheavy_ood_heavy_dynamic_round7_eval"
+  ],
+  "summary": [
+    {
+      "task": "slack_bucket",
+      "suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312_train",
+      "split": "train",
+      "accuracy": 0.9189833402633667,
+      "num_classes": 5,
+      "binary": false
+    },
+    {
+      "task": "slack_bucket",
+      "suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312",
+      "split": "eval",
+      "accuracy": 0.8966408371925354,
+      "num_classes": 5,
+      "binary": false
+    },
+    {
+      "task": "slack_bucket",
+      "suite": "a1_multiheavy_ood_branching3_round7_eval",
+      "split": "eval",
+      "accuracy": 0.8871681690216064,
+      "num_classes": 5,
+      "binary": false
+    },
+    {
+      "task": "slack_bucket",
+      "suite": "a1_multiheavy_ood_deeper_packets6_round7_eval",
+      "split": "eval",
+      "accuracy": 0.8854304552078247,
+      "num_classes": 5,
+      "binary": false
+    },
+    {
+      "task": "slack_bucket",
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round7_eval",
+      "split": "eval",
+      "accuracy": 0.8686192631721497,
+      "num_classes": 5,
+      "binary": false
+    },
+    {
+      "task": "critical_packet_proxy",
+      "suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312_train",
+      "split": "train",
+      "accuracy": 0.9718030095100403,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "critical_packet_proxy",
+      "suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312",
+      "split": "eval",
+      "accuracy": 0.9664082527160645,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "critical_packet_proxy",
+      "suite": "a1_multiheavy_ood_branching3_round7_eval",
+      "split": "eval",
+      "accuracy": 0.9679203629493713,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "critical_packet_proxy",
+      "suite": "a1_multiheavy_ood_deeper_packets6_round7_eval",
+      "split": "eval",
+      "accuracy": 0.9781457185745239,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "critical_packet_proxy",
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round7_eval",
+      "split": "eval",
+      "accuracy": 0.9715481400489807,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "feasible_continuation",
+      "suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312_train",
+      "split": "train",
+      "accuracy": 1.0,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "feasible_continuation",
+      "suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312",
+      "split": "eval",
+      "accuracy": 1.0,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "feasible_continuation",
+      "suite": "a1_multiheavy_ood_branching3_round7_eval",
+      "split": "eval",
+      "accuracy": 1.0,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "feasible_continuation",
+      "suite": "a1_multiheavy_ood_deeper_packets6_round7_eval",
+      "split": "eval",
+      "accuracy": 0.9993377327919006,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "feasible_continuation",
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round7_eval",
+      "split": "eval",
+      "accuracy": 1.0,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "oracle_gap_bucket",
+      "suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312_train",
+      "split": "train",
+      "accuracy": 0.7847498059272766,
+      "num_classes": 3,
+      "binary": false
+    },
+    {
+      "task": "oracle_gap_bucket",
+      "suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312",
+      "split": "eval",
+      "accuracy": 0.7713178396224976,
+      "num_classes": 3,
+      "binary": false
+    },
+    {
+      "task": "oracle_gap_bucket",
+      "suite": "a1_multiheavy_ood_branching3_round7_eval",
+      "split": "eval",
+      "accuracy": 0.7267699241638184,
+      "num_classes": 3,
+      "binary": false
+    },
+    {
+      "task": "oracle_gap_bucket",
+      "suite": "a1_multiheavy_ood_deeper_packets6_round7_eval",
+      "split": "eval",
+      "accuracy": 0.6490066051483154,
+      "num_classes": 3,
+      "binary": false
+    },
+    {
+      "task": "oracle_gap_bucket",
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round7_eval",
+      "split": "eval",
+      "accuracy": 0.6953974962234497,
+      "num_classes": 3,
+      "binary": false
+    },
+    {
+      "task": "depth_load_regime",
+      "suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312_train",
+      "split": "train",
+      "accuracy": 0.9408260583877563,
+      "num_classes": 6,
+      "binary": false
+    },
+    {
+      "task": "depth_load_regime",
+      "suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312",
+      "split": "eval",
+      "accuracy": 0.6808785796165466,
+      "num_classes": 6,
+      "binary": false
+    },
+    {
+      "task": "depth_load_regime",
+      "suite": "a1_multiheavy_ood_branching3_round7_eval",
+      "split": "eval",
+      "accuracy": 0.0,
+      "num_classes": 6,
+      "binary": false
+    },
+    {
+      "task": "depth_load_regime",
+      "suite": "a1_multiheavy_ood_deeper_packets6_round7_eval",
+      "split": "eval",
+      "accuracy": 0.0,
+      "num_classes": 6,
+      "binary": false
+    },
+    {
+      "task": "depth_load_regime",
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round7_eval",
+      "split": "eval",
+      "accuracy": 0.3096234202384949,
+      "num_classes": 6,
+      "binary": false
+    },
+    {
+      "task": "baseline_strictly_suboptimal",
+      "suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312_train",
+      "split": "train",
+      "accuracy": 0.9638602137565613,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "baseline_strictly_suboptimal",
+      "suite": "e3_memory_hubs_rsm_round7_multiheavy_seed312",
+      "split": "eval",
+      "accuracy": 0.9483203887939453,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "baseline_strictly_suboptimal",
+      "suite": "a1_multiheavy_ood_branching3_round7_eval",
+      "split": "eval",
+      "accuracy": 0.9579645991325378,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "baseline_strictly_suboptimal",
+      "suite": "a1_multiheavy_ood_deeper_packets6_round7_eval",
+      "split": "eval",
+      "accuracy": 0.9728477001190186,
+      "num_classes": 2,
+      "binary": true
+    },
+    {
+      "task": "baseline_strictly_suboptimal",
+      "suite": "a1_multiheavy_ood_heavy_dynamic_round7_eval",
+      "split": "eval",
+      "accuracy": 0.9665272235870361,
+      "num_classes": 2,
+      "binary": true
+    }
+  ]
+}

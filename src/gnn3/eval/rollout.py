@@ -38,6 +38,26 @@ def _move_batch(batch: dict[str, torch.Tensor], device: torch.device) -> dict[st
     return {key: value.to(device) for key, value in batch.items()}
 
 
+def _selection_scores_from_output(
+    output: dict[str, torch.Tensor],
+    batch: dict[str, torch.Tensor],
+    *,
+    selection_strategy: str,
+) -> torch.Tensor:
+    if selection_strategy.startswith("poly_head"):
+        head_index = int(selection_strategy.removeprefix("poly_head"))
+        poly_scores = output.get("poly_selection_scores")
+        if poly_scores is None:
+            raise ValueError("selection_strategy requested a poly head, but the model has no poly constructor outputs")
+        if head_index < 0 or head_index >= poly_scores.size(1):
+            raise ValueError(f"Invalid poly head index: {head_index}")
+        return poly_scores[:, head_index]
+    scores = output["selection_scores"]
+    if selection_strategy != "final":
+        scores = select_step_scores(output, batch["candidate_mask"], strategy=selection_strategy)
+    return scores
+
+
 @torch.no_grad()
 def _predict_next_hop(
     model: PacketMambaModel,
@@ -48,7 +68,7 @@ def _predict_next_hop(
 ) -> int:
     batch = _move_batch(collate_decisions([record]), device)
     output = model(batch)
-    scores = select_step_scores(output, batch["candidate_mask"], strategy=selection_strategy)
+    scores = _selection_scores_from_output(output, batch, selection_strategy=selection_strategy)
     return int(scores.argmax(dim=-1).item())
 
 

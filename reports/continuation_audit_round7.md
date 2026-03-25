@@ -62,12 +62,13 @@ Round seven should only reopen a family if the new branch changes the constructo
 
 - Base slice:
   - oracle-feasible decisions only
-  - critical / very-tight slack
-  - high-load episodes
-  - packet count `>= 5`
-  - depth `4`
+  - score-based hard slice with at least `2` of:
+    - critical / very-tight slack
+    - high load
+    - packet count `>= 5`
+    - depth `4`
 - Large-gap hard-feasible slice:
-  - same as above, plus an oracle action-gap / continuation-gap threshold from the round-seven audit tables
+  - same score-based hard slice, plus an oracle action-gap / continuation-gap threshold from the round-seven audit tables
 - Per branch, report:
   - overall action agreement vs `multiheavy`
   - large-gap hard-feasible disagreement vs `multiheavy`
@@ -76,7 +77,7 @@ Round seven should only reopen a family if the new branch changes the constructo
   - break rate on baseline successes
   - hard-feasible slice regret / p95 regret / miss
 
-A constructor scout is only promotable if it both moves policy on the large-gap hard-feasible slice and improves slice-level regret or miss.
+A constructor scout is only promotable if it both moves policy on the audited hard slice and improves slice-level regret or miss. If the audit shows the large-gap subset is already almost solved, disagreement on the hard near-tie slice becomes the more useful gate.
 
 ## Exact Code Paths For Round 7 Changes
 
@@ -137,6 +138,11 @@ The existing manifest hashing and checkpoint metadata are trustworthy; the remai
 7. promote only a branch that clears both disagreement and hard-slice improvement gates
 8. open no contingent repair/planner follow-up unless a constructor first earns it
 9. refresh plots, reports, portfolio ledger, and experiment summary
+
+After the corrected action-gap audit, this ordering implies an explicit decision rule:
+
+- if the large-gap hard-feasible slice is nearly error-free for `multiheavy`, do not keep chasing “large-gap constructor disagreement” as the main hypothesis
+- instead, use the probe audit and constructor scouts to determine whether the remaining opportunity is hard near-tie ambiguity or no opportunity at all
 
 ## Planned Exploit / Explore GPU-Hour Split
 

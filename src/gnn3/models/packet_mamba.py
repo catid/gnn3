@@ -75,6 +75,10 @@ class PacketMambaConfig:
     regime_num_experts: int = 4
     regime_hidden_dim: int = 64
     regime_expert_weight: float = 0.75
+    poly_constructor: bool = False
+    poly_num_heads: int = 3
+    poly_hidden_dim: int = 64
+    poly_head_delta_weight: float = 0.75
 
 
 class DenseEdgeMixer(nn.Module):
@@ -587,6 +591,25 @@ class PacketMambaModel(nn.Module):
             if config.regime_experts
             else None
         )
+        self.poly_strategy_tokens = (
+            nn.Parameter(torch.zeros(config.poly_num_heads, config.d_model))
+            if config.poly_constructor
+            else None
+        )
+        self.poly_heads = (
+            nn.ModuleList(
+                [
+                    nn.Sequential(
+                        nn.Linear(action_input_dim + config.d_model, config.poly_hidden_dim),
+                        nn.GELU(),
+                        nn.Linear(config.poly_hidden_dim, 1),
+                    )
+                    for _ in range(config.poly_num_heads)
+                ]
+            )
+            if config.poly_constructor
+            else None
+        )
 
     def _hazard_summary(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         node_mask = batch["node_mask"].float()
@@ -815,6 +838,7 @@ class PacketMambaModel(nn.Module):
         return {
             "node_logits": final_outputs["node_logits"],
             "selection_scores": final_outputs["selection_scores"],
+            "poly_selection_scores": final_outputs["poly_selection_scores"],
             "per_step_logits": stacked_logits,
             "values": final_outputs["values"],
             "per_step_values": stacked_values,
@@ -827,6 +851,7 @@ class PacketMambaModel(nn.Module):
             "planner_on_time_logits": final_outputs["planner_on_time_logits"],
             "path_reranker_gate": final_outputs["path_reranker_gate"],
             "regime_gate_weights": final_outputs["regime_gate_weights"],
+            "probe_features": final_outputs["probe_features"],
             "per_step_candidate_on_time_logits": (
                 torch.stack(per_step_on_time_logits, dim=1) if per_step_on_time_logits else None
             ),
@@ -851,9 +876,10 @@ class PacketMambaModel(nn.Module):
         destination_expand = destination_repr[:, None, :].expand(-1, num_nodes, -1)
         batch_index = torch.arange(batch_size, device=state.device)
         edge_context = batch["edge_features"][batch_index, batch["current_node"]]
+        regime_features = self._regime_features(batch)
         regime_gate_weights = None
+        poly_selection_scores = None
         if self.regime_encoder is not None and self.regime_gate is not None and self.regime_expert_heads is not None:
-            regime_features = self._regime_features(batch)
             regime_token = self.regime_encoder(regime_features)[:, None, :]
             current_expand = current_expand + regime_token
             destination_expand = destination_expand + 0.5 * regime_token
@@ -863,7 +889,6 @@ class PacketMambaModel(nn.Module):
         invalid = ~(batch["candidate_mask"] & batch["node_mask"])
         node_logits = node_logits.masked_fill(invalid, -1e9)
         if self.regime_gate is not None and self.regime_expert_heads is not None and self.regime_encoder is not None:
-            regime_features = self._regime_features(batch)
             regime_token = self.regime_encoder(regime_features)
             regime_gate_weights = torch.softmax(self.regime_gate(regime_features), dim=-1)
             expert_input = torch.cat([action_input, regime_token[:, None, :].expand(-1, num_nodes, -1)], dim=-1)
@@ -871,9 +896,29 @@ class PacketMambaModel(nn.Module):
             expert_delta = torch.einsum("be,ben->bn", regime_gate_weights, expert_scores)
             node_logits = node_logits + self.config.regime_expert_weight * expert_delta.masked_fill(invalid, 0.0)
             node_logits = node_logits.masked_fill(invalid, -1e9)
+        if self.poly_strategy_tokens is not None and self.poly_heads is not None:
+            poly_scores: list[torch.Tensor] = []
+            for head_index, head in enumerate(self.poly_heads):
+                strategy = self.poly_strategy_tokens[head_index][None, None, :].expand(batch_size, num_nodes, -1)
+                head_input = torch.cat([action_input, strategy], dim=-1)
+                delta = head(head_input).squeeze(-1)
+                head_scores = node_logits + self.config.poly_head_delta_weight * delta.masked_fill(invalid, 0.0)
+                poly_scores.append(head_scores.masked_fill(invalid, -1e9))
+            poly_selection_scores = torch.stack(poly_scores, dim=1)
+            node_logits = poly_selection_scores[:, 0]
 
         value_input = torch.cat([current_repr, destination_repr], dim=-1)
         values = self.value_head(value_input).squeeze(-1)
+        probe_features = torch.cat(
+            [
+                current_repr,
+                destination_repr,
+                current_repr - destination_repr,
+                regime_features,
+                values.unsqueeze(-1),
+            ],
+            dim=-1,
+        )
 
         route_input = torch.cat([current_expand, destination_expand, state], dim=-1)
         route_logits = self.route_head(route_input).squeeze(-1)
@@ -1012,6 +1057,7 @@ class PacketMambaModel(nn.Module):
         return {
             "node_logits": node_logits,
             "selection_scores": selection_scores,
+            "poly_selection_scores": poly_selection_scores,
             "values": values,
             "route_logits": route_logits,
             "candidate_on_time_logits": candidate_on_time_logits,
@@ -1027,6 +1073,7 @@ class PacketMambaModel(nn.Module):
             "regime_gate_weights": regime_gate_weights,
             "path_verifier_penalty": path_verifier_penalty,
             "path_verifier_keep_mask": path_verifier_keep_mask,
+            "probe_features": probe_features,
         }
 
 
@@ -1157,6 +1204,96 @@ def _selection_slack_critical_weights(
     return 1.0 + torch.sigmoid(-best_slack / scale)
 
 
+def _constructor_hard_mask(
+    *,
+    batch: dict[str, torch.Tensor],
+    slack_ratio_threshold: float,
+    packet_min: int,
+) -> torch.Tensor:
+    valid_mask = batch["candidate_mask"] & batch["node_mask"]
+    best_slack = batch["candidate_slack"].masked_fill(~valid_mask, -1e9).max(dim=-1).values
+    slack_ratio = best_slack / batch["packet_deadline"].clamp(min=1.0)
+    return valid_mask.any(dim=-1) & (slack_ratio <= slack_ratio_threshold) & (batch["packet_count"] >= packet_min)
+
+
+def _candidate_target_quality(
+    *,
+    batch: dict[str, torch.Tensor],
+    on_time_bonus: float,
+    slack_bonus: float,
+) -> torch.Tensor:
+    valid_mask = batch["candidate_mask"] & batch["node_mask"]
+    deadline_scale = batch["packet_deadline"][:, None].clamp(min=1.0)
+    quality = -batch["candidate_cost_to_go"]
+    if on_time_bonus != 0.0:
+        quality = quality + on_time_bonus * batch["candidate_on_time"]
+    if slack_bonus != 0.0:
+        quality = quality + slack_bonus * torch.tanh(batch["candidate_slack"] / deadline_scale)
+    return quality.masked_fill(~valid_mask, -1e9)
+
+
+def _poly_constructor_loss(
+    *,
+    poly_selection_scores: torch.Tensor,
+    batch: dict[str, torch.Tensor],
+    on_time_bonus: float,
+    slack_bonus: float,
+    slack_ratio_threshold: float,
+    packet_min: int,
+) -> torch.Tensor:
+    hard_mask = _constructor_hard_mask(
+        batch=batch,
+        slack_ratio_threshold=slack_ratio_threshold,
+        packet_min=packet_min,
+    )
+    if not hard_mask.any():
+        return poly_selection_scores.new_tensor(0.0)
+    target_quality = _candidate_target_quality(
+        batch=batch,
+        on_time_bonus=on_time_bonus,
+        slack_bonus=slack_bonus,
+    )
+    ranked_targets = target_quality.argsort(dim=-1, descending=True)
+    losses = []
+    num_heads = poly_selection_scores.size(1)
+    for head_index in range(num_heads):
+        target = ranked_targets[:, min(head_index, ranked_targets.size(1) - 1)]
+        losses.append(F.cross_entropy(poly_selection_scores[hard_mask, head_index], target[hard_mask]))
+    return torch.stack(losses).mean()
+
+
+def _self_improve_constructor_loss(
+    *,
+    selection_scores: torch.Tensor,
+    batch: dict[str, torch.Tensor],
+    top_k: int,
+    on_time_bonus: float,
+    slack_bonus: float,
+    slack_ratio_threshold: float,
+    packet_min: int,
+) -> torch.Tensor:
+    hard_mask = _constructor_hard_mask(
+        batch=batch,
+        slack_ratio_threshold=slack_ratio_threshold,
+        packet_min=packet_min,
+    )
+    if not hard_mask.any():
+        return selection_scores.new_tensor(0.0)
+    valid_mask = batch["candidate_mask"] & batch["node_mask"]
+    masked_scores = selection_scores.masked_fill(~valid_mask, -1e9)
+    k = max(1, min(int(top_k), masked_scores.size(1)))
+    topk_indices = masked_scores.topk(k=k, dim=-1).indices
+    target_quality = _candidate_target_quality(
+        batch=batch,
+        on_time_bonus=on_time_bonus,
+        slack_bonus=slack_bonus,
+    )
+    gathered_quality = torch.gather(target_quality, 1, topk_indices)
+    best_choice = gathered_quality.argmax(dim=-1, keepdim=True)
+    target = torch.gather(topk_indices, 1, best_choice).squeeze(-1)
+    return F.cross_entropy(selection_scores[hard_mask], target[hard_mask])
+
+
 def compute_losses(
     output: dict[str, torch.Tensor],
     batch: dict[str, torch.Tensor],
@@ -1185,6 +1322,17 @@ def compute_losses(
     verifier_aux_last_k_steps: int = 1,
     planner_cost_weight: float = 0.0,
     planner_on_time_weight: float = 0.0,
+    poly_constructor_weight: float = 0.0,
+    poly_on_time_bonus: float = 0.0,
+    poly_slack_bonus: float = 0.0,
+    poly_hard_slack_ratio: float = 0.10,
+    poly_packet_min: int = 3,
+    self_improve_weight: float = 0.0,
+    self_improve_top_k: int = 2,
+    self_improve_on_time_bonus: float = 0.0,
+    self_improve_slack_bonus: float = 0.0,
+    self_improve_hard_slack_ratio: float = 0.10,
+    self_improve_packet_min: int = 3,
 ) -> dict[str, torch.Tensor]:
     target = batch["target_next_hop"]
     feasible_target_loss = output["selection_scores"].new_tensor(0.0)
@@ -1222,6 +1370,8 @@ def compute_losses(
     quantile_loss = output["selection_scores"].new_tensor(0.0)
     planner_cost_loss = output["selection_scores"].new_tensor(0.0)
     planner_on_time_loss = output["selection_scores"].new_tensor(0.0)
+    poly_constructor_loss = output["selection_scores"].new_tensor(0.0)
+    self_improve_loss = output["selection_scores"].new_tensor(0.0)
     if selection_soft_target_weight > 0.0:
         selection_soft_target_loss = _selection_soft_target_loss(
             selection_scores=output["selection_scores"],
@@ -1291,6 +1441,25 @@ def compute_losses(
             output["planner_on_time_logits"][valid_mask],
             batch["candidate_on_time"][valid_mask],
         )
+    if poly_constructor_weight > 0.0 and output.get("poly_selection_scores") is not None:
+        poly_constructor_loss = _poly_constructor_loss(
+            poly_selection_scores=output["poly_selection_scores"],
+            batch=batch,
+            on_time_bonus=poly_on_time_bonus,
+            slack_bonus=poly_slack_bonus,
+            slack_ratio_threshold=poly_hard_slack_ratio,
+            packet_min=poly_packet_min,
+        )
+    if self_improve_weight > 0.0:
+        self_improve_loss = _self_improve_constructor_loss(
+            selection_scores=output["selection_scores"],
+            batch=batch,
+            top_k=self_improve_top_k,
+            on_time_bonus=self_improve_on_time_bonus,
+            slack_bonus=self_improve_slack_bonus,
+            slack_ratio_threshold=self_improve_hard_slack_ratio,
+            packet_min=self_improve_packet_min,
+        )
     total_loss = (
         ce_loss
         + value_weight * value_loss
@@ -1304,6 +1473,8 @@ def compute_losses(
         + quantile_weight * quantile_loss
         + planner_cost_weight * planner_cost_loss
         + planner_on_time_weight * planner_on_time_loss
+        + poly_constructor_weight * poly_constructor_loss
+        + self_improve_weight * self_improve_loss
     )
     with torch.no_grad():
         accuracy = (output["selection_scores"].argmax(dim=-1) == target).float().mean()
@@ -1322,6 +1493,8 @@ def compute_losses(
         "quantile_loss": quantile_loss.detach(),
         "planner_cost_loss": planner_cost_loss.detach(),
         "planner_on_time_loss": planner_on_time_loss.detach(),
+        "poly_constructor_loss": poly_constructor_loss.detach(),
+        "self_improve_loss": self_improve_loss.detach(),
         "next_hop_accuracy": accuracy.detach(),
         "selection_accuracy": selection_accuracy.detach(),
     }

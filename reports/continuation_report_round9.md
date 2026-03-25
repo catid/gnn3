@@ -187,6 +187,24 @@ Round nine closes the compute-and-state campaign in its tested forms:
 
 The default policy therefore stays plain `multiheavy`.
 
+## Landing Status
+
+Round nine was merged back into local `main` at:
+
+- merge commit `9c93bd19fd5ee91ef6f4588b9843566cc5ffbee8`
+
+Remote landing is still blocked in this shell:
+
+- `bd sync`
+  - failed while pulling remote state with:
+    - `git@github.com: Permission denied (publickey).`
+- `git push origin main`
+  - failed with:
+    - `git@github.com: Permission denied (publickey).`
+
+So the round is complete locally on `main`, but publishing still requires a
+shell with GitHub write access.
+
 ## Closed Doors Still Closed
 
 Round nine does not reopen:

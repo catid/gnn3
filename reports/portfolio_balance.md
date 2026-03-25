@@ -86,9 +86,13 @@
 | E1-R8-path-tiebreak | explore | Try a cheaper near-tie-only local suffix-cost tie-breaker as a backup after bounded search proved too slow. | 0.20 | 0.1725 | killed-early | The backup was cheaper than bounded search but still crossed the scout runtime bar before proving enough value. |
 | A1-R9-baseline-seed314 | exploit | Fresh seed314 `multiheavy` guardrail on the corrected round-nine feasible suite before reopening compute/state branches. | 0.10 | 0.0655 | completed | Seed314 base rollout was `1.898` regret, `8.140` p95 regret, and `43.8%` miss, establishing the first matched round-nine baseline. |
 | A1-R9-baseline-seed315 | exploit | Fresh seed315 `multiheavy` guardrail for matched round-nine compute comparisons. | 0.20 | 0.1868 | completed | Seed315 base rollout was `2.107` regret, `6.164` p95 regret, and `56.2%` miss. |
+| A1-R9-baseline-seed316 | exploit | Fresh seed316 `multiheavy` guardrail to close the matched three-seed compute comparison cleanly. | 0.15 | 0.1277 | completed | Seed316 base rollout was `1.508` regret, `7.307` p95 regret, and `50.0%` miss. |
 | B1-R9-compute5-seed314 | explore | Test whether five outer refinement steps can improve the hard near-tie frontier on the first matched seed. | 0.25 | 0.2380 | completed | Positive first seed: rollout improved from `1.898` to `1.302` regret, `8.140` to `5.277` p95, and `43.8%` to `31.2%` miss. |
 | B1-R9-compute5-seed315 | explore | Confirm the fixed extra-compute signal on a second matched seed before promotion. | 0.35 | 0.3465 | completed | Negative second seed: selected rollout matched the seed315 baseline exactly at `2.107` regret, `6.164` p95, and `56.2%` miss. |
+| B1-R9-compute5-seed316 | explore | Settle the fixed extra-compute family on a third matched seed before opening adaptive compute compression work. | 0.20 | 0.1843 | completed | Negative third seed: selected rollout matched the seed316 baseline exactly at `1.508` regret, `7.307` p95, and `50.0%` miss. |
 | B2-R9-compute7-seed314 | explore | Probe whether deeper fixed compute adds headroom beyond the successful `compute5` scout. | 0.25 | 0.2376 | killed-early | Hard negative at epoch 1: rollout regret `8893.68`, p95 `24061.70`, miss `100%`; killed immediately. |
+| D1-R9-mailbox-monitor12-seed314 | explore | Test the smallest explicit delayed-state mailbox before spending on heavier state variants. | 0.10 | 0.0409 | killed-early | Negative early read: by epoch 3, rollout was still `7.542` regret, `23.491` p95, and `68.8%` miss, far behind the seed314 baseline. |
+| D1-R9-mailbox-hubmonitor124-seed314 | explore | Test whether broader hub-plus-monitor placement and a larger delay set rescue the mailbox idea. | 0.15 | 0.1327 | killed-early | Negative early read: epoch 2 rollout stayed at `7.029` regret, `21.113` p95, and `56.2%` miss, so the family failed its scout gate. |
 
 Current cumulative GPU-hours:
 
@@ -106,9 +110,9 @@ Current cumulative GPU-hours:
 - Round-eight exploit: `0.7760`
 - Round-eight explore: `1.5844`
 - Round-eight split: `32.9% / 67.1%`
-- Round-nine exploit so far: `0.2523`
-- Round-nine explore so far: `0.8220`
-- Round-nine split so far: `23.5% / 76.5%`
-- Overall exploit: `7.8570`
-- Overall explore: `5.8321`
-- Overall split: `57.4% / 42.6%`
+- Round-nine exploit so far: `0.3800`
+- Round-nine explore so far: `1.1799`
+- Round-nine split so far: `24.4% / 75.6%`
+- Overall exploit: `7.9847`
+- Overall explore: `6.1900`
+- Overall split: `56.3% / 43.7%`

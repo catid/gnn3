@@ -121,7 +121,18 @@ def _fit_learned_gate(
     per_step_scores = latents["per_step_selection_scores"]
     middle_index = per_step_scores.size(1) // 2
     middle_scores = per_step_scores[:, middle_index]
-    valid_mask = torch.stack([torch.from_numpy(record.candidate_mask.astype(bool)) for record in records], dim=0)
+    max_width = int(per_step_scores.size(-1))
+    valid_mask = torch.stack(
+        [
+            torch.nn.functional.pad(
+                torch.from_numpy(record.candidate_mask.astype(bool)),
+                (0, max_width - int(record.candidate_mask.shape[0])),
+                value=False,
+            )
+            for record in records
+        ],
+        dim=0,
+    )
     middle_margin = _model_margin(middle_scores, valid_mask)
 
     train_frame = base_frame.merge(
@@ -235,7 +246,8 @@ def _policy_decisions(
     learned_gate: LearnedGate | None,
     suite: str,
 ) -> pd.DataFrame:
-    loader = DataLoader(dataset, batch_size=64, shuffle=False, collate_fn=collate_decisions)
+    records = list(dataset)
+    loader = DataLoader(records, batch_size=64, shuffle=False, collate_fn=collate_decisions)
     rows: list[dict[str, object]] = []
     offset = 0
     for batch in loader:
@@ -250,10 +262,11 @@ def _policy_decisions(
             valid_mask = (batch["candidate_mask"][row_index] & batch["node_mask"][row_index]).cpu().numpy()
             valid_costs = batch["candidate_cost_to_go"][row_index].cpu().numpy()[valid_mask]
             best_cost = float(valid_costs.min()) if valid_costs.size else 0.0
+            record = records[offset + row_index]
             rows.append(
                 {
                     "suite": suite,
-                    "episode_index": int(batch["episode_index"][row_index].item()),
+                    "episode_index": int(record.episode_index),
                     "decision_index": offset + row_index,
                     "predicted_next_hop": predicted,
                     "target_match": bool(predicted == target),

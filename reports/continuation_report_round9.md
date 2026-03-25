@@ -49,24 +49,23 @@ The practical target surface is now:
 
 and the primary guardrail remains `large_gap_control`.
 
-## First Positive Signal
+## Fixed Extra Compute Verdict
 
-The first extra-compute scout is positive.
-
-`e3_memory_hubs_rsm_round9_compute5_seed314` improved over the matched fresh
-seed314 `multiheavy` baseline:
+The first extra-compute scout was positive on seed314:
 
 - baseline seed314 rollout: regret `1.898`, p95 `8.140`, miss `43.75%`
 - compute5 seed314 rollout: regret `1.302`, p95 `5.277`, miss `31.25%`
 
-This was enough to justify promotion beyond a single seed, but the second seed
-did not hold:
+But the matched follow-ups did not replicate:
 
 - baseline seed315 rollout: regret `2.107`, p95 `6.164`, miss `56.25%`
 - compute5 seed315 rollout: regret `2.107`, p95 `6.164`, miss `56.25%`
+- baseline seed316 rollout: regret `1.508`, p95 `7.307`, miss `50.00%`
+- compute5 seed316 rollout: regret `1.508`, p95 `7.307`, miss `50.00%`
 
-So the family is no longer a clear win. It now needs the third matched seed to
-decide whether the seed314 gain is a real near-tie signal or just variance.
+So the fixed `compute5` family is no longer a contender. The current read is
+that extra fixed compute can help on individual seeds, but it is not a robust
+constructor upgrade in its plain form.
 
 ## Deeper Fixed Compute
 
@@ -80,14 +79,29 @@ its early gate immediately:
 That branch was killed before spending full scout budget. The current compute
 thesis remains focused on `compute5`, not unboundedly increasing outer rounds.
 
+## Delay Mailbox Early Read
+
+The first two minimal delay-mailbox scouts both failed their early gates on the
+same seed314 corrected benchmark:
+
+- `mailbox_monitor12_seed314`
+  - epoch-2 rollout: regret `6.676`, p95 `20.028`, miss `68.75%`
+  - epoch-3 rollout: regret `7.542`, p95 `23.491`, miss `68.75%`
+- `mailbox_hubmonitor124_seed314`
+  - epoch-2 rollout: regret `7.029`, p95 `21.113`, miss `56.25%`
+
+Both remained far worse than the matched seed314 `multiheavy` baseline, so the
+plain mailbox family is currently tracking as a negative unless a later combo
+branch changes the picture materially.
+
 ## Active Queue
 
 Running or queued at this stage:
 
-- seed316 matched `multiheavy` baseline
-- seed316 matched `compute5` contender
-- seed314 frontier guard rerun after the seed316 pair clears the machine
-- seed314 mailbox scouts after the compute family verdict
+- seed314 compute-policy sweep on the positive `compute5` checkpoint
+- seed314 outer-step headroom audit on the same checkpoint
+- offline branch-teacher grid after the audit pair clears
+- report and portfolio refresh once the long-running audits land
 
 ## Closed Doors Still Closed
 

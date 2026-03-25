@@ -422,6 +422,7 @@ def extract_decision_latents(
     per_step_probe_chunks: list[torch.Tensor] = []
     value_chunks: list[torch.Tensor] = []
     max_score_width = 0
+    max_per_step_score_width = 0
     for start in range(0, len(records), batch_size):
         batch_records = records[start : start + batch_size]
         batch = _move_batch(collate_decisions(batch_records), device)
@@ -430,7 +431,9 @@ def extract_decision_latents(
         score_chunk = output["selection_scores"].detach().cpu()
         max_score_width = max(max_score_width, int(score_chunk.size(1)))
         score_chunks.append(score_chunk)
-        per_step_score_chunks.append(output["per_step_selection_scores"].detach().cpu())
+        per_step_score_chunk = output["per_step_selection_scores"].detach().cpu()
+        max_per_step_score_width = max(max_per_step_score_width, int(per_step_score_chunk.size(-1)))
+        per_step_score_chunks.append(per_step_score_chunk)
         per_step_probe_chunks.append(output["per_step_probe_features"].detach().cpu())
         value_chunks.append(output["values"].detach().cpu())
     if was_training:
@@ -450,10 +453,17 @@ def extract_decision_latents(
             continue
         pad_width = max_score_width - int(score_chunk.size(1))
         padded_score_chunks.append(torch.nn.functional.pad(score_chunk, (0, pad_width)))
+    padded_per_step_score_chunks = []
+    for per_step_score_chunk in per_step_score_chunks:
+        if int(per_step_score_chunk.size(-1)) == max_per_step_score_width:
+            padded_per_step_score_chunks.append(per_step_score_chunk)
+            continue
+        pad_width = max_per_step_score_width - int(per_step_score_chunk.size(-1))
+        padded_per_step_score_chunks.append(torch.nn.functional.pad(per_step_score_chunk, (0, pad_width)))
     return {
         "probe_features": torch.cat(probe_chunks, dim=0),
         "selection_scores": torch.cat(padded_score_chunks, dim=0),
-        "per_step_selection_scores": torch.cat(per_step_score_chunks, dim=0),
+        "per_step_selection_scores": torch.cat(padded_per_step_score_chunks, dim=0),
         "per_step_probe_features": torch.cat(per_step_probe_chunks, dim=0),
         "values": torch.cat(value_chunks, dim=0),
     }

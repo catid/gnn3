@@ -418,6 +418,8 @@ def extract_decision_latents(
     model.eval()
     probe_chunks: list[torch.Tensor] = []
     score_chunks: list[torch.Tensor] = []
+    per_step_score_chunks: list[torch.Tensor] = []
+    per_step_probe_chunks: list[torch.Tensor] = []
     value_chunks: list[torch.Tensor] = []
     max_score_width = 0
     for start in range(0, len(records), batch_size):
@@ -428,6 +430,8 @@ def extract_decision_latents(
         score_chunk = output["selection_scores"].detach().cpu()
         max_score_width = max(max_score_width, int(score_chunk.size(1)))
         score_chunks.append(score_chunk)
+        per_step_score_chunks.append(output["per_step_selection_scores"].detach().cpu())
+        per_step_probe_chunks.append(output["per_step_probe_features"].detach().cpu())
         value_chunks.append(output["values"].detach().cpu())
     if was_training:
         model.train()
@@ -435,6 +439,8 @@ def extract_decision_latents(
         return {
             "probe_features": torch.empty((0, 0), dtype=torch.float32),
             "selection_scores": torch.empty((0, 0), dtype=torch.float32),
+            "per_step_selection_scores": torch.empty((0, 0, 0), dtype=torch.float32),
+            "per_step_probe_features": torch.empty((0, 0, 0), dtype=torch.float32),
             "values": torch.empty((0,), dtype=torch.float32),
         }
     padded_score_chunks = []
@@ -447,5 +453,7 @@ def extract_decision_latents(
     return {
         "probe_features": torch.cat(probe_chunks, dim=0),
         "selection_scores": torch.cat(padded_score_chunks, dim=0),
+        "per_step_selection_scores": torch.cat(per_step_score_chunks, dim=0),
+        "per_step_probe_features": torch.cat(per_step_probe_chunks, dim=0),
         "values": torch.cat(value_chunks, dim=0),
     }

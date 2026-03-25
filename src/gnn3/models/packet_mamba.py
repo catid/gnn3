@@ -79,6 +79,10 @@ class PacketMambaConfig:
     poly_num_heads: int = 3
     poly_hidden_dim: int = 64
     poly_head_delta_weight: float = 0.75
+    delay_mailbox: bool = False
+    delay_mailbox_delays: tuple[int, ...] = (1, 2)
+    delay_mailbox_target: str = "monitor_only"
+    delay_mailbox_fusion: str = "slow_only"
 
 
 class DenseEdgeMixer(nn.Module):
@@ -610,6 +614,11 @@ class PacketMambaModel(nn.Module):
             if config.poly_constructor
             else None
         )
+        self.delay_mailbox_gates = (
+            nn.Parameter(torch.zeros(len(config.delay_mailbox_delays)))
+            if config.delay_mailbox and len(config.delay_mailbox_delays) > 0
+            else None
+        )
 
     def _hazard_summary(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         node_mask = batch["node_mask"].float()
@@ -746,6 +755,39 @@ class PacketMambaModel(nn.Module):
             dim=-1,
         )
 
+    def _delay_mailbox_message(
+        self,
+        history_states: list[torch.Tensor],
+        *,
+        node_roles: torch.Tensor,
+    ) -> tuple[torch.Tensor | None, dict[str, torch.Tensor]]:
+        if self.delay_mailbox_gates is None or not history_states:
+            return None, {}
+        if self.config.delay_mailbox_target == "monitor_only":
+            role_mask = node_roles == ROLE_TO_ID["monitor"]
+        else:
+            role_mask = (node_roles == ROLE_TO_ID["monitor"]) | (node_roles == ROLE_TO_ID["hub"])
+
+        message = None
+        active = 0
+        gate_values = torch.sigmoid(self.delay_mailbox_gates)
+        for gate_value, delay in zip(gate_values, self.config.delay_mailbox_delays, strict=False):
+            if delay <= 0 or len(history_states) < delay:
+                continue
+            delayed = gate_value * history_states[-delay]
+            message = delayed if message is None else message + delayed
+            active += 1
+        if message is None:
+            return None, {}
+        role_mask = role_mask.unsqueeze(-1)
+        message = role_mask * message
+        diagnostics = {
+            "delay_mailbox_release_mean": gate_values.mean(),
+            "delay_mailbox_release_max": gate_values.max(),
+            "delay_mailbox_active": gate_values.new_tensor(float(active)),
+        }
+        return message, diagnostics
+
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         device = batch["node_features"].device
         node_mask = batch["node_mask"]
@@ -757,7 +799,9 @@ class PacketMambaModel(nn.Module):
         x = x + self.role_embedding(batch["node_roles"]) + self.community_embedding(community_ids)
         slow_state = torch.zeros_like(x)
         per_step_logits: list[torch.Tensor] = []
+        per_step_selection_scores: list[torch.Tensor] = []
         per_step_values: list[torch.Tensor] = []
+        per_step_probe_features: list[torch.Tensor] = []
         per_step_on_time_logits: list[torch.Tensor] = []
         per_step_slack: list[torch.Tensor] = []
         per_step_cost_quantiles: list[torch.Tensor] = []
@@ -767,7 +811,13 @@ class PacketMambaModel(nn.Module):
 
         for outer_step in range(self.config.outer_steps):
             prev_state = x
+            mailbox_message, mailbox_diag = self._delay_mailbox_message(
+                history_states,
+                node_roles=batch["node_roles"],
+            )
             transition_input = x + slow_state
+            if mailbox_message is not None and self.config.delay_mailbox_fusion == "slow_only":
+                transition_input = transition_input + mailbox_message
             if self.hazard_encoder is not None:
                 hazard_summary = self.hazard_encoder(self._hazard_summary(batch))
                 hazard_summary = hazard_summary[:, None, :]
@@ -802,6 +852,8 @@ class PacketMambaModel(nn.Module):
                     slow_state = slow_state.detach()
 
             readout_state = x + slow_state
+            if mailbox_message is not None and self.config.delay_mailbox_fusion == "residual":
+                readout_state = readout_state + mailbox_message
             if self.history_reader is not None:
                 readout_state, history_diag = self.history_reader(
                     readout_state,
@@ -814,17 +866,21 @@ class PacketMambaModel(nn.Module):
             readout = self.final_norm(readout_state)
             readout_outputs = self._readout(readout, batch)
             per_step_logits.append(readout_outputs["node_logits"])
+            per_step_selection_scores.append(readout_outputs["selection_scores"])
             per_step_values.append(readout_outputs["values"])
+            per_step_probe_features.append(readout_outputs["probe_features"])
             if self.config.deadline_head:
                 per_step_on_time_logits.append(readout_outputs["candidate_on_time_logits"])
                 per_step_slack.append(readout_outputs["candidate_slack"])
                 per_step_cost_quantiles.append(readout_outputs["candidate_cost_quantiles"])
             settling.append((readout - prev_state).norm(dim=-1).mean())
-            diagnostics = router_diag_last
+            diagnostics = {**router_diag_last, **mailbox_diag}
             history_states.append(readout.detach())
 
         stacked_logits = torch.stack(per_step_logits, dim=1)
+        stacked_selection_scores = torch.stack(per_step_selection_scores, dim=1)
         stacked_values = torch.stack(per_step_values, dim=1)
+        stacked_probe_features = torch.stack(per_step_probe_features, dim=1)
         final_outputs = readout_outputs
         if final_outputs.get("regime_gate_weights") is not None:
             gate_weights = final_outputs["regime_gate_weights"]
@@ -840,6 +896,7 @@ class PacketMambaModel(nn.Module):
             "selection_scores": final_outputs["selection_scores"],
             "poly_selection_scores": final_outputs["poly_selection_scores"],
             "per_step_logits": stacked_logits,
+            "per_step_selection_scores": stacked_selection_scores,
             "values": final_outputs["values"],
             "per_step_values": stacked_values,
             "route_logits": final_outputs["route_logits"],
@@ -852,6 +909,7 @@ class PacketMambaModel(nn.Module):
             "path_reranker_gate": final_outputs["path_reranker_gate"],
             "regime_gate_weights": final_outputs["regime_gate_weights"],
             "probe_features": final_outputs["probe_features"],
+            "per_step_probe_features": stacked_probe_features,
             "per_step_candidate_on_time_logits": (
                 torch.stack(per_step_on_time_logits, dim=1) if per_step_on_time_logits else None
             ),

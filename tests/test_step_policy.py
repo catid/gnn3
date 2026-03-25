@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import torch
 
-from gnn3.eval.step_policy import select_step_scores
+from gnn3.eval.step_policy import select_step_index, select_step_scores
 
 
 def _output() -> dict[str, torch.Tensor]:
@@ -47,3 +47,12 @@ def test_select_step_scores_max_margin_and_earliest_final_agreement() -> None:
     assert int(stable[0].argmax().item()) == 1
     # sample 1 already agrees with final on step 1, so stable picks step 1
     assert int(stable[1].argmax().item()) == 0
+
+
+def test_select_step_index_matches_expected_steps() -> None:
+    candidate_mask = torch.tensor([[True, True, False], [True, True, False]], dtype=torch.bool)
+    output = _output()
+    assert torch.equal(select_step_index(output, candidate_mask, strategy="first"), torch.tensor([0, 0]))
+    assert torch.equal(select_step_index(output, candidate_mask, strategy="middle"), torch.tensor([1, 1]))
+    assert torch.equal(select_step_index(output, candidate_mask, strategy="final"), torch.tensor([2, 2]))
+    assert torch.equal(select_step_index(output, candidate_mask, strategy="earliest_final_agreement"), torch.tensor([2, 1]))

@@ -68,6 +68,11 @@ class DecisionPredictionRow:
     second_best_candidate_cost: float
     oracle_action_gap: float
     oracle_action_gap_ratio: float
+    model_top1_score: float
+    model_top2_score: float
+    model_margin: float
+    predicted_score: float
+    target_score: float
     predicted_cost_to_go: float
     predicted_slack: float
     predicted_on_time: bool
@@ -307,6 +312,7 @@ def collect_decision_prediction_rows(
         predicted = scores.argmax(dim=-1).detach().cpu().tolist()
         for offset, record in enumerate(batch_records):
             valid_mask = record.candidate_mask.astype(bool)
+            valid_scores = scores[offset, : valid_mask.shape[0]].detach().cpu()[valid_mask]
             feasible = record.candidate_on_time[valid_mask] > 0.5
             feasible_fraction = float(feasible.mean()) if feasible.size else 0.0
             if feasible.any():
@@ -320,6 +326,15 @@ def collect_decision_prediction_rows(
             else:
                 best_cost = 0.0
                 second_best_cost = 0.0
+            if valid_scores.numel() > 0:
+                top_scores = torch.topk(valid_scores, k=min(2, int(valid_scores.numel())))
+                model_top1_score = float(top_scores.values[0].item())
+                model_top2_score = (
+                    float(top_scores.values[1].item()) if int(valid_scores.numel()) > 1 else float(top_scores.values[0].item())
+                )
+            else:
+                model_top1_score = 0.0
+                model_top2_score = 0.0
             predicted_next_hop = int(predicted[offset])
             predicted_cost = float(record.candidate_cost_to_go[predicted_next_hop])
             predicted_slack = float(record.candidate_slack[predicted_next_hop])
@@ -350,6 +365,11 @@ def collect_decision_prediction_rows(
                 second_best_candidate_cost=second_best_cost,
                 oracle_action_gap=max(second_best_cost - best_cost, 0.0),
                 oracle_action_gap_ratio=max(second_best_cost - best_cost, 0.0) / max(abs(best_cost), 1e-6),
+                model_top1_score=model_top1_score,
+                model_top2_score=model_top2_score,
+                model_margin=max(model_top1_score - model_top2_score, 0.0),
+                predicted_score=float(scores[offset, predicted_next_hop].detach().cpu()),
+                target_score=float(scores[offset, int(record.target_next_hop)].detach().cpu()),
                 predicted_cost_to_go=predicted_cost,
                 predicted_slack=predicted_slack,
                 predicted_on_time=predicted_on_time,
@@ -384,3 +404,48 @@ def extract_probe_features(
     if not feature_chunks:
         return torch.empty((0, 0), dtype=torch.float32)
     return torch.cat(feature_chunks, dim=0)
+
+
+@torch.no_grad()
+def extract_decision_latents(
+    model: PacketMambaModel,
+    records: list[DecisionRecord],
+    *,
+    device: torch.device,
+    batch_size: int = 64,
+) -> dict[str, torch.Tensor]:
+    was_training = model.training
+    model.eval()
+    probe_chunks: list[torch.Tensor] = []
+    score_chunks: list[torch.Tensor] = []
+    value_chunks: list[torch.Tensor] = []
+    max_score_width = 0
+    for start in range(0, len(records), batch_size):
+        batch_records = records[start : start + batch_size]
+        batch = _move_batch(collate_decisions(batch_records), device)
+        output = model(batch)
+        probe_chunks.append(output["probe_features"].detach().cpu())
+        score_chunk = output["selection_scores"].detach().cpu()
+        max_score_width = max(max_score_width, int(score_chunk.size(1)))
+        score_chunks.append(score_chunk)
+        value_chunks.append(output["values"].detach().cpu())
+    if was_training:
+        model.train()
+    if not probe_chunks:
+        return {
+            "probe_features": torch.empty((0, 0), dtype=torch.float32),
+            "selection_scores": torch.empty((0, 0), dtype=torch.float32),
+            "values": torch.empty((0,), dtype=torch.float32),
+        }
+    padded_score_chunks = []
+    for score_chunk in score_chunks:
+        if int(score_chunk.size(1)) == max_score_width:
+            padded_score_chunks.append(score_chunk)
+            continue
+        pad_width = max_score_width - int(score_chunk.size(1))
+        padded_score_chunks.append(torch.nn.functional.pad(score_chunk, (0, pad_width)))
+    return {
+        "probe_features": torch.cat(probe_chunks, dim=0),
+        "selection_scores": torch.cat(padded_score_chunks, dim=0),
+        "values": torch.cat(value_chunks, dim=0),
+    }

@@ -77,6 +77,13 @@
 | B3-R7-teacher-heavy | explore | Train an independent heavy-packets specialist teacher to test whether a materially different hard-slice policy exists at all. | 0.08 | 0.0741 | killed-early | Only round-seven branch with real movement: `7.7%` large-gap disagreement on `deeper_packets6`, but target-match on that slice worsened from `0.98` to `0.90`. |
 | B3-R7-teacher-tight | explore | Train an independent very-tight-slack specialist teacher as a direct test of whether the baseline is averaging across incompatible deadline regimes. | 0.08 | 0.0796 | killed-early | Exact hard-slice policy match to baseline; no disagreement and no promotion path. |
 | B3-R7-teacher-depth4 | explore | Train an independent depth-4 specialist teacher to test whether deeper graphs admit a different constructive policy. | 0.04 | 0.0380 | killed-early | Exact hard-slice policy match to baseline; no disagreement and no promotion path. |
+| A1-R8-baseline-batch | exploit | Refresh the `multiheavy` guardrail on the corrected round-eight feasible suites before opening near-tie-specific branches. | 0.30 | 0.2662 | completed | Fresh seed `311 / 312 / 313` batch stayed in the established band: regrets `1.50 / 1.92 / 0.55`, p95 `5.96 / 5.45 / 2.90`, miss `43.8% / 43.8% / 37.5%`. |
+| A2-R8-near-tie-audit | exploit | Re-audit the hard near-tie opportunity directly across fresh seeds instead of relying on the older large-gap framing. | 0.30 | 0.2892 | completed | Three fresh audits confirmed the same diagnosis: hard near-tie error stays around `9%` to `11%`, while the large-gap control stays near solved at `0.0%` to `0.3%`. |
+| A3-R8-probe-audit | exploit | Extend the frozen-feature probe work to the round-eight near-tie framing and check whether the representation diagnosis still holds. | 0.22 | 0.2206 | stopped | Seed312 probe completed and again supported the decision-rule bottleneck diagnosis; a seed311 confirmatory probe was stopped after the round decision was already fixed. |
+| B1-R8-counterfactual-dataset | explore | Build and cache all-action counterfactual supervision so multiple near-tie critics can reuse the same slice-specific data. | 0.05 | 0.0500 | completed | Cached `25,007` candidate rows, with the real near-tie baseline-error coverage concentrated in `deeper_packets6` and `heavy_dynamic`. |
+| B2-R8-critics | explore | Train a small family of near-tie critics on cached counterfactual supervision and kill weak direct policies quickly. | 0.25 | 0.2100 | completed | Five critic variants settled the family: `pairwise_rank` was the safest direct critic; scalar and late-unfreeze had real recovery signal but were too destructive directly. |
+| C1-R8-search | explore | Test whether critic signal can be turned into useful bounded ambiguity correction rather than another global architecture family. | 1.30 | 1.1519 | killed-early | Both full-suite and targeted two-suite search scouts were stopped on runtime before they justified promotion. |
+| E1-R8-path-tiebreak | explore | Try a cheaper near-tie-only local suffix-cost tie-breaker as a backup after bounded search proved too slow. | 0.20 | 0.1725 | killed-early | The backup was cheaper than bounded search but still crossed the scout runtime bar before proving enough value. |
 
 Current cumulative GPU-hours:
 
@@ -91,6 +98,9 @@ Current cumulative GPU-hours:
 - Round-seven exploit: `0.1330`
 - Round-seven explore: `0.3806`
 - Round-seven split: `25.9% / 74.1%`
-- Overall exploit: `6.8287`
-- Overall explore: `3.4257`
-- Overall split: `66.6% / 33.4%`
+- Round-eight exploit: `0.7760`
+- Round-eight explore: `1.5844`
+- Round-eight split: `32.9% / 67.1%`
+- Overall exploit: `7.6047`
+- Overall explore: `5.0101`
+- Overall split: `60.3% / 39.7%`

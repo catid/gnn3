@@ -1,0 +1,32 @@
+name: a1_multiheavy_mixed_compute_round9_eval_seed315
+bucket: exploit
+seed: 315
+stage: eval
+notes: round9 mixed easy/hard variable-compute suite for regret-versus-average-step tradeoff checks on seed315
+output_dir: artifacts/experiments/a1_multiheavy_mixed_compute_round9_eval_seed315
+benchmark:
+  train_episodes: 180
+  val_episodes: 48
+  test_episodes: 64
+  curriculum_levels: [single_dynamic, multi_dynamic, multi_dynamic]
+  hidden_corridor:
+    seed: 315
+    tree_depth_min: 2
+    tree_depth_max: 4
+    packets_max: 6
+    dynamic_capacities: true
+    community_base_queue: [1.0, 5.5]
+    deadline_mode: oracle_calibrated
+    deadline_slack_ratio_range: [0.04, 0.18]
+    deadline_slack_abs_range: [0.15, 1.0]
+train:
+  device: cuda:0
+model:
+  d_model: 128
+  d_state: 16
+  inner_layers: 2
+  outer_steps: 3
+  router_variant: memory_hubs
+  final_step_only_loss: true
+  detach_warmup: true
+  penultimate_grad_prob: 0.25

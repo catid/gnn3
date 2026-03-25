@@ -20,6 +20,7 @@ from gnn3.data.hidden_corridor import (
     shortest_path,
 )
 from gnn3.eval.rollout import _move_batch
+from gnn3.eval.step_policy import select_step_scores
 from gnn3.models.packet_mamba import PacketMambaModel
 from gnn3.train.config import hidden_corridor_config_for_split, load_experiment_config
 from gnn3.train.trainer import _resolve_device
@@ -71,10 +72,13 @@ def _selection_scores(
     record: DecisionRecord,
     *,
     device: torch.device,
+    selection_strategy: str,
 ) -> torch.Tensor:
     batch = _move_batch(collate_decisions([record]), device)
     output = model(batch)
-    return output["selection_scores"][0].detach().cpu()
+    if selection_strategy == "final":
+        return output["selection_scores"][0].detach().cpu()
+    return select_step_scores(output, batch["candidate_mask"], strategy=selection_strategy)[0].detach().cpu()
 
 
 def _make_record(
@@ -146,6 +150,7 @@ def _simulate_branch(
     device: torch.device,
     config,
     curriculum_level: str,
+    selection_strategy: str,
 ) -> dict[str, float | bool | int]:
     total_cost = 0.0
     decisions = 0
@@ -201,7 +206,7 @@ def _simulate_branch(
         )
         if record is None:
             break
-        scores = _selection_scores(model, record, device=device)
+        scores = _selection_scores(model, record, device=device, selection_strategy=selection_strategy)
         chosen_next_hop = int(scores.argmax().item())
         ok, transition_cost, reached_destination = _advance_one_decision(state, chosen_next_hop, config=config)
         if not ok:
@@ -273,7 +278,12 @@ def main() -> None:
                     )
                     if record is None or oracle_next_hop is None:
                         break
-                    scores = _selection_scores(model, record, device=device)
+                    scores = _selection_scores(
+                        model,
+                        record,
+                        device=device,
+                        selection_strategy=args.selection_strategy,
+                    )
                     valid_mask = torch.from_numpy(record.candidate_mask.astype(bool))
                     valid_scores = scores.masked_fill(~valid_mask, -1e9)
                     ranked = torch.topk(valid_scores, k=min(args.top_k, int(valid_mask.sum()))).indices.tolist()
@@ -299,6 +309,7 @@ def main() -> None:
                                 device=device,
                                 config=hidden_cfg,
                                 curriculum_level=episode.curriculum_level,
+                                selection_strategy=args.selection_strategy,
                             )
                             if not result["valid"]:
                                 continue

@@ -6,6 +6,7 @@ from gnn3.data.hidden_corridor import HiddenCorridorConfig, HiddenCorridorDecisi
 from gnn3.eval.policy_analysis import (
     collect_decision_prediction_rows,
     collect_episode_policy_rows,
+    extract_decision_latents,
     extract_probe_features,
 )
 from gnn3.models.packet_mamba import PacketMambaConfig, PacketMambaModel
@@ -56,3 +57,16 @@ def test_extract_probe_features_matches_dataset_length() -> None:
     features = extract_probe_features(model, list(dataset), device=torch.device("cpu"))
     assert features.shape[0] == len(dataset)
     assert features.shape[1] > 32
+
+
+def test_extract_decision_latents_exposes_per_step_tensors() -> None:
+    dataset = HiddenCorridorDecisionDataset(
+        config=HiddenCorridorConfig(seed=24, packets_max=2, deadline_mode="oracle_calibrated"),
+        num_episodes=2,
+        curriculum_levels=("single_dynamic",),
+    )
+    model = PacketMambaModel(PacketMambaConfig(d_model=32, d_state=8, inner_layers=1, outer_steps=3))
+    latents = extract_decision_latents(model, list(dataset), device=torch.device("cpu"))
+    assert latents["probe_features"].shape[0] == len(dataset)
+    assert latents["per_step_selection_scores"].shape[:2] == (len(dataset), 3)
+    assert latents["per_step_probe_features"].shape[:2] == (len(dataset), 3)

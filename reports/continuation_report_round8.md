@@ -261,6 +261,6 @@ This is the important resource read for the round:
 
 ## Merge Status
 
-Round-eight work was merged back into local `main` at commit `TBD`.
+Round-eight work was merged back into local `main` at merge commit `bf8f6600d84926697f50d308f3a3b454d7853f17`.
 
 Pushing `main` depends on GitHub auth in the current shell and will be recorded explicitly at handoff.

@@ -128,6 +128,7 @@
 | D1-R12-committee-defer | explore | Use teacher-bank agreement directly as a precision-first offline defer upper bound. | 0.06 | 0.0200 | completed | Best new round-twelve branch: held-out committee defer reached `100%` stable-positive precision at about `0.25%` overall coverage, but remained an offline upper bound rather than a deployable policy. |
 | E1-R12-positive-mining | explore | Test whether training-only mining can expand the sparse positive source family before reopening student work. | 0.04 | 0.0300 | completed | Best coarse mining recovered all held-out positives only at `5.97%` precision; mining did not create a clean expanded source family. |
 | F1-R12-deployment-study | exploit | Compare the round-eleven reference, round-twelve learned defer, and round-twelve committee upper bound on a held-out deployment panel. | 0.04 | 0.0100 | completed | No round-twelve branch beat the round-eleven `margin_regime` reference on the held-out deployment panel. |
+| X1-followup-prototype-memory | explore | Test whether a learnable prototype-memory defer head can beat the dead hand-built retrieval rules on the sparse stable-positive-v2 family. | 0.02 | 0.0000 | completed | `prototype_hybrid` recovered `75%` of held-out stable-positive-v2 and matched the round-eleven hard-slice band at `0.75%` coverage, but still trailed the round-eleven reference on overall regret. |
 
 Current cumulative GPU-hours:
 

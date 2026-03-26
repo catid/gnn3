@@ -1,0 +1,21 @@
+{
+  "coverage_budgets": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.5,
+    2.0
+  ],
+  "train_cache": "reports/plots/round11_feature_cache_seed314.pt",
+  "train_metadata": "reports/plots/round11_feature_cache_seed314_metadata.csv",
+  "eval_caches": [
+    "reports/plots/round11_feature_cache_seed315.pt",
+    "reports/plots/round11_feature_cache_seed316.pt"
+  ],
+  "eval_metadata": [
+    "reports/plots/round11_feature_cache_seed315_metadata.csv",
+    "reports/plots/round11_feature_cache_seed316_metadata.csv"
+  ]
+}

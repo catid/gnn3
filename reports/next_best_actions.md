@@ -26,21 +26,32 @@
    - `100%` stable-positive precision
    - hard near-tie delta regret only `-0.0029`
    - requires per-state teacher-bank knowledge
-8. Do not reopen retrieval / prototype defer. kNN, prototype, and margin-plus-retrieval were all effectively inert with `0` held-out stable-positive recall.
+8. Keep raw retrieval / hand-built prototype defer closed, but reopen one narrow architecture lead: a learnable `prototype_hybrid` defer head.
+   - plain prototype bank is still dead
+   - committee-only prototype bank is still too weak
+   - but `prototype_hybrid` recovered `75%` of held-out stable-positive-v2
+   - at `0.75%` overall coverage it reached hard near-tie target match `90.53% -> 90.73%`
+   - hard near-tie mean delta regret matched the round-eleven `2%` reference at `-0.0089`
+   - overall mean delta regret at that point was still only `-0.0097`, so it is a lead, not a promotion
 9. Do not reopen conservative student retry. Round-twelve positive mining showed that source-family expansion through training-side mining is too noisy:
    - best coarse mining recovered all held-out positives only at `5.97%` precision
    - broader mining fell to `1.77%` to `2.94%` precision
    - regime mining was worse and introduced nonzero harmful selection
 10. Keep the representation diagnosis unchanged. The backbone still appears to expose most of the local signals; the open problem is still precision calibration and abstention on a tiny ambiguous subset.
-11. If another round opens, bias it toward **richer teachers first, then ultra-low-coverage defer**:
+11. If another round opens, bias it toward **prototype-memory hybrid defer** before any broader family:
+   - keep the richer teacher-bank filters from round twelve
+   - use the learnable prototype-memory plus risk-branch architecture as the first architecture contender
+   - compare against the round-eleven `margin_regime` reference at matched or lower coverage
+   - preserve large-gap controls and broad feasible-suite behavior
+12. If another round opens beyond that, bias it toward **richer teachers first, then ultra-low-coverage defer**:
    - more diverse safe teacher bank members
    - teacher agreement / correction-margin filters
    - explicit held-out comparison against the round-eleven reference at matched or lower coverage
    - hard false-positive penalties and large-gap preservation
-12. Keep the hard gate for every future branch:
+13. Keep the hard gate for every future branch:
    - stable-positive recovery
    - false-positive deferral rate
    - hard near-tie regret / miss delta
    - large-gap control preservation
    - runtime overhead
-13. Keep `detach_warmup` mandatory in every future shortlist. That contract remains unbroken by every round since it was established.
+14. Keep `detach_warmup` mandatory in every future shortlist. That contract remains unbroken by every round since it was established.

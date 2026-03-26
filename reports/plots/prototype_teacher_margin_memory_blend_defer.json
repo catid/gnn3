@@ -1,0 +1,46 @@
+{
+  "prototype_teacher_margin_memory": [
+    {
+      "split": "round11_feature_cache_seed315",
+      "score_min": -3.288050651550293,
+      "score_max": 0.25131115317344666,
+      "score_mean": -1.4170244932174683,
+      "gain_min": 0.5133589506149292,
+      "gain_max": 3.5000298023223877,
+      "gain_mean": 1.5130313634872437,
+      "use_risk_branch": false
+    },
+    {
+      "split": "round11_feature_cache_seed316",
+      "score_min": -2.2047863006591797,
+      "score_max": 2.099550485610962,
+      "score_mean": 0.4178541302680969,
+      "gain_min": 0.5137302875518799,
+      "gain_max": 2.7756781578063965,
+      "gain_mean": 1.3213504552841187,
+      "use_risk_branch": false
+    }
+  ],
+  "prototype_teacher_margin_memory_hybrid": [
+    {
+      "split": "round11_feature_cache_seed315",
+      "score_min": -8.779956817626953,
+      "score_max": 0.18512573838233948,
+      "score_mean": -4.6491522789001465,
+      "gain_min": 0.02284965105354786,
+      "gain_max": 1.7111650705337524,
+      "gain_mean": 0.44504648447036743,
+      "use_risk_branch": true
+    },
+    {
+      "split": "round11_feature_cache_seed316",
+      "score_min": -8.398497581481934,
+      "score_max": 1.983139157295227,
+      "score_mean": -2.1916346549987793,
+      "gain_min": 0.13960479199886322,
+      "gain_max": 0.8326627016067505,
+      "gain_mean": 0.39999303221702576,
+      "use_risk_branch": true
+    }
+  ]
+}

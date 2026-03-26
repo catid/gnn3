@@ -121,3 +121,4 @@ round12_committee_defer_margin_committee_075,explore,0.02,,,,,0.967638,-0.008944
 round12_positive_mining_high_headroom_coarse,explore,0.03,,,,,0.059701,0.221324,,,,0.007716
 round12_deployment_panel,exploit,0.01,,,,,0.967638,-0.008944,,,,0.0
 prototype_memory_hybrid_defer_075,explore,0.0,,,,,0.966832,-0.009729,,,,-0.00023
+prototype_triage_hybrid_defer_100,explore,0.0,,,,,0.966717,-0.009675,,,,0.0

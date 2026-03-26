@@ -29,6 +29,7 @@
 8. Keep raw retrieval / hand-built prototype defer closed, but reopen one narrow architecture lead: a learnable `prototype_hybrid` defer head.
    - plain prototype bank is still dead
    - committee-only prototype bank is still too weak
+   - explicit positive / neutral / harmful triage prototypes are also closed
    - but `prototype_hybrid` recovered `75%` of held-out stable-positive-v2
    - at `0.75%` overall coverage it reached hard near-tie target match `90.53% -> 90.73%`
    - hard near-tie mean delta regret matched the round-eleven `2%` reference at `-0.0089`

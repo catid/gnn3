@@ -1767,6 +1767,99 @@ class RegimeSplitMemoryBlendPrototypeDeferHead(MemoryAgreementBlendPrototypeDefe
         return logits
 
 
+class RiskPriorRegimeMemoryBlendPrototypeDeferHead(MemoryAgreementBlendPrototypeDeferHead):
+    """Memory-anchor blend with regime specialists biased by explicit risk priors."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+        )
+        self.headroom_blend_gate = torch.nn.Sequential(
+            torch.nn.Linear(7, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+        self.headroom_gate_bias = torch.nn.Parameter(torch.tensor(-1.0, dtype=torch.float32))
+        self.residual_blend_gate = torch.nn.Sequential(
+            torch.nn.Linear(7, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+        self.residual_gate_bias = torch.nn.Parameter(torch.tensor(-1.0, dtype=torch.float32))
+        self.regime_head = torch.nn.Sequential(
+            torch.nn.Linear(7, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 3),
+        )
+        self.risk_prior = None
+        self.risk_prior_scale = None
+        if risk_dim > 0:
+            self.risk_prior = torch.nn.Sequential(
+                torch.nn.Linear(risk_dim, hidden_dim),
+                torch.nn.GELU(),
+                torch.nn.Linear(hidden_dim, 3),
+            )
+            self.risk_prior_scale = torch.nn.Parameter(torch.tensor(1.0, dtype=torch.float32))
+
+    def forward_with_regime(
+        self,
+        features: torch.Tensor,
+        risk_features: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        memory_encoded = self.encode_memory(features)
+        shared_encoded = self.encode_shared(features)
+        dual_pos_encoded = self.encode_dual_positive(features)
+        dual_neg_encoded = self.encode_dual_negative(features)
+
+        memory_score = self._memory_score(memory_encoded)
+        shared_score = self._shared_score(shared_encoded)
+        dual_score = self._dual_score(dual_pos_encoded, dual_neg_encoded)
+
+        inner_gate = torch.sigmoid(
+            self.inner_agreement_gate(self._agreement_features(shared_score, dual_score)).squeeze(-1) + self.inner_gate_bias
+        )
+        agreement_score = shared_score + inner_gate * (dual_score - shared_score)
+
+        outer_features = self._outer_features(memory_score, agreement_score, shared_score, dual_score)
+        base_gate = torch.sigmoid(self.outer_blend_gate(outer_features).squeeze(-1) + self.outer_gate_bias)
+        headroom_gate = torch.sigmoid(self.headroom_blend_gate(outer_features).squeeze(-1) + self.headroom_gate_bias)
+        residual_gate = torch.sigmoid(self.residual_blend_gate(outer_features).squeeze(-1) + self.residual_gate_bias)
+        regime_logits = self.regime_head(outer_features)
+        if self.risk_prior is not None and risk_features is not None and self.risk_prior_scale is not None:
+            regime_logits = regime_logits + self.risk_prior_scale * self.risk_prior(risk_features)
+        regime_probs = F.softmax(regime_logits, dim=1)
+        positive_lift = F.relu(agreement_score - memory_score)
+        mixed_gate = (
+            regime_probs[:, 0] * base_gate
+            + regime_probs[:, 1] * headroom_gate
+            + regime_probs[:, 2] * residual_gate
+        )
+        logits = memory_score + mixed_gate * positive_lift + self.bias
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits, regime_logits
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor | None = None) -> torch.Tensor:
+        logits, _ = self.forward_with_regime(features, risk_features)
+        return logits
+
+
 class TeacherMarginMemoryBlendPrototypeDeferHead(torch.nn.Module):
     """Prototype-memory anchor with a one-sided agreement lift plus teacher-gain calibration."""
 

@@ -61,6 +61,8 @@
    - `prototype_teacher_margin_memory_hybrid` improved broad-safe overall regret to `-0.0042`, but recovered `0%` of held-out stable-positive-v2 at every budget and left hard near-tie unchanged at `90.53%`, so teacher-gain regression calibrated non-target helpfulness instead of the rare correction family
    - explicit regime-split lift specialists on top of the same memory-anchor geometry are also closed
    - `prototype_regime_split_memory_hybrid` did recover `25%` of held-out stable-positive-v2 at `0.10%` overall coverage, but it still capped out at the weaker `90.53% -> 90.60%` hard near-tie band and never challenged `prototype_memory_agree_blend_hybrid` on the micro-budget frontier
+   - explicit risk-prior regime mixing on top of that same memory-anchor geometry is also closed
+   - `prototype_risk_prior_regime_memory_hybrid` improved broad-safe overall regret to `-0.0045`, but recovered `0%` of held-out stable-positive-v2 at every budget and left hard near-tie unchanged at `90.53%`, so injecting explicit headroom / residual priors made the branch broader instead of sharper
    - `prototype_mixture_hybrid` was the first follow-up that fully caught that hard-slice band at matched higher coverage
    - `prototype_agree_mix_hybrid` now improves on it in coverage efficiency
    - at `1.5%` nominal budget it matched `75%` held-out stable-positive-v2 recovery and the same `90.53% -> 90.73%` hard near-tie band
@@ -115,6 +117,7 @@
    - do not spend another cycle on budget-conditioned outer calibration over the current memory-anchor geometry, because it recovered `0%` of held-out stable-positive-v2 and just redirected coverage toward broad-safe non-target states
    - do not spend another cycle on direct teacher-gain regression over the current memory-anchor geometry, because it also recovered `0%` of held-out stable-positive-v2 and only improved broad-safe non-target states
    - do not spend another cycle on regime-split outer lift specialists over the current memory-anchor geometry, because they surfaced only a weak `25%` held-out stable-positive niche and still failed to move beyond the weaker `90.53% -> 90.60%` band
+   - do not spend another cycle on explicit risk-prior regime mixing over the current memory-anchor geometry, because it broadened residual-style non-target selections and still recovered `0%` of held-out stable-positive-v2
 13. Keep the hard gate for every future branch:
    - stable-positive recovery
    - false-positive deferral rate

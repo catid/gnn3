@@ -145,3 +145,4 @@ prototype_positive_lift_agreement_hybrid_defer_200,explore,0.0,,,,,0.967523,-0.0
 prototype_contrastive_evidence_hybrid_defer_200,explore,0.0,,,,,0.966371,-0.008103,,,,-0.00023
 prototype_sharpness_evidence_defer_050,explore,0.0,,,,,0.965219,-0.000174,,,,0.0
 prototype_memory_agree_blend_hybrid_defer_050,explore,0.0,,,,,0.966717,-0.00934,,,,-0.00023
+prototype_memory_evidence_blend_hybrid_defer_200,explore,0.0,,,,,0.967868,-0.012713,,,,0.0

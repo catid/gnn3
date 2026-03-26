@@ -51,6 +51,8 @@
    - at `0.25%` overall coverage it recovered `50%` of held-out stable-positive-v2 and reached the weaker but still real `90.53% -> 90.66%` hard near-tie band
    - at `0.50%` overall coverage it still held `50%` stable-positive-v2 recovery, kept the same `90.53% -> 90.66%` hard near-tie band, and beat `prototype_hybrid` at the same budget on both hard-slice regret and overall mean delta regret
    - but it capped out there and never reached the full `75%` / `90.73%` frontier band, so it is a micro-budget companion rather than a replacement lead
+   - direct fusion of that memory anchor with the richer evidence-aware inner agreement gate is now also closed
+   - `prototype_memory_evidence_blend_hybrid` gave back the micro-budget Tier-1 win, recovering only `25%` at `0.50–1.50%` nominal budgets and only reaching `50%` by `2.0%`, while still capping out at the weaker `90.53% -> 90.66%` hard near-tie band
    - `prototype_mixture_hybrid` was the first follow-up that fully caught that hard-slice band at matched higher coverage
    - `prototype_agree_mix_hybrid` now improves on it in coverage efficiency
    - at `1.5%` nominal budget it matched `75%` held-out stable-positive-v2 recovery and the same `90.53% -> 90.73%` hard near-tie band
@@ -100,6 +102,7 @@
    - do not spend another cycle on multiplicative prototype gating unless it changes the prototype bank itself rather than just reweighting the same score
    - do not spend another cycle on shared-anchor lift cascades unless they can move beyond `50%` held-out stable-positive-v2 recovery without giving back the hard-slice band
    - do not spend another cycle on branch-switch routing unless the branches themselves change, because routing between the current live branches produced no Tier-1 recovery
+   - do not spend another cycle on dropping the evidence-aware agreement gate directly inside the current memory-anchor blend, because it destroyed the micro-budget Tier-1 gain and still failed to reach the full `90.73%` matched band
 13. Keep the hard gate for every future branch:
    - stable-positive recovery
    - false-positive deferral rate

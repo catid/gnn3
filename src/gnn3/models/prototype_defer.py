@@ -717,6 +717,103 @@ class TeacherSignalEvidenceAgreementPrototypeDeferHead(EvidenceAgreementPrototyp
         return logits
 
 
+class SelectiveEvidenceAgreementPrototypeDeferHead(EvidenceAgreementPrototypeDeferHead):
+    """Evidence-agreement head with per-state prototype subset selection."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+        )
+        self.shared_positive_selector = torch.nn.Linear(prototype_dim, prototype_dim, bias=False)
+        self.shared_negative_selector = torch.nn.Linear(prototype_dim, prototype_dim, bias=False)
+        self.dual_positive_selector = torch.nn.Linear(prototype_dim, prototype_dim, bias=False)
+        self.dual_negative_selector = torch.nn.Linear(prototype_dim, prototype_dim, bias=False)
+        self.selector_scale = torch.nn.Parameter(torch.tensor(math.log(8.0), dtype=torch.float32))
+
+    def _selected_bank_score(
+        self,
+        encoded: torch.Tensor,
+        bank: torch.Tensor,
+        selector: torch.nn.Linear,
+        *,
+        scale: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        query = F.normalize(selector(encoded), dim=-1)
+        selector_scale = self.selector_scale.exp().clamp(min=1.0, max=64.0)
+        weights = F.softmax(selector_scale * (query @ bank.T), dim=1)
+        selected = F.normalize(weights @ bank, dim=-1)
+        score = scale * (encoded * selected).sum(dim=1)
+        top = (scale * encoded @ bank.T).amax(dim=1)
+        return score, top
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor | None = None) -> torch.Tensor:
+        shared_encoded = self.encode_shared(features)
+        dual_pos_encoded = self.encode_dual_positive(features)
+        dual_neg_encoded = self.encode_dual_negative(features)
+
+        shared_scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        dual_scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        shared_pos_bank, shared_neg_bank = self._shared_banks()
+        dual_pos_bank, dual_neg_bank = self._dual_banks()
+
+        shared_pos_score, shared_pos_top = self._selected_bank_score(
+            shared_encoded,
+            shared_pos_bank,
+            self.shared_positive_selector,
+            scale=shared_scale,
+        )
+        shared_neg_score, shared_neg_top = self._selected_bank_score(
+            shared_encoded,
+            shared_neg_bank,
+            self.shared_negative_selector,
+            scale=shared_scale,
+        )
+        dual_pos_score, dual_pos_top = self._selected_bank_score(
+            dual_pos_encoded,
+            dual_pos_bank,
+            self.dual_positive_selector,
+            scale=dual_scale,
+        )
+        dual_neg_score, dual_neg_top = self._selected_bank_score(
+            dual_neg_encoded,
+            dual_neg_bank,
+            self.dual_negative_selector,
+            scale=dual_scale,
+        )
+
+        shared_score = shared_pos_score - shared_neg_score
+        dual_score = dual_pos_score - dual_neg_score
+        gate_features = self._evidence_features(
+            shared_score,
+            dual_score,
+            shared_pos_top,
+            shared_neg_top,
+            dual_pos_top,
+            dual_neg_top,
+        )
+        gate = torch.sigmoid(self.evidence_gate(gate_features).squeeze(-1) + self.gate_bias)
+        logits = shared_score + gate * (dual_score - shared_score) + self.bias
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits
+
+
 class BudgetConditionedEvidenceAgreementPrototypeDeferHead(EvidenceAgreementPrototypeDeferHead):
     """Evidence-agreement mixture with an explicit budget-conditioning input."""
 

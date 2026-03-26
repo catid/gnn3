@@ -155,3 +155,4 @@ prototype_risk_veto_regime_memory_hybrid_defer_200,explore,0.0,,,,,0.965335,-0.0
 prototype_memory_calibrated_evidence_hybrid_defer_010,explore,0.0,,,,,0.965219,-0.001251,,,,-0.000115
 prototype_teacher_signal_evidence_defer_200,explore,0.0,,,,,0.965565,-0.002156,,,,0.0
 prototype_budget_evidence_agree_hybrid_defer_010,explore,0.0,,,,,0.965219,-0.000793,,,,0.0
+prototype_selective_evidence_agree_hybrid_defer_010,explore,0.0,,,,,0.965219,-0.000793,,,,0.0

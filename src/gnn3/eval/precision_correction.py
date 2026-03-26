@@ -9,6 +9,7 @@ import pandas as pd
 import torch
 
 DEFAULT_COVERAGE_BUDGETS = (0.25, 0.5, 1.0, 2.0, 5.0)
+ULTRALOW_COVERAGE_BUDGETS = (0.10, 0.25, 0.50, 0.75, 1.00, 1.50, 2.00)
 
 
 def seed_from_text(text: str) -> int | None:
@@ -85,23 +86,80 @@ def annotate_stable_positive_pack(
     return annotated
 
 
-def build_source_signature(frame: pd.DataFrame) -> pd.Series:
-    keys = [
-        frame["suite"].astype(str),
-        frame["depth_load_regime"].astype(str),
-        frame["slack_band"].astype(str),
-        frame["packet_band"].astype(str),
-        frame["load_band"].astype(str),
-        frame["depth_band"].astype(str),
-        frame["gap_bucket"].astype(str),
-        frame["critical_packet_proxy"].astype(str),
-        frame["high_headroom_near_tie_case"].astype(int).astype(str),
-        frame["baseline_error_hard_near_tie_case"].astype(int).astype(str),
-    ]
+def build_source_signature(
+    frame: pd.DataFrame,
+    *,
+    include_suite: bool = True,
+    include_critical_packet: bool = True,
+) -> pd.Series:
+    keys = []
+    if include_suite:
+        keys.append(frame["suite"].astype(str))
+    keys.extend(
+        [
+            frame["depth_load_regime"].astype(str),
+            frame["slack_band"].astype(str),
+            frame["packet_band"].astype(str),
+            frame["load_band"].astype(str),
+            frame["depth_band"].astype(str),
+            frame["gap_bucket"].astype(str),
+        ]
+    )
+    if include_critical_packet:
+        keys.append(frame["critical_packet_proxy"].astype(str))
+    keys.extend(
+        [
+            frame["high_headroom_near_tie_case"].astype(int).astype(str),
+            frame["baseline_error_hard_near_tie_case"].astype(int).astype(str),
+        ]
+    )
     value = keys[0]
     for key in keys[1:]:
         value = value + "|" + key
     return value
+
+
+def teacher_effect_labels(
+    *,
+    base_target_match: Sequence[bool] | np.ndarray,
+    teacher_target_match: Sequence[bool] | np.ndarray,
+    delta_regret: Sequence[float] | np.ndarray,
+    delta_miss: Sequence[float] | np.ndarray,
+    action_changed: Sequence[bool] | np.ndarray,
+    baseline_error_hard_near_tie_case: Sequence[bool] | np.ndarray | None = None,
+    gap_epsilon: float = 0.05,
+) -> pd.DataFrame:
+    base_target_match_np = np.asarray(base_target_match, dtype=bool)
+    teacher_target_match_np = np.asarray(teacher_target_match, dtype=bool)
+    delta_regret_np = np.asarray(delta_regret, dtype=float)
+    delta_miss_np = np.asarray(delta_miss, dtype=float)
+    action_changed_np = np.asarray(action_changed, dtype=bool)
+    if baseline_error_hard_near_tie_case is None:
+        baseline_error_np = ~base_target_match_np
+    else:
+        baseline_error_np = np.asarray(baseline_error_hard_near_tie_case, dtype=bool)
+
+    improved_match = teacher_target_match_np & (~base_target_match_np)
+    worsened_match = base_target_match_np & (~teacher_target_match_np)
+    improved_gap = delta_regret_np <= -float(gap_epsilon)
+    worsened_gap = delta_regret_np >= float(gap_epsilon)
+    improved_miss = delta_miss_np < 0.0
+    worsened_miss = delta_miss_np > 0.0
+
+    helpful = improved_match | improved_miss | (action_changed_np & improved_gap & (~worsened_miss))
+    harmful = worsened_match | worsened_miss | (action_changed_np & worsened_gap & (~improved_miss))
+    helpful = helpful & (~harmful)
+    neutral = (~helpful) & (~harmful)
+
+    return pd.DataFrame(
+        {
+            "helpful": helpful,
+            "harmful": harmful,
+            "neutral": neutral,
+            "recovers_baseline_error": baseline_error_np & improved_match,
+            "breaks_baseline_success": (~baseline_error_np) & worsened_match,
+        }
+    )
 
 
 def jaccard(left: Sequence[str], right: Sequence[str]) -> float:

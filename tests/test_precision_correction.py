@@ -5,8 +5,10 @@ import torch
 
 from gnn3.eval.precision_correction import (
     annotate_stable_positive_pack,
+    build_source_signature,
     candidate_pair_features,
     signature_overlap_rows,
+    teacher_effect_labels,
     top_fraction_mask,
 )
 
@@ -79,3 +81,29 @@ def test_candidate_pair_features_builds_batch_aligned_tensor() -> None:
     features = candidate_pair_features(cache, metadata)
     assert features.shape[0] == 2
     assert features.ndim == 2
+
+
+def test_teacher_effect_labels_marks_helpful_harmful_and_recovery_flags() -> None:
+    labels = teacher_effect_labels(
+        base_target_match=[False, True, True, False],
+        teacher_target_match=[True, False, True, False],
+        delta_regret=[-0.4, 0.3, -0.02, 0.0],
+        delta_miss=[0.0, 1.0, 0.0, 0.0],
+        action_changed=[True, True, False, False],
+        baseline_error_hard_near_tie_case=[True, False, False, True],
+    )
+    assert labels["helpful"].tolist() == [True, False, False, False]
+    assert labels["harmful"].tolist() == [False, True, False, False]
+    assert labels["neutral"].tolist() == [False, False, True, True]
+    assert labels["recovers_baseline_error"].tolist() == [True, False, False, False]
+    assert labels["breaks_baseline_success"].tolist() == [False, True, False, False]
+
+
+def test_build_source_signature_supports_coarse_mode() -> None:
+    frame = _base_frame()
+    fine = build_source_signature(frame)
+    coarse = build_source_signature(frame, include_suite=False, include_critical_packet=False)
+    assert fine.iloc[0].startswith("s1|")
+    assert not coarse.iloc[0].startswith("s1|")
+    assert "True" in fine.iloc[0]
+    assert fine.iloc[0] != coarse.iloc[0]

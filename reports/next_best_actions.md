@@ -133,6 +133,7 @@
    - do not spend another cycle on per-state prototype selection inside the current evidence-agreement family, because it also recovered `0%` of held-out stable-positive-v2, never moved hard near-tie, and only surfaced another tiny large-gap control fix in the hybrid variant
    - do not spend another cycle on regime-specialized bank families inside the current evidence-agreement family, because they only recovered `25%` of held-out stable-positive-v2 by spending very broad false-positive coverage across the headroom and baseline-error slices and still only reached the weaker `90.53% -> 90.60%` hard-slice band
    - do not spend another cycle on anchored residual regime specialists inside the current evidence-agreement family, because they still only recovered `25%` of held-out stable-positive-v2 and also stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
+   - do not spend another cycle on explicit positive-support gating over those anchored residual regime specialists, because it preserved the same weak `25%` held-out stable-positive-v2 recovery and slightly improved coverage-efficiency, but still spent about `75%` false-positive rate inside the targeted regime slices and still stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
 13. Keep the hard gate for every future branch:
    - stable-positive recovery
    - false-positive deferral rate

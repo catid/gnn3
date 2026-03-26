@@ -35,6 +35,7 @@ from gnn3.models.prototype_defer import (
     SelectiveEvidenceAgreementPrototypeDeferHead,
     SharpnessEvidenceAgreementPrototypeDeferHead,
     SpecialistPrototypeDeferHead,
+    SupportedResidualRegimeEvidenceAgreementPrototypeDeferHead,
     SuppressorPrototypeDeferHead,
     SwitchPrototypeDeferHead,
     TeacherMarginMemoryBlendPrototypeDeferHead,
@@ -636,6 +637,51 @@ def test_residual_regime_evidence_agreement_prototype_defer_separates_toy_cluste
     regime_targets[len(positives) // 2 : len(positives)] = 1
 
     head = ResidualRegimeEvidenceAgreementPrototypeDeferHead(
+        feature_dim=2,
+        risk_dim=2,
+        prototype_dim=4,
+        positive_prototypes=2,
+        negative_prototypes=2,
+        hidden_dim=8,
+        use_risk_branch=True,
+    )
+    optimizer = torch.optim.AdamW(head.parameters(), lr=2e-2, weight_decay=1e-4)
+    for _ in range(220):
+        optimizer.zero_grad(set_to_none=True)
+        logits, regime_logits = head.forward_with_regime(features, risk)
+        bce = F.binary_cross_entropy_with_logits(logits, labels)
+        regime_mask = regime_targets >= 0
+        regime_loss = F.cross_entropy(regime_logits[regime_mask], regime_targets[regime_mask])
+        reg = head.regularization(
+            features,
+            positive_mask=positive_mask,
+            hard_negative_mask=hard_negatives,
+            regime_targets=regime_targets,
+        )
+        loss = bce + 0.05 * regime_loss + 0.1 * reg
+        loss.backward()
+        optimizer.step()
+
+    with torch.no_grad():
+        logits = head(features, risk)
+    assert float(logits[: len(positives)].mean()) > float(logits[len(positives) :].mean())
+
+
+def test_supported_residual_regime_evidence_agreement_prototype_defer_separates_toy_clusters() -> None:
+    torch.manual_seed(79)
+    positives = torch.randn(24, 2) * 0.15 + torch.tensor([1.0, 1.0])
+    negatives = torch.randn(24, 2) * 0.15 + torch.tensor([-1.0, -1.0])
+    features = torch.cat([positives, negatives], dim=0)
+    risk = features.clone()
+    labels = torch.cat([torch.ones(len(positives)), torch.zeros(len(negatives))], dim=0)
+    hard_negatives = torch.zeros(len(features), dtype=torch.bool)
+    hard_negatives[len(positives) :] = True
+    positive_mask = labels.bool()
+    regime_targets = torch.full((len(features),), -1, dtype=torch.long)
+    regime_targets[: len(positives) // 2] = 0
+    regime_targets[len(positives) // 2 : len(positives)] = 1
+
+    head = SupportedResidualRegimeEvidenceAgreementPrototypeDeferHead(
         feature_dim=2,
         risk_dim=2,
         prototype_dim=4,

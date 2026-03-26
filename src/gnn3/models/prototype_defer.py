@@ -1427,6 +1427,126 @@ class ResidualRegimeEvidenceAgreementPrototypeDeferHead(torch.nn.Module):
         return loss
 
 
+class SupportedResidualRegimeEvidenceAgreementPrototypeDeferHead(ResidualRegimeEvidenceAgreementPrototypeDeferHead):
+    """Residual-regime evidence anchor with explicit positive support gating."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+        )
+        self.headroom_support_gate = torch.nn.Sequential(
+            torch.nn.Linear(8, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+        self.residual_support_gate = torch.nn.Sequential(
+            torch.nn.Linear(8, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+        self.headroom_support_bias = torch.nn.Parameter(torch.tensor(-1.0, dtype=torch.float32))
+        self.residual_support_bias = torch.nn.Parameter(torch.tensor(-1.0, dtype=torch.float32))
+
+    def _support_features(
+        self,
+        anchor_score: torch.Tensor,
+        specialist_score: torch.Tensor,
+        anchor_margin: torch.Tensor,
+        specialist_margin: torch.Tensor,
+    ) -> torch.Tensor:
+        positive_lift = F.relu(specialist_score - anchor_score)
+        margin_lift = F.relu(specialist_margin - anchor_margin)
+        return torch.stack(
+            [
+                anchor_score,
+                specialist_score,
+                positive_lift,
+                margin_lift,
+                (specialist_score - anchor_score).abs(),
+                anchor_margin,
+                specialist_margin,
+                anchor_score * specialist_score,
+            ],
+            dim=1,
+        )
+
+    def forward_with_regime(
+        self,
+        features: torch.Tensor,
+        risk_features: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        shared_encoded = self.encode_shared(features)
+        dual_pos_encoded = self.encode_dual_positive(features)
+        dual_neg_encoded = self.encode_dual_negative(features)
+
+        anchor_score, anchor_margin = self._score_for_regime("anchor", shared_encoded, dual_pos_encoded, dual_neg_encoded)
+        headroom_score, headroom_margin = self._score_for_regime(
+            "headroom",
+            shared_encoded,
+            dual_pos_encoded,
+            dual_neg_encoded,
+        )
+        residual_score, residual_margin = self._score_for_regime(
+            "residual",
+            shared_encoded,
+            dual_pos_encoded,
+            dual_neg_encoded,
+        )
+
+        regime_logits = self.regime_head(
+            self._regime_features(
+                anchor_score,
+                headroom_score,
+                residual_score,
+                headroom_margin,
+                residual_margin,
+                risk_features,
+            )
+        )
+        regime_probs = F.softmax(regime_logits, dim=1)
+
+        headroom_support = torch.sigmoid(
+            self.headroom_support_gate(
+                self._support_features(anchor_score, headroom_score, anchor_margin, headroom_margin)
+            ).squeeze(-1)
+            + self.headroom_support_bias
+        )
+        residual_support = torch.sigmoid(
+            self.residual_support_gate(
+                self._support_features(anchor_score, residual_score, anchor_margin, residual_margin)
+            ).squeeze(-1)
+            + self.residual_support_bias
+        )
+
+        headroom_lift = F.relu(headroom_score - anchor_score)
+        residual_lift = F.relu(residual_score - anchor_score)
+        logits = (
+            anchor_score
+            + regime_probs[:, 0] * headroom_support * headroom_lift
+            + regime_probs[:, 1] * residual_support * residual_lift
+            + self.bias
+        )
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits, regime_logits
+
+
 class BudgetConditionedEvidenceAgreementPrototypeDeferHead(EvidenceAgreementPrototypeDeferHead):
     """Evidence-agreement mixture with an explicit budget-conditioning input."""
 

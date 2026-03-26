@@ -814,6 +814,300 @@ class SelectiveEvidenceAgreementPrototypeDeferHead(EvidenceAgreementPrototypeDef
         return logits
 
 
+class RegimeSplitEvidenceAgreementPrototypeDeferHead(torch.nn.Module):
+    """Separate evidence-agreement banks for headroom and residual regimes."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+    ) -> None:
+        super().__init__()
+        if positive_prototypes <= 0 or negative_prototypes <= 0:
+            raise ValueError("Prototype counts must be positive.")
+
+        scale = 1.0 / math.sqrt(prototype_dim)
+        self.shared_feature_proj = torch.nn.Linear(feature_dim, prototype_dim, bias=False)
+        self.shared_feature_norm = torch.nn.LayerNorm(prototype_dim)
+        self.dual_positive_feature_proj = torch.nn.Linear(feature_dim, prototype_dim, bias=False)
+        self.dual_positive_feature_norm = torch.nn.LayerNorm(prototype_dim)
+        self.dual_negative_feature_proj = torch.nn.Linear(feature_dim, prototype_dim, bias=False)
+        self.dual_negative_feature_norm = torch.nn.LayerNorm(prototype_dim)
+
+        self.headroom_shared_positive_prototypes = torch.nn.Parameter(
+            torch.randn(positive_prototypes, prototype_dim) * scale
+        )
+        self.headroom_shared_negative_prototypes = torch.nn.Parameter(
+            torch.randn(negative_prototypes, prototype_dim) * scale
+        )
+        self.headroom_dual_positive_prototypes = torch.nn.Parameter(
+            torch.randn(positive_prototypes, prototype_dim) * scale
+        )
+        self.headroom_dual_negative_prototypes = torch.nn.Parameter(
+            torch.randn(negative_prototypes, prototype_dim) * scale
+        )
+
+        self.residual_shared_positive_prototypes = torch.nn.Parameter(
+            torch.randn(positive_prototypes, prototype_dim) * scale
+        )
+        self.residual_shared_negative_prototypes = torch.nn.Parameter(
+            torch.randn(negative_prototypes, prototype_dim) * scale
+        )
+        self.residual_dual_positive_prototypes = torch.nn.Parameter(
+            torch.randn(positive_prototypes, prototype_dim) * scale
+        )
+        self.residual_dual_negative_prototypes = torch.nn.Parameter(
+            torch.randn(negative_prototypes, prototype_dim) * scale
+        )
+
+        self.shared_logit_scale = torch.nn.Parameter(torch.tensor(math.log(8.0), dtype=torch.float32))
+        self.dual_logit_scale = torch.nn.Parameter(torch.tensor(math.log(8.0), dtype=torch.float32))
+        self.headroom_gate = torch.nn.Sequential(
+            torch.nn.Linear(10, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+        self.residual_gate = torch.nn.Sequential(
+            torch.nn.Linear(10, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+        regime_input_dim = 8 + (risk_dim if use_risk_branch and risk_dim > 0 else 0)
+        self.regime_head = torch.nn.Sequential(
+            torch.nn.Linear(regime_input_dim, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 2),
+        )
+        self.headroom_gate_bias = torch.nn.Parameter(torch.tensor(-1.0, dtype=torch.float32))
+        self.residual_gate_bias = torch.nn.Parameter(torch.tensor(-1.0, dtype=torch.float32))
+        self.bias = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+        self._regime_uses_risk = use_risk_branch and risk_dim > 0
+        self.risk_branch = None
+        if use_risk_branch and risk_dim > 0:
+            self.risk_branch = torch.nn.Sequential(
+                torch.nn.Linear(risk_dim, hidden_dim),
+                torch.nn.GELU(),
+                torch.nn.Linear(hidden_dim, 1),
+            )
+
+    def encode_shared(self, features: torch.Tensor) -> torch.Tensor:
+        projected = self.shared_feature_norm(self.shared_feature_proj(features))
+        return F.normalize(projected, dim=-1)
+
+    def encode_dual_positive(self, features: torch.Tensor) -> torch.Tensor:
+        projected = self.dual_positive_feature_norm(self.dual_positive_feature_proj(features))
+        return F.normalize(projected, dim=-1)
+
+    def encode_dual_negative(self, features: torch.Tensor) -> torch.Tensor:
+        projected = self.dual_negative_feature_norm(self.dual_negative_feature_proj(features))
+        return F.normalize(projected, dim=-1)
+
+    def _banks_for_regime(self, regime: str) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        if regime == "headroom":
+            return (
+                F.normalize(self.headroom_shared_positive_prototypes, dim=-1),
+                F.normalize(self.headroom_shared_negative_prototypes, dim=-1),
+                F.normalize(self.headroom_dual_positive_prototypes, dim=-1),
+                F.normalize(self.headroom_dual_negative_prototypes, dim=-1),
+            )
+        if regime == "residual":
+            return (
+                F.normalize(self.residual_shared_positive_prototypes, dim=-1),
+                F.normalize(self.residual_shared_negative_prototypes, dim=-1),
+                F.normalize(self.residual_dual_positive_prototypes, dim=-1),
+                F.normalize(self.residual_dual_negative_prototypes, dim=-1),
+            )
+        raise ValueError(f"Unknown regime: {regime}")
+
+    def _evidence_features(
+        self,
+        shared_score: torch.Tensor,
+        dual_score: torch.Tensor,
+        shared_pos_top: torch.Tensor,
+        shared_neg_top: torch.Tensor,
+        dual_pos_top: torch.Tensor,
+        dual_neg_top: torch.Tensor,
+    ) -> torch.Tensor:
+        diff = dual_score - shared_score
+        shared_margin = shared_pos_top - shared_neg_top
+        dual_margin = dual_pos_top - dual_neg_top
+        return torch.stack(
+            [
+                shared_score,
+                dual_score,
+                diff.abs(),
+                shared_score * dual_score,
+                shared_pos_top,
+                shared_neg_top,
+                dual_pos_top,
+                dual_neg_top,
+                shared_margin,
+                dual_margin,
+            ],
+            dim=1,
+        )
+
+    def _regime_features(
+        self,
+        headroom_score: torch.Tensor,
+        residual_score: torch.Tensor,
+        headroom_shared_margin: torch.Tensor,
+        headroom_dual_margin: torch.Tensor,
+        residual_shared_margin: torch.Tensor,
+        residual_dual_margin: torch.Tensor,
+        risk_features: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        diff = residual_score - headroom_score
+        base = torch.stack(
+            [
+                headroom_score,
+                residual_score,
+                diff.abs(),
+                headroom_score * residual_score,
+                headroom_shared_margin,
+                headroom_dual_margin,
+                residual_shared_margin,
+                residual_dual_margin,
+            ],
+            dim=1,
+        )
+        if self._regime_uses_risk and risk_features is not None:
+            return torch.cat([base, risk_features], dim=1)
+        return base
+
+    def _regime_score(
+        self,
+        regime: str,
+        shared_encoded: torch.Tensor,
+        dual_pos_encoded: torch.Tensor,
+        dual_neg_encoded: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        shared_pos_bank, shared_neg_bank, dual_pos_bank, dual_neg_bank = self._banks_for_regime(regime)
+        shared_scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        dual_scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+
+        shared_pos_logits = shared_scale * shared_encoded @ shared_pos_bank.T
+        shared_neg_logits = shared_scale * shared_encoded @ shared_neg_bank.T
+        dual_pos_logits = dual_scale * dual_pos_encoded @ dual_pos_bank.T
+        dual_neg_logits = dual_scale * dual_neg_encoded @ dual_neg_bank.T
+
+        shared_pos_top = shared_pos_logits.amax(dim=1)
+        shared_neg_top = shared_neg_logits.amax(dim=1)
+        dual_pos_top = dual_pos_logits.amax(dim=1)
+        dual_neg_top = dual_neg_logits.amax(dim=1)
+        shared_score = shared_pos_top - shared_neg_top
+        dual_score = dual_pos_top - dual_neg_top
+        gate_features = self._evidence_features(
+            shared_score,
+            dual_score,
+            shared_pos_top,
+            shared_neg_top,
+            dual_pos_top,
+            dual_neg_top,
+        )
+        gate_net = self.headroom_gate if regime == "headroom" else self.residual_gate
+        gate_bias = self.headroom_gate_bias if regime == "headroom" else self.residual_gate_bias
+        gate = torch.sigmoid(gate_net(gate_features).squeeze(-1) + gate_bias)
+        score = shared_score + gate * (dual_score - shared_score)
+        return score, shared_pos_top - shared_neg_top, dual_pos_top - dual_neg_top
+
+    def forward_with_regime(
+        self,
+        features: torch.Tensor,
+        risk_features: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        shared_encoded = self.encode_shared(features)
+        dual_pos_encoded = self.encode_dual_positive(features)
+        dual_neg_encoded = self.encode_dual_negative(features)
+
+        headroom_score, headroom_shared_margin, headroom_dual_margin = self._regime_score(
+            "headroom",
+            shared_encoded,
+            dual_pos_encoded,
+            dual_neg_encoded,
+        )
+        residual_score, residual_shared_margin, residual_dual_margin = self._regime_score(
+            "residual",
+            shared_encoded,
+            dual_pos_encoded,
+            dual_neg_encoded,
+        )
+        regime_logits = self.regime_head(
+            self._regime_features(
+                headroom_score,
+                residual_score,
+                headroom_shared_margin,
+                headroom_dual_margin,
+                residual_shared_margin,
+                residual_dual_margin,
+                risk_features,
+            )
+        )
+        regime_probs = F.softmax(regime_logits, dim=1)
+        logits = regime_probs[:, 0] * headroom_score + regime_probs[:, 1] * residual_score + self.bias
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits, regime_logits
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor | None = None) -> torch.Tensor:
+        logits, _ = self.forward_with_regime(features, risk_features)
+        return logits
+
+    def regularization(
+        self,
+        features: torch.Tensor,
+        *,
+        positive_mask: torch.Tensor,
+        hard_negative_mask: torch.Tensor,
+        margin: float = 0.20,
+        regime_targets: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        shared_encoded = self.encode_shared(features)
+        dual_positive_encoded = self.encode_dual_positive(features)
+        dual_negative_encoded = self.encode_dual_negative(features)
+        loss = features.new_tensor(0.0)
+
+        for regime_name, regime_index in (("headroom", 0), ("residual", 1)):
+            shared_pos_bank, shared_neg_bank, dual_pos_bank, dual_neg_bank = self._banks_for_regime(regime_name)
+            if regime_targets is None:
+                regime_positive_mask = positive_mask
+            else:
+                regime_positive_mask = positive_mask & (regime_targets == regime_index)
+            if bool(regime_positive_mask.any()):
+                regime_shared = shared_encoded[regime_positive_mask]
+                regime_dual_positive = dual_positive_encoded[regime_positive_mask]
+                regime_dual_negative = dual_negative_encoded[regime_positive_mask]
+                shared_pos_alignment = (regime_shared @ shared_pos_bank.T).amax(dim=1)
+                shared_neg_overlap = (regime_shared @ shared_neg_bank.T).amax(dim=1)
+                dual_pos_alignment = (regime_dual_positive @ dual_pos_bank.T).amax(dim=1)
+                dual_neg_overlap = (regime_dual_negative @ dual_neg_bank.T).amax(dim=1)
+                loss = loss + (1.0 - shared_pos_alignment).mean()
+                loss = loss + F.relu(shared_neg_overlap - margin).mean()
+                loss = loss + (1.0 - dual_pos_alignment).mean()
+                loss = loss + F.relu(dual_neg_overlap - margin).mean()
+
+            if bool(hard_negative_mask.any()):
+                hard_shared = shared_encoded[hard_negative_mask]
+                hard_dual_positive = dual_positive_encoded[hard_negative_mask]
+                hard_dual_negative = dual_negative_encoded[hard_negative_mask]
+                shared_neg_alignment = (hard_shared @ shared_neg_bank.T).amax(dim=1)
+                shared_pos_overlap = (hard_shared @ shared_pos_bank.T).amax(dim=1)
+                dual_neg_alignment = (hard_dual_negative @ dual_neg_bank.T).amax(dim=1)
+                dual_pos_overlap = (hard_dual_positive @ dual_pos_bank.T).amax(dim=1)
+                loss = loss + (1.0 - shared_neg_alignment).mean()
+                loss = loss + F.relu(shared_pos_overlap - margin).mean()
+                loss = loss + (1.0 - dual_neg_alignment).mean()
+                loss = loss + F.relu(dual_pos_overlap - margin).mean()
+
+        return loss
+
+
 class BudgetConditionedEvidenceAgreementPrototypeDeferHead(EvidenceAgreementPrototypeDeferHead):
     """Evidence-agreement mixture with an explicit budget-conditioning input."""
 

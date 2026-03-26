@@ -131,6 +131,7 @@
    - do not spend another cycle on auxiliary committee-support / safe-gain heads inside the current evidence-agreement family, because they also recovered `0%` of held-out stable-positive-v2 and only improved broad-safe control behavior
    - do not spend another cycle on explicit budget-conditioning inside the current evidence-agreement family, because it also recovered `0%` of held-out stable-positive-v2 and only changed broad-safe non-target selection patterns
    - do not spend another cycle on per-state prototype selection inside the current evidence-agreement family, because it also recovered `0%` of held-out stable-positive-v2, never moved hard near-tie, and only surfaced another tiny large-gap control fix in the hybrid variant
+   - do not spend another cycle on regime-specialized bank families inside the current evidence-agreement family, because they only recovered `25%` of held-out stable-positive-v2 by spending very broad false-positive coverage across the headroom and baseline-error slices and still only reached the weaker `90.53% -> 90.60%` hard-slice band
 13. Keep the hard gate for every future branch:
    - stable-positive recovery
    - false-positive deferral rate

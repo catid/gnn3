@@ -92,6 +92,99 @@ class PrototypeMemoryDeferHead(torch.nn.Module):
         return loss
 
 
+class DualProjectionPrototypeDeferHead(torch.nn.Module):
+    """Prototype bank with separate positive and negative query projections."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+    ) -> None:
+        super().__init__()
+        if positive_prototypes <= 0 or negative_prototypes <= 0:
+            raise ValueError("Prototype counts must be positive.")
+
+        scale = 1.0 / math.sqrt(prototype_dim)
+        self.positive_feature_proj = torch.nn.Linear(feature_dim, prototype_dim, bias=False)
+        self.positive_feature_norm = torch.nn.LayerNorm(prototype_dim)
+        self.negative_feature_proj = torch.nn.Linear(feature_dim, prototype_dim, bias=False)
+        self.negative_feature_norm = torch.nn.LayerNorm(prototype_dim)
+        self.positive_prototypes = torch.nn.Parameter(torch.randn(positive_prototypes, prototype_dim) * scale)
+        self.negative_prototypes = torch.nn.Parameter(torch.randn(negative_prototypes, prototype_dim) * scale)
+        self.logit_scale = torch.nn.Parameter(torch.tensor(math.log(8.0), dtype=torch.float32))
+        self.bias = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+        self.risk_branch = None
+        if use_risk_branch and risk_dim > 0:
+            self.risk_branch = torch.nn.Sequential(
+                torch.nn.Linear(risk_dim, hidden_dim),
+                torch.nn.GELU(),
+                torch.nn.Linear(hidden_dim, 1),
+            )
+
+    def encode_positive(self, features: torch.Tensor) -> torch.Tensor:
+        projected = self.positive_feature_norm(self.positive_feature_proj(features))
+        return F.normalize(projected, dim=-1)
+
+    def encode_negative(self, features: torch.Tensor) -> torch.Tensor:
+        projected = self.negative_feature_norm(self.negative_feature_proj(features))
+        return F.normalize(projected, dim=-1)
+
+    def _banks(self) -> tuple[torch.Tensor, torch.Tensor]:
+        return F.normalize(self.positive_prototypes, dim=-1), F.normalize(self.negative_prototypes, dim=-1)
+
+    def _prototype_score(self, positive_encoded: torch.Tensor, negative_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._banks()
+        pos_score = torch.logsumexp(scale * positive_encoded @ pos.T, dim=1)
+        neg_score = torch.logsumexp(scale * negative_encoded @ neg.T, dim=1)
+        return pos_score - neg_score
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor | None = None) -> torch.Tensor:
+        positive_encoded = self.encode_positive(features)
+        negative_encoded = self.encode_negative(features)
+        logits = self._prototype_score(positive_encoded, negative_encoded) + self.bias
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits
+
+    def regularization(
+        self,
+        features: torch.Tensor,
+        *,
+        positive_mask: torch.Tensor,
+        hard_negative_mask: torch.Tensor,
+        margin: float = 0.20,
+    ) -> torch.Tensor:
+        pos_bank, neg_bank = self._banks()
+        loss = features.new_tensor(0.0)
+
+        if bool(positive_mask.any()):
+            pos_features = features[positive_mask]
+            positive_encoded = self.encode_positive(pos_features)
+            positive_encoded_for_negative = self.encode_negative(pos_features)
+            pos_alignment = (positive_encoded @ pos_bank.T).amax(dim=1)
+            neg_overlap = (positive_encoded_for_negative @ neg_bank.T).amax(dim=1)
+            loss = loss + (1.0 - pos_alignment).mean()
+            loss = loss + F.relu(neg_overlap - margin).mean()
+
+        if bool(hard_negative_mask.any()):
+            neg_features = features[hard_negative_mask]
+            negative_encoded = self.encode_negative(neg_features)
+            negative_encoded_for_positive = self.encode_positive(neg_features)
+            neg_alignment = (negative_encoded @ neg_bank.T).amax(dim=1)
+            pos_overlap = (negative_encoded_for_positive @ pos_bank.T).amax(dim=1)
+            loss = loss + (1.0 - neg_alignment).mean()
+            loss = loss + F.relu(pos_overlap - margin).mean()
+
+        return loss
+
+
 class AdapterPrototypeDeferHead(torch.nn.Module):
     """Prototype bank plus a tiny learned adapter in encoded feature space."""
 

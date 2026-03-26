@@ -47,9 +47,11 @@
    - at `0.75%` overall coverage it reached hard near-tie target match `90.53% -> 90.73%`
    - hard near-tie mean delta regret matched the round-eleven `2%` reference at `-0.0089`
    - overall mean delta regret at that point was still only `-0.0097`, so it is a lead, not a promotion
-   - `prototype_mixture_hybrid` is the first follow-up that fully caught that hard-slice band at matched higher coverage
-   - at `2.0%` nominal budget it matched `75%` held-out stable-positive-v2 recovery and the same `90.53% -> 90.73%` hard near-tie band
-   - at that matched point it slightly improved overall mean delta regret from `-0.0134` to `-0.0138`
+   - `prototype_mixture_hybrid` was the first follow-up that fully caught that hard-slice band at matched higher coverage
+   - `prototype_agree_mix_hybrid` now improves on it in coverage efficiency
+   - at `1.5%` nominal budget it matched `75%` held-out stable-positive-v2 recovery and the same `90.53% -> 90.73%` hard near-tie band
+   - it reached that matched band at about `1.05%` overall coverage instead of `1.84%`
+   - its overall mean delta regret at that point was `-0.0137`, essentially matching the old mixture result while paying much less coverage
    - but at `0.75%` it only recovered `50%` of held-out stable-positive-v2 and stayed in the weaker `90.53% -> 90.66%` band
    - temporal scalar context was cleaner overall, but only recovered `50%` of held-out stable-positive-v2 and only reached hard near-tie `90.53% -> 90.66%`, so it is not the right architecture direction
    - gated rescaling of prototype evidence also capped out at `50%` held-out stable-positive-v2 recovery and the same weaker `90.53% -> 90.66%` hard near-tie band
@@ -67,10 +69,10 @@
    - broader mining fell to `1.77%` to `2.94%` precision
    - regime mining was worse and introduced nonzero harmful selection
 10. Keep the representation diagnosis unchanged. The backbone still appears to expose most of the local signals; the open problem is still precision calibration and abstention on a tiny ambiguous subset.
-11. If another round opens, bias it toward **prototype-memory hybrid defer** and **prototype-mixture hybrid defer** before any broader family:
+11. If another round opens, bias it toward **prototype-memory hybrid defer** and **agreement-gated prototype-mixture hybrid defer** before any broader family:
    - keep the richer teacher-bank filters from round twelve
    - use the learnable prototype-memory plus risk-branch architecture as the ultra-low-coverage contender
-   - use the geometry-mixture prototype head as the matched-coverage contender
+   - use the agreement-gated geometry-mixture head as the matched-band contender
    - compare against the round-eleven `margin_regime` reference at matched or lower coverage
    - preserve large-gap controls and broad feasible-suite behavior
 12. If another round opens beyond that, bias it toward **richer teachers first, then ultra-low-coverage defer**:

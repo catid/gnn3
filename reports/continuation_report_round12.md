@@ -219,8 +219,25 @@ Key artifacts:
 
 ## Merge / push status
 
-Round twelve is complete on the working branch and ready for local merge into
-`main`.
+Round twelve is merged into local `main` at commit
+`8b68fa47c97ba2e9d46c3192889e079f82bf8a54` (`round12: teacher-bank ultralow
+defer experiments`).
 
-Final validation, merge bookkeeping, and push status are recorded after the
-landing sequence completes.
+Post-merge validation on `main` passed:
+
+- `uv run ruff check src tests scripts`
+- `uv run pytest tests/test_precision_correction.py tests/test_compute_helpfulness.py tests/test_policy_analysis.py tests/test_step_policy.py -q`
+- `uv run python scripts/run_train.py --config configs/experiments/smoke_local_cpu.yaml`
+
+Remote landing is still blocked by SSH auth in this shell:
+
+- `git pull --ff-only origin main`
+  - `git@github.com: Permission denied (publickey).`
+- `bd sync`
+  - `pulling: git pull failed: exit status 1`
+  - `git@github.com: Permission denied (publickey).`
+- `git push origin main`
+  - `git@github.com: Permission denied (publickey).`
+
+The repo is clean locally on `main` and ready to push from a shell with GitHub
+write access.

@@ -132,6 +132,7 @@
 | X2-followup-prototype-triage | explore | Test whether explicit positive / neutral / harmful prototype memories reduce neutral spill better than the simpler prototype-hybrid head. | 0.02 | 0.0000 | completed | Closed negative: triage memory collapsed stable-positive-v2 recovery to `25%` and never matched the `prototype_hybrid` hard-slice result. |
 | X3-followup-candidate-prototype | explore | Test whether explicit top-2 candidate-pair geometry improves the live prototype-hybrid defer lead on the sparse stable-positive family. | 0.02 | 0.0000 | completed | Closed negative: candidate-aware prototype defer recovered `0–25%` of held-out stable-positive-v2 and never matched the live `prototype_hybrid` frontier result. |
 | X4-followup-prototype-pair-context | explore | Test whether a lightweight top-2 pair-context branch helps the live prototype-hybrid lead without replacing its working prototype geometry. | 0.02 | 0.0000 | completed | Closed negative: pair-context hybrids improved overall caution but cut Tier-1 recovery to `25–50%`, below the live `prototype_hybrid` result. |
+| X5-followup-prototype-temporal | explore | Test whether temporal outer-step context and probe drift improve the live prototype-hybrid defer lead on the sparse stable-positive family. | 0.02 | 0.0000 | completed | Closed negative: temporal scalar context improved aggregate caution but only recovered `50%` of held-out stable-positive-v2, while temporal probe drift was weaker still. |
 
 Current cumulative GPU-hours:
 

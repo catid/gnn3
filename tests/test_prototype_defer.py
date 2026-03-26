@@ -34,6 +34,7 @@ from gnn3.models.prototype_defer import (
     SuppressorPrototypeDeferHead,
     SwitchPrototypeDeferHead,
     TeacherMarginMemoryBlendPrototypeDeferHead,
+    TeacherSignalEvidenceAgreementPrototypeDeferHead,
 )
 
 
@@ -317,6 +318,47 @@ def test_memory_calibrated_evidence_agreement_prototype_defer_separates_toy_clus
     with torch.no_grad():
         logits = head(features, risk)
     assert float(logits[: len(positives)].mean()) > float(logits[len(positives) :].mean())
+
+
+def test_teacher_signal_evidence_agreement_prototype_defer_separates_toy_clusters() -> None:
+    torch.manual_seed(40)
+    positives = torch.randn(24, 2) * 0.15 + torch.tensor([1.0, 1.0])
+    negatives = torch.randn(24, 2) * 0.15 + torch.tensor([-1.0, -1.0])
+    features = torch.cat([positives, negatives], dim=0)
+    risk = features.clone()
+    labels = torch.cat([torch.ones(len(positives)), torch.zeros(len(negatives))], dim=0)
+    committee_target = labels.clone()
+    gain_target = labels.clone()
+    hard_negatives = torch.zeros(len(features), dtype=torch.bool)
+    hard_negatives[len(positives) :] = True
+    positive_mask = labels.bool()
+
+    head = TeacherSignalEvidenceAgreementPrototypeDeferHead(
+        feature_dim=2,
+        risk_dim=2,
+        prototype_dim=4,
+        positive_prototypes=2,
+        negative_prototypes=2,
+        hidden_dim=8,
+        use_risk_branch=True,
+    )
+    optimizer = torch.optim.AdamW(head.parameters(), lr=2e-2, weight_decay=1e-4)
+    for _ in range(180):
+        optimizer.zero_grad(set_to_none=True)
+        logits, committee_logits, gain_logits = head.forward_with_aux(features, risk)
+        bce = F.binary_cross_entropy_with_logits(logits, labels)
+        committee_loss = F.binary_cross_entropy_with_logits(committee_logits, committee_target)
+        gain_loss = F.binary_cross_entropy_with_logits(gain_logits, gain_target)
+        reg = head.regularization(features, positive_mask=positive_mask, hard_negative_mask=hard_negatives)
+        loss = bce + 0.05 * (committee_loss + gain_loss) + 0.1 * reg
+        loss.backward()
+        optimizer.step()
+
+    with torch.no_grad():
+        logits, committee_logits, gain_logits = head.forward_with_aux(features, risk)
+    assert float(logits[: len(positives)].mean()) > float(logits[len(positives) :].mean())
+    assert float(committee_logits[: len(positives)].mean()) > float(committee_logits[len(positives) :].mean())
+    assert float(gain_logits[: len(positives)].mean()) > float(gain_logits[len(positives) :].mean())
 
 
 def test_anchor_evidence_prototype_defer_separates_toy_clusters() -> None:

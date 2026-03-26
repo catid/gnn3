@@ -1,0 +1,20 @@
+[
+  {
+    "variant": "prototype_teacher_signal_evidence",
+    "use_risk_branch": false,
+    "positive_prototypes": 8,
+    "negative_prototypes": 8,
+    "prototype_dim": 32,
+    "hidden_dim": 32,
+    "aux_weight": 0.05
+  },
+  {
+    "variant": "prototype_teacher_signal_evidence_hybrid",
+    "use_risk_branch": true,
+    "positive_prototypes": 8,
+    "negative_prototypes": 8,
+    "prototype_dim": 32,
+    "hidden_dim": 32,
+    "aux_weight": 0.05
+  }
+]

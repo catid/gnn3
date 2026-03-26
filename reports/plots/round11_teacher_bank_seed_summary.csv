@@ -1,0 +1,4 @@
+seed,decisions,hard_near_tie_decisions,stable_positive_decisions,stable_positive_share_of_hard_near_tie,stable_positive_mean_gain,stable_positive_mean_miss_gain
+314,4438,684,42,0.06140350877192982,2.638034252893357,0.023809523809523808
+315,4344,832,1,0.001201923076923077,7.0802154541015625,1.0
+316,4339,657,3,0.0045662100456621,2.5828234354654946,0.0

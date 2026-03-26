@@ -110,3 +110,7 @@ e3_memory_hubs_rsm_round9_compute5_seed316,explore,0.1843400228685802,0.95113638
 round10_compute_helpfulness_audit,explore,0.16,,,,,0.9522068195,0.0838404047,,,,0.0056391662
 round10_offline_distill_gated_pairwise,explore,0.07,,,,,0.965011,-0.00269,,,,-0.000215
 round10_selective_compute_triggered,explore,0.04,,,,,0.965708,-0.006584,,,,0.0
+round11_teacher_bank_audit,exploit,0.08,,,,,1.0,-2.7310,,,,0.02117
+round11_defer_gate_margin_regime_2pct,explore,0.09,,,,,0.968444,-0.015073,,,,-0.000346
+round11_top2_comparator_candidate_conditioned_narrow,explore,0.08,,,,,0.852921,-1.061261,,,,0.000672
+round11_subset_distill_gated_pairwise,explore,0.12,,,,,0.966026,-0.003769,,,,0.002073

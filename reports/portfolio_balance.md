@@ -113,6 +113,13 @@
 | B1-R10-helpfulness-probes | explore | Test whether the helpful-compute slice is predictable enough from frozen state to support a practical gate. | 0.08 | 0.0500 | completed | Margin and margin-plus-regime carried some ranking signal, but no held-out probe delivered a usable helpfulness operating point. |
 | C1-R10-offline-distill | explore | Distill fixed-compute teacher corrections into conservative one-pass students and kill destructive variants quickly. | 0.12 | 0.0700 | completed | `gated_pairwise` was the safest student, but it still missed the hard near-tie promotion gate; aggressive variants over-corrected destructively. |
 | D1-R10-selective-compute | explore | Reopen compute only through a cheap gate-triggered continuation path on held-out seeds. | 0.08 | 0.0400 | completed | The learned gate collapsed to effectively zero trigger on held-out seeds, so selective compute reduced to baseline behavior and was not promoted. |
+| A0-R11-validation-smoke | exploit | Revalidate the baseline path, cached frontier artifacts, and new round-eleven helper code before launching the precision-first correction campaign. | 0.08 | 0.0200 | completed | Lint, targeted pytest, smoke train, and cached frontier-pack checks all passed before round-eleven launches. |
+| A1-R11-teacher-bank | exploit | Audit the fixed-compute teacher bank over the committed hard near-tie decision artifacts before opening any new correction branch. | 0.18 | 0.0800 | completed | Stable-positive teacher wins exist, but only `46` audited decisions total and only `4` held-out positives across seeds 315/316. |
+| A2-R11-stable-pack | exploit | Build and stress the stable-positive correction pack as the new Tier-1 promotion surface. | 0.10 | 0.0400 | completed | Stable-positive pack is real but fragile: `2.12%` of hard near-tie, with zero source-signature overlap across audited seeds. |
+| B1-R11-defer-gates | explore | Test budgeted defer-to-teacher gates under tiny coverage budgets and held-out seeds. | 0.16 | 0.0900 | completed | `margin_regime` was the only surviving gate; at `1–2%` coverage it recovered `50–75%` of the stable-positive pack with tiny Tier-2 gains. |
+| C1-R11-top2-comparator | explore | Test top-2 comparator-with-abstain variants as low-coverage correction policies. | 0.14 | 0.0800 | completed | Frozen variants were inert and candidate-conditioned narrow variants were actively harmful on held-out seed316. |
+| D1-R11-subset-distill | explore | Distill only on the stable-positive pack to test whether narrow supervision avoids round-ten regressions. | 0.18 | 0.1200 | completed | No subset-only student promoted; `gated_pairwise` stayed safest but still missed the hard near-tie gate. |
+| E1-R11-deployment-study | exploit | Quantify the actual low-coverage defer-to-teacher deployment tradeoff before considering any contender step. | 0.08 | 0.0400 | completed | A tiny `1–2%` defer band exists, but the gain is too small and the source family too sparse to promote deployment. |
 
 Current cumulative GPU-hours:
 
@@ -136,6 +143,9 @@ Current cumulative GPU-hours:
 - Round-ten exploit final: `0.2000`
 - Round-ten explore final: `0.3700`
 - Round-ten split final: `35.1% / 64.9%`
-- Overall exploit: `8.4177`
-- Overall explore: `6.9631`
-- Overall split: `54.7% / 45.3%`
+- Round-eleven exploit final: `0.1800`
+- Round-eleven explore final: `0.2900`
+- Round-eleven split final: `38.3% / 61.7%`
+- Overall exploit: `8.5977`
+- Overall explore: `7.2531`
+- Overall split: `54.2% / 45.8%`

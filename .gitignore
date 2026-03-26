@@ -10,6 +10,8 @@ dist/
 build/
 *.egg-info/
 artifacts/
+reports/plots/*feature_cache*.pt
+artifacts/experiments/**/checkpoints/
 reports/papers/pdf/
 reports/papers/md_raw/
 reports/papers/md_clean/

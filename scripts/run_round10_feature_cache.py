@@ -20,6 +20,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--suite-configs", nargs="+", required=True)
     parser.add_argument("--audit-decisions-csv", required=True)
     parser.add_argument("--device", help="Optional device override.")
+    parser.add_argument(
+        "--compute-device",
+        help="Optional device override for the teacher / compute model. Defaults to CPU when the base model uses CUDA.",
+    )
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--output-pt", required=True)
     return parser.parse_args()
@@ -32,7 +36,7 @@ def main() -> None:
     output_csv = output_pt.with_name(output_pt.stem + "_metadata.csv")
 
     base_model, device, _ = load_model(args.base_model_config, args.base_checkpoint, device_override=args.device)
-    compute_device = "cpu" if device.type == "cuda" else str(device)
+    compute_device = args.compute_device or ("cpu" if device.type == "cuda" else str(device))
     compute_model, _compute_device, _ = load_model(
         args.compute_model_config,
         args.compute_checkpoint,

@@ -1,0 +1,314 @@
+{
+  "decision_csvs": [
+    "reports/plots/round10_helpfulness_seed314_decisions.csv",
+    "reports/plots/round10_helpfulness_seed315_decisions.csv",
+    "reports/plots/round10_helpfulness_seed316_decisions.csv"
+  ],
+  "min_regret_gain": 0.1,
+  "seed_summary": [
+    {
+      "seed": 314,
+      "decisions": 4438,
+      "hard_near_tie_decisions": 684,
+      "stable_positive_decisions": 42,
+      "stable_positive_share_of_hard_near_tie": 0.06140350877192982,
+      "stable_positive_mean_gain": 2.638034252893357,
+      "stable_positive_mean_miss_gain": 0.023809523809523808
+    },
+    {
+      "seed": 315,
+      "decisions": 4344,
+      "hard_near_tie_decisions": 832,
+      "stable_positive_decisions": 1,
+      "stable_positive_share_of_hard_near_tie": 0.001201923076923077,
+      "stable_positive_mean_gain": 7.0802154541015625,
+      "stable_positive_mean_miss_gain": 1.0
+    },
+    {
+      "seed": 316,
+      "decisions": 4339,
+      "hard_near_tie_decisions": 657,
+      "stable_positive_decisions": 3,
+      "stable_positive_share_of_hard_near_tie": 0.0045662100456621,
+      "stable_positive_mean_gain": 2.5828234354654946,
+      "stable_positive_mean_miss_gain": 0.0
+    }
+  ],
+  "seed_overlap": [
+    {
+      "left_group": "314",
+      "right_group": "315",
+      "left_size": 17,
+      "right_size": 1,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "314",
+      "right_group": "316",
+      "left_size": 17,
+      "right_size": 2,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "315",
+      "right_group": "316",
+      "left_size": 1,
+      "right_size": 2,
+      "signature_jaccard": 0.0
+    }
+  ],
+  "suite_overlap": [
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed314",
+      "right_group": "a1_multiheavy_mixed_compute_round9_eval_seed315",
+      "left_size": 8,
+      "right_size": 1,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed314",
+      "right_group": "a1_multiheavy_mixed_compute_round9_eval_seed316",
+      "left_size": 8,
+      "right_size": 2,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "left_size": 8,
+      "right_size": 8,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed315",
+      "left_size": 8,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed316",
+      "left_size": 8,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314",
+      "left_size": 8,
+      "right_size": 1,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed315",
+      "left_size": 8,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed316",
+      "left_size": 8,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed315",
+      "right_group": "a1_multiheavy_mixed_compute_round9_eval_seed316",
+      "left_size": 1,
+      "right_size": 2,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed315",
+      "right_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "left_size": 1,
+      "right_size": 8,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed315",
+      "right_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed315",
+      "left_size": 1,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed315",
+      "right_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed316",
+      "left_size": 1,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed315",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314",
+      "left_size": 1,
+      "right_size": 1,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed315",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed315",
+      "left_size": 1,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed315",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed316",
+      "left_size": 1,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed316",
+      "right_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "left_size": 2,
+      "right_size": 8,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed316",
+      "right_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed315",
+      "left_size": 2,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed316",
+      "right_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed316",
+      "left_size": 2,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed316",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314",
+      "left_size": 2,
+      "right_size": 1,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed316",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed315",
+      "left_size": 2,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_mixed_compute_round9_eval_seed316",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed316",
+      "left_size": 2,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed315",
+      "left_size": 8,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed316",
+      "left_size": 8,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314",
+      "left_size": 8,
+      "right_size": 1,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed315",
+      "left_size": 8,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed316",
+      "left_size": 8,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed315",
+      "right_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed316",
+      "left_size": 0,
+      "right_size": 0,
+      "signature_jaccard": 1.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed315",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314",
+      "left_size": 0,
+      "right_size": 1,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed315",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed315",
+      "left_size": 0,
+      "right_size": 0,
+      "signature_jaccard": 1.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed315",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed316",
+      "left_size": 0,
+      "right_size": 0,
+      "signature_jaccard": 1.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed316",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314",
+      "left_size": 0,
+      "right_size": 1,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed316",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed315",
+      "left_size": 0,
+      "right_size": 0,
+      "signature_jaccard": 1.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_deeper_packets6_round9_eval_seed316",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed316",
+      "left_size": 0,
+      "right_size": 0,
+      "signature_jaccard": 1.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed315",
+      "left_size": 1,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed314",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed316",
+      "left_size": 1,
+      "right_size": 0,
+      "signature_jaccard": 0.0
+    },
+    {
+      "left_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed315",
+      "right_group": "a1_multiheavy_ood_heavy_dynamic_round9_eval_seed316",
+      "left_size": 0,
+      "right_size": 0,
+      "signature_jaccard": 1.0
+    }
+  ]
+}

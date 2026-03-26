@@ -1,0 +1,4 @@
+left_group,right_group,left_size,right_size,signature_jaccard
+314,315,17,1,0.0
+314,316,17,2,0.0
+315,316,1,2,0.0

@@ -69,6 +69,8 @@
    - `prototype_memory_calibrated_evidence_hybrid` recovered `0%` of held-out stable-positive-v2 at every budget, left hard near-tie unchanged at `90.53%`, and only redirected about `0.24%` overall coverage into broad-safe non-target states, so memory evidence did not improve ranking inside the live evidence-agreement family
    - auxiliary teacher-signal prediction inside the current evidence-agreement family is also closed
    - `prototype_teacher_signal_evidence` and `prototype_teacher_signal_evidence_hybrid` both recovered `0%` of held-out stable-positive-v2 at every budget, left hard near-tie unchanged at `90.53%`, and only surfaced tiny broad-safe control fixes, so committee/gain auxiliary heads did not sharpen the real frontier
+   - explicit budget-conditioning inside the current evidence-agreement family is also closed
+   - `prototype_budget_evidence_agree` and `prototype_budget_evidence_agree_hybrid` both recovered `0%` of held-out stable-positive-v2 at every budget and left hard near-tie unchanged at `90.53%`; the plain model only spent more coverage on non-target states and the hybrid collapsed to a tiny large-gap control fix
    - `prototype_mixture_hybrid` was the first follow-up that fully caught that hard-slice band at matched higher coverage
    - `prototype_agree_mix_hybrid` now improves on it in coverage efficiency
    - at `1.5%` nominal budget it matched `75%` held-out stable-positive-v2 recovery and the same `90.53% -> 90.73%` hard near-tie band
@@ -127,6 +129,7 @@
    - do not spend another cycle on explicit risk-veto regime mixing over the current memory-anchor geometry, because it over-suppressed the already-weak specialist signal, recovered `0%` of held-out stable-positive-v2, and collapsed back toward baseline plus a single harmless control fix
    - do not spend another cycle on feeding memory score and memory top-match context directly into the current evidence-agreement gate, because it recovered `0%` of held-out stable-positive-v2 and only redirected coverage into broad-safe non-target states
    - do not spend another cycle on auxiliary committee-support / safe-gain heads inside the current evidence-agreement family, because they also recovered `0%` of held-out stable-positive-v2 and only improved broad-safe control behavior
+   - do not spend another cycle on explicit budget-conditioning inside the current evidence-agreement family, because it also recovered `0%` of held-out stable-positive-v2 and only changed broad-safe non-target selection patterns
 13. Keep the hard gate for every future branch:
    - stable-positive recovery
    - false-positive deferral rate

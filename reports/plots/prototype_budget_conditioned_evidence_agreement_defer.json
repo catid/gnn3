@@ -1,0 +1,36 @@
+[
+  {
+    "variant": "prototype_budget_evidence_agree",
+    "use_risk_branch": false,
+    "positive_prototypes": 8,
+    "negative_prototypes": 8,
+    "prototype_dim": 32,
+    "hidden_dim": 32,
+    "coverage_budgets": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.5,
+      2.0
+    ]
+  },
+  {
+    "variant": "prototype_budget_evidence_agree_hybrid",
+    "use_risk_branch": true,
+    "positive_prototypes": 8,
+    "negative_prototypes": 8,
+    "prototype_dim": 32,
+    "hidden_dim": 32,
+    "coverage_budgets": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.5,
+      2.0
+    ]
+  }
+]

@@ -717,6 +717,69 @@ class TeacherSignalEvidenceAgreementPrototypeDeferHead(EvidenceAgreementPrototyp
         return logits
 
 
+class BudgetConditionedEvidenceAgreementPrototypeDeferHead(EvidenceAgreementPrototypeDeferHead):
+    """Evidence-agreement mixture with an explicit budget-conditioning input."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+        )
+        self.evidence_gate = torch.nn.Sequential(
+            torch.nn.Linear(12, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+
+    def forward(
+        self,
+        features: torch.Tensor,
+        budget_features: torch.Tensor,
+        risk_features: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        shared_encoded = self.encode_shared(features)
+        dual_pos_encoded = self.encode_dual_positive(features)
+        dual_neg_encoded = self.encode_dual_negative(features)
+        shared_pos_top, shared_neg_top = self._shared_evidence(shared_encoded)
+        dual_pos_top, dual_neg_top = self._dual_evidence(dual_pos_encoded, dual_neg_encoded)
+        shared_score = shared_pos_top - shared_neg_top
+        dual_score = dual_pos_top - dual_neg_top
+        gate_features = torch.cat(
+            [
+                self._evidence_features(
+                    shared_score,
+                    dual_score,
+                    shared_pos_top,
+                    shared_neg_top,
+                    dual_pos_top,
+                    dual_neg_top,
+                ),
+                budget_features,
+            ],
+            dim=1,
+        )
+        gate = torch.sigmoid(self.evidence_gate(gate_features).squeeze(-1) + self.gate_bias)
+        logits = shared_score + gate * (dual_score - shared_score) + self.bias
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits
+
+
 class MemoryCalibratedEvidenceAgreementPrototypeDeferHead(torch.nn.Module):
     """Evidence-agreement mixture whose gate also sees memory-anchor evidence."""
 

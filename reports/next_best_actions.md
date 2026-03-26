@@ -31,6 +31,7 @@
    - committee-only prototype bank is still too weak
    - explicit positive / neutral / harmful triage prototypes are also closed
    - candidate-aware prototype defer with top-2 pair features is also closed
+   - auxiliary pair-context branches on top of the prototype bank are also closed
    - but `prototype_hybrid` recovered `75%` of held-out stable-positive-v2
    - at `0.75%` overall coverage it reached hard near-tie target match `90.53% -> 90.73%`
    - hard near-tie mean delta regret matched the round-eleven `2%` reference at `-0.0089`

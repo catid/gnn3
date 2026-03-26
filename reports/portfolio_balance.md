@@ -105,6 +105,14 @@
 | C1-R9-risktight-deeper | explore | Test a risk-bucket continuation trigger on the same frontier slice. | 0.02 | 0.0015 | completed | Matched `fixed_final` on the frontier slice without improving the tradeoff; not promoted. |
 | C1-R9-margin100-deeper | explore | Test a looser margin trigger before closing margin-based continuation. | 0.02 | 0.0015 | completed | Still negative: hard near-tie target-match `81.31%`, large-gap control `67.86%`. |
 | C1-R9-learnedgate-deeper | explore | Test a learned middle-vs-final compute gate trained on the matched train split. | 0.03 | 0.0064 | completed | Negative: hard near-tie target-match `79.13%`, large-gap control `85.49%`. |
+| A0-R10-validation-smoke | exploit | Revalidate the current `multiheavy` path, smoke train/eval, and cached frontier-pack path before opening the compute/distill campaign. | 0.10 | 0.0200 | completed | Lint, targeted pytest, smoke train, and frontier-pack smoke all passed before round-ten launches. |
+| A1-R10-helpfulness-audit | exploit | Audit where fixed extra compute helps, hurts, or does nothing on the audited near-tie frontier across three matched seeds. | 0.35 | 0.1600 | completed | Broad hard near-tie compute was net negative (`1.92%` helpful vs `2.42%` harmful), but the high-headroom subset stayed cleanly positive. |
+| A2-R10-headroom-refresh | exploit | Refresh near-tie headroom directly from the round-ten audited decision artifacts before promoting gates or students. | 0.05 | 0.0200 | completed | Hard near-tie still has real residual headroom, but the strongest opportunity is concentrated in the high-headroom subset. |
+| A3-R10-variable-compute-refresh | exploit | Re-express the compute frontier with the new helpfulness audit and the held-out selective-compute result. | 0.05 | 0.0000 | completed | No better regret-at-fixed-compute frontier was found than plain `multiheavy`; full compute stayed too expensive and selective compute stayed too inert. |
+| B0-R10-feature-caches | explore | Build reusable per-seed feature and label caches so helpfulness probes and offline students can iterate without reopening online search. | 0.30 | 0.2100 | completed | Seed314/315/316 caches were built successfully after fixing the feature-cache OOM and cross-suite padding path. |
+| B1-R10-helpfulness-probes | explore | Test whether the helpful-compute slice is predictable enough from frozen state to support a practical gate. | 0.08 | 0.0500 | completed | Margin and margin-plus-regime carried some ranking signal, but no held-out probe delivered a usable helpfulness operating point. |
+| C1-R10-offline-distill | explore | Distill fixed-compute teacher corrections into conservative one-pass students and kill destructive variants quickly. | 0.12 | 0.0700 | completed | `gated_pairwise` was the safest student, but it still missed the hard near-tie promotion gate; aggressive variants over-corrected destructively. |
+| D1-R10-selective-compute | explore | Reopen compute only through a cheap gate-triggered continuation path on held-out seeds. | 0.08 | 0.0400 | completed | The learned gate collapsed to effectively zero trigger on held-out seeds, so selective compute reduced to baseline behavior and was not promoted. |
 
 Current cumulative GPU-hours:
 
@@ -125,6 +133,9 @@ Current cumulative GPU-hours:
 - Round-nine exploit final: `0.6130`
 - Round-nine explore final: `1.5830`
 - Round-nine split final: `27.9% / 72.1%`
-- Overall exploit: `8.2177`
-- Overall explore: `6.5931`
-- Overall split: `55.5% / 44.5%`
+- Round-ten exploit final: `0.2000`
+- Round-ten explore final: `0.3700`
+- Round-ten split final: `35.1% / 64.9%`
+- Overall exploit: `8.4177`
+- Overall explore: `6.9631`
+- Overall split: `54.7% / 45.3%`

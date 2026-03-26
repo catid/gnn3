@@ -572,6 +572,107 @@ class SuppressorPrototypeDeferHead(torch.nn.Module):
         return loss
 
 
+class InteractionPrototypeDeferHead(torch.nn.Module):
+    """Prototype bank with a residual branch conditioned on prototype score stats."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        gated: bool = False,
+    ) -> None:
+        super().__init__()
+        if positive_prototypes <= 0 or negative_prototypes <= 0:
+            raise ValueError("Prototype counts must be positive.")
+        if risk_dim <= 0:
+            raise ValueError("risk_dim must be positive for interaction prototype heads.")
+
+        self.gated = gated
+        self.feature_proj = torch.nn.Linear(feature_dim, prototype_dim, bias=False)
+        self.feature_norm = torch.nn.LayerNorm(prototype_dim)
+        scale = 1.0 / math.sqrt(prototype_dim)
+        self.positive_prototypes = torch.nn.Parameter(torch.randn(positive_prototypes, prototype_dim) * scale)
+        self.negative_prototypes = torch.nn.Parameter(torch.randn(negative_prototypes, prototype_dim) * scale)
+        self.logit_scale = torch.nn.Parameter(torch.tensor(math.log(8.0), dtype=torch.float32))
+        self.bias = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+        summary_dim = risk_dim + 4
+        self.interaction_branch = torch.nn.Sequential(
+            torch.nn.Linear(summary_dim, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+        self.gate_branch = None
+        if gated:
+            self.gate_branch = torch.nn.Sequential(
+                torch.nn.Linear(4, hidden_dim),
+                torch.nn.GELU(),
+                torch.nn.Linear(hidden_dim, 1),
+            )
+
+    def encode(self, features: torch.Tensor) -> torch.Tensor:
+        projected = self.feature_norm(self.feature_proj(features))
+        return F.normalize(projected, dim=-1)
+
+    def _banks(self) -> tuple[torch.Tensor, torch.Tensor]:
+        return F.normalize(self.positive_prototypes, dim=-1), F.normalize(self.negative_prototypes, dim=-1)
+
+    def _score_stats(self, encoded: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._banks()
+        pos_sims = scale * (encoded @ pos.T)
+        neg_sims = scale * (encoded @ neg.T)
+        pos_score = torch.logsumexp(pos_sims, dim=1)
+        neg_score = torch.logsumexp(neg_sims, dim=1)
+        proto_score = pos_score - neg_score
+        pos_max = pos_sims.max(dim=1).values
+        neg_max = neg_sims.max(dim=1).values
+        summary = torch.stack([proto_score, pos_max, neg_max, pos_max - neg_max], dim=1)
+        return proto_score, summary
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor) -> torch.Tensor:
+        encoded = self.encode(features)
+        proto_score, summary = self._score_stats(encoded)
+        residual_input = torch.cat([risk_features, summary], dim=1)
+        residual = self.interaction_branch(residual_input).squeeze(-1)
+        if self.gate_branch is not None:
+            gate = torch.sigmoid(self.gate_branch(summary).squeeze(-1))
+            residual = gate * residual
+        return proto_score + residual + self.bias
+
+    def regularization(
+        self,
+        features: torch.Tensor,
+        *,
+        positive_mask: torch.Tensor,
+        hard_negative_mask: torch.Tensor,
+        margin: float = 0.20,
+    ) -> torch.Tensor:
+        encoded = self.encode(features)
+        pos, neg = self._banks()
+        loss = encoded.new_tensor(0.0)
+
+        if bool(positive_mask.any()):
+            positive_encoded = encoded[positive_mask]
+            pos_alignment = (positive_encoded @ pos.T).amax(dim=1)
+            neg_overlap = (positive_encoded @ neg.T).amax(dim=1)
+            loss = loss + (1.0 - pos_alignment).mean()
+            loss = loss + F.relu(neg_overlap - margin).mean()
+
+        if bool(hard_negative_mask.any()):
+            negative_encoded = encoded[hard_negative_mask]
+            neg_alignment = (negative_encoded @ neg.T).amax(dim=1)
+            pos_overlap = (negative_encoded @ pos.T).amax(dim=1)
+            loss = loss + (1.0 - neg_alignment).mean()
+            loss = loss + F.relu(pos_overlap - margin).mean()
+
+        return loss
+
+
 class GatedPrototypeDeferHead(torch.nn.Module):
     """Prototype bank with risk-conditioned scaling of prototype evidence."""
 

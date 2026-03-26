@@ -33,11 +33,13 @@
    - candidate-aware prototype defer with top-2 pair features is also closed
    - auxiliary pair-context branches on top of the prototype bank are also closed
    - temporal outer-step context hybrids are also closed
+   - risk-conditioned gated prototype hybrids are also closed
    - but `prototype_hybrid` recovered `75%` of held-out stable-positive-v2
    - at `0.75%` overall coverage it reached hard near-tie target match `90.53% -> 90.73%`
    - hard near-tie mean delta regret matched the round-eleven `2%` reference at `-0.0089`
    - overall mean delta regret at that point was still only `-0.0097`, so it is a lead, not a promotion
    - temporal scalar context was cleaner overall, but only recovered `50%` of held-out stable-positive-v2 and only reached hard near-tie `90.53% -> 90.66%`, so it is not the right architecture direction
+   - gated rescaling of prototype evidence also capped out at `50%` held-out stable-positive-v2 recovery and the same weaker `90.53% -> 90.66%` hard near-tie band
 9. Do not reopen conservative student retry. Round-twelve positive mining showed that source-family expansion through training-side mining is too noisy:
    - best coarse mining recovered all held-out positives only at `5.97%` precision
    - broader mining fell to `1.77%` to `2.94%` precision
@@ -54,6 +56,7 @@
    - explicit held-out comparison against the round-eleven reference at matched or lower coverage
    - hard false-positive penalties and large-gap preservation
    - do not spend another cycle on temporal drift features unless they are used only as a secondary risk calibrator under the existing `prototype_hybrid` lead
+   - do not spend another cycle on multiplicative prototype gating unless it changes the prototype bank itself rather than just reweighting the same score
 13. Keep the hard gate for every future branch:
    - stable-positive recovery
    - false-positive deferral rate

@@ -92,6 +92,97 @@ class PrototypeMemoryDeferHead(torch.nn.Module):
         return loss
 
 
+class GatedPrototypeDeferHead(torch.nn.Module):
+    """Prototype bank with risk-conditioned scaling of prototype evidence."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_bias_branch: bool = True,
+    ) -> None:
+        super().__init__()
+        if positive_prototypes <= 0 or negative_prototypes <= 0:
+            raise ValueError("Prototype counts must be positive.")
+        if risk_dim <= 0:
+            raise ValueError("risk_dim must be positive for gated prototype heads.")
+
+        self.feature_proj = torch.nn.Linear(feature_dim, prototype_dim, bias=False)
+        self.feature_norm = torch.nn.LayerNorm(prototype_dim)
+        scale = 1.0 / math.sqrt(prototype_dim)
+        self.positive_prototypes = torch.nn.Parameter(torch.randn(positive_prototypes, prototype_dim) * scale)
+        self.negative_prototypes = torch.nn.Parameter(torch.randn(negative_prototypes, prototype_dim) * scale)
+        self.logit_scale = torch.nn.Parameter(torch.tensor(math.log(8.0), dtype=torch.float32))
+        self.prototype_bias = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+        self.gate_branch = torch.nn.Sequential(
+            torch.nn.Linear(risk_dim, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+        self.bias_branch = None
+        if use_bias_branch:
+            self.bias_branch = torch.nn.Sequential(
+                torch.nn.Linear(risk_dim, hidden_dim),
+                torch.nn.GELU(),
+                torch.nn.Linear(hidden_dim, 1),
+            )
+
+    def encode(self, features: torch.Tensor) -> torch.Tensor:
+        projected = self.feature_norm(self.feature_proj(features))
+        return F.normalize(projected, dim=-1)
+
+    def _prototype_score(self, encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos = F.normalize(self.positive_prototypes, dim=-1)
+        neg = F.normalize(self.negative_prototypes, dim=-1)
+        pos_score = torch.logsumexp(scale * encoded @ pos.T, dim=1)
+        neg_score = torch.logsumexp(scale * encoded @ neg.T, dim=1)
+        return pos_score - neg_score
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor) -> torch.Tensor:
+        encoded = self.encode(features)
+        proto = self._prototype_score(encoded) + self.prototype_bias
+        gate = 2.0 * torch.sigmoid(self.gate_branch(risk_features).squeeze(-1))
+        logits = gate * proto
+        if self.bias_branch is not None:
+            logits = logits + self.bias_branch(risk_features).squeeze(-1)
+        return logits
+
+    def regularization(
+        self,
+        features: torch.Tensor,
+        *,
+        positive_mask: torch.Tensor,
+        hard_negative_mask: torch.Tensor,
+        margin: float = 0.20,
+    ) -> torch.Tensor:
+        encoded = self.encode(features)
+        pos = F.normalize(self.positive_prototypes, dim=-1)
+        neg = F.normalize(self.negative_prototypes, dim=-1)
+        loss = encoded.new_tensor(0.0)
+
+        if bool(positive_mask.any()):
+            positive_encoded = encoded[positive_mask]
+            pos_alignment = (positive_encoded @ pos.T).amax(dim=1)
+            neg_overlap = (positive_encoded @ neg.T).amax(dim=1)
+            loss = loss + (1.0 - pos_alignment).mean()
+            loss = loss + F.relu(neg_overlap - margin).mean()
+
+        if bool(hard_negative_mask.any()):
+            negative_encoded = encoded[hard_negative_mask]
+            neg_alignment = (negative_encoded @ neg.T).amax(dim=1)
+            pos_overlap = (negative_encoded @ pos.T).amax(dim=1)
+            loss = loss + (1.0 - neg_alignment).mean()
+            loss = loss + F.relu(pos_overlap - margin).mean()
+
+        return loss
+
+
 class PrototypeTriageDeferHead(torch.nn.Module):
     """Prototype bank with explicit positive / neutral / harmful memories."""
 

@@ -181,6 +181,100 @@ class AdapterPrototypeDeferHead(torch.nn.Module):
         return loss
 
 
+class MultiscalePrototypeDeferHead(torch.nn.Module):
+    """Prototype bank with a coarse centroid branch for sparse transfer."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+    ) -> None:
+        super().__init__()
+        if positive_prototypes <= 0 or negative_prototypes <= 0:
+            raise ValueError("Prototype counts must be positive.")
+
+        self.feature_proj = torch.nn.Linear(feature_dim, prototype_dim, bias=False)
+        self.feature_norm = torch.nn.LayerNorm(prototype_dim)
+        scale = 1.0 / math.sqrt(prototype_dim)
+        self.positive_prototypes = torch.nn.Parameter(torch.randn(positive_prototypes, prototype_dim) * scale)
+        self.negative_prototypes = torch.nn.Parameter(torch.randn(negative_prototypes, prototype_dim) * scale)
+        self.logit_scale = torch.nn.Parameter(torch.tensor(math.log(8.0), dtype=torch.float32))
+        self.global_scale = torch.nn.Parameter(torch.tensor(0.75, dtype=torch.float32))
+        self.bias = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+        self.risk_branch = None
+        if use_risk_branch and risk_dim > 0:
+            self.risk_branch = torch.nn.Sequential(
+                torch.nn.Linear(risk_dim, hidden_dim),
+                torch.nn.GELU(),
+                torch.nn.Linear(hidden_dim, 1),
+            )
+
+    def encode(self, features: torch.Tensor) -> torch.Tensor:
+        projected = self.feature_norm(self.feature_proj(features))
+        return F.normalize(projected, dim=-1)
+
+    def _banks(self) -> tuple[torch.Tensor, torch.Tensor]:
+        return F.normalize(self.positive_prototypes, dim=-1), F.normalize(self.negative_prototypes, dim=-1)
+
+    def _prototype_score(self, encoded: torch.Tensor, pos: torch.Tensor, neg: torch.Tensor) -> torch.Tensor:
+        scale = self.logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos_score = torch.logsumexp(scale * encoded @ pos.T, dim=1)
+        neg_score = torch.logsumexp(scale * encoded @ neg.T, dim=1)
+        return pos_score - neg_score
+
+    def _centroid_score(self, encoded: torch.Tensor, pos: torch.Tensor, neg: torch.Tensor) -> torch.Tensor:
+        pos_centroid = F.normalize(pos.mean(dim=0, keepdim=True), dim=-1)
+        neg_centroid = F.normalize(neg.mean(dim=0, keepdim=True), dim=-1)
+        return (encoded @ pos_centroid.T).squeeze(1) - (encoded @ neg_centroid.T).squeeze(1)
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor | None = None) -> torch.Tensor:
+        encoded = self.encode(features)
+        pos, neg = self._banks()
+        logits = self._prototype_score(encoded, pos, neg)
+        logits = logits + self.global_scale.tanh() * self._centroid_score(encoded, pos, neg) + self.bias
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits
+
+    def regularization(
+        self,
+        features: torch.Tensor,
+        *,
+        positive_mask: torch.Tensor,
+        hard_negative_mask: torch.Tensor,
+        margin: float = 0.20,
+    ) -> torch.Tensor:
+        encoded = self.encode(features)
+        pos, neg = self._banks()
+        loss = encoded.new_tensor(0.0)
+
+        if bool(positive_mask.any()):
+            positive_encoded = encoded[positive_mask]
+            pos_alignment = (positive_encoded @ pos.T).amax(dim=1)
+            neg_overlap = (positive_encoded @ neg.T).amax(dim=1)
+            centroid_alignment = positive_encoded @ F.normalize(pos.mean(dim=0, keepdim=True), dim=-1).T
+            loss = loss + (1.0 - pos_alignment).mean()
+            loss = loss + (1.0 - centroid_alignment.squeeze(1)).mean()
+            loss = loss + F.relu(neg_overlap - margin).mean()
+
+        if bool(hard_negative_mask.any()):
+            negative_encoded = encoded[hard_negative_mask]
+            neg_alignment = (negative_encoded @ neg.T).amax(dim=1)
+            pos_overlap = (negative_encoded @ pos.T).amax(dim=1)
+            centroid_overlap = negative_encoded @ F.normalize(pos.mean(dim=0, keepdim=True), dim=-1).T
+            loss = loss + (1.0 - neg_alignment).mean()
+            loss = loss + F.relu(pos_overlap - margin).mean()
+            loss = loss + F.relu(centroid_overlap.squeeze(1) - margin).mean()
+
+        return loss
+
+
 class GatedPrototypeDeferHead(torch.nn.Module):
     """Prototype bank with risk-conditioned scaling of prototype evidence."""
 

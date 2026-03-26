@@ -209,12 +209,16 @@ Key artifacts:
 
 ## Merge / push status
 
-Round eleven is merged into local `main`.
+Round eleven is committed locally on `main`.
 
-- local merged commit: `8b81c7e226f94a329e69fa2e9022a506e2dbb075`
-- round-eleven working branch deleted locally after merge
+- local round-eleven commit: `f202b30`
+- the oversized `reports/plots/round11_feature_cache_seed*.pt` files were removed
+  from local git history after GitHub rejected the first push
+- `.gitignore` now excludes:
+  - `reports/plots/*feature_cache*.pt`
+  - `artifacts/experiments/**/checkpoints/`
 
-Validation on merged `main` passed:
+Validation on local `main` passed:
 
 - `uv run ruff check src tests scripts`
 - `uv run pytest tests/test_precision_correction.py tests/test_compute_helpfulness.py tests/test_policy_analysis.py tests/test_step_policy.py -q`
@@ -226,5 +230,5 @@ Remote sync and push are still blocked in this shell:
 - `bd sync` -> failed on remote pull with the same SSH error
 - `git push origin main` -> `git@github.com: Permission denied (publickey)`
 
-So the round is complete locally on `main`, but publishing still requires a
-shell with GitHub write access.
+So the round is complete locally on `main`, the large-file history problem is
+fixed, and publishing now only requires a shell with GitHub write access.

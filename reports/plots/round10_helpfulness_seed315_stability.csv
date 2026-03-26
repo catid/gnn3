@@ -1,0 +1,10 @@
+suite,source_family,decisions,helpful_share,harmful_share,mean_delta_regret,action_change_share
+a1_multiheavy_mixed_compute_round9_eval_seed315,hard_near_tie,355,0.0028169014084507044,0.011267605633802818,0.09708476536710497,0.014084507042253521
+a1_multiheavy_mixed_compute_round9_eval_seed315,stable_near_tie,342,0.0029239766081871343,0.011695906432748537,0.10077512194538674,0.014619883040935672
+a1_multiheavy_mixed_compute_round9_eval_seed315,high_headroom_near_tie,18,0.05555555555555555,0.0,-0.39334530300564235,0.05555555555555555
+a1_multiheavy_ood_deeper_packets6_round9_eval_seed315,hard_near_tie,395,0.0,0.04050632911392405,0.35030900013597704,0.04050632911392405
+a1_multiheavy_ood_deeper_packets6_round9_eval_seed315,stable_near_tie,387,0.0,0.041343669250646,0.3575505298545502,0.041343669250646
+a1_multiheavy_ood_deeper_packets6_round9_eval_seed315,high_headroom_near_tie,14,0.0,0.0,0.0,0.0
+a1_multiheavy_ood_heavy_dynamic_round9_eval_seed315,hard_near_tie,82,0.0,0.0,0.0,0.0
+a1_multiheavy_ood_heavy_dynamic_round9_eval_seed315,stable_near_tie,81,0.0,0.0,0.0,0.0
+a1_multiheavy_ood_heavy_dynamic_round9_eval_seed315,high_headroom_near_tie,3,0.0,0.0,0.0,0.0

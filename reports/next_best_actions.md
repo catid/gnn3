@@ -39,6 +39,7 @@
    - coarse centroid / multiscale prototype hybrids are also closed
    - top-k prototype evidence readouts are also closed
    - score-band prototype residuals are also closed
+   - explicit harmful-memory suppressor banks are also closed
    - but `prototype_hybrid` recovered `75%` of held-out stable-positive-v2
    - at `0.75%` overall coverage it reached hard near-tie target match `90.53% -> 90.73%`
    - hard near-tie mean delta regret matched the round-eleven `2%` reference at `-0.0089`
@@ -50,6 +51,7 @@
    - multiscale centroid branches improved broad overall caution but capped out at `25–50%` held-out stable-positive-v2 recovery and only reached `90.53% -> 90.66%` on hard near-tie
    - top-k prototype evidence readouts only recovered `25%` of held-out stable-positive-v2 and the hybrid version collapsed fully to baseline
    - score-band prototype residuals also capped out at `50%` held-out stable-positive-v2 recovery and only reached the weaker `90.53% -> 90.66%` hard near-tie band
+   - explicit harmful-memory suppressor banks recovered `0%` of held-out stable-positive-v2 and effectively collapsed to baseline
 9. Do not reopen conservative student retry. Round-twelve positive mining showed that source-family expansion through training-side mining is too noisy:
    - best coarse mining recovered all held-out positives only at `5.97%` precision
    - broader mining fell to `1.77%` to `2.94%` precision

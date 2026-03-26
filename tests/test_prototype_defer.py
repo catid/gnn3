@@ -12,6 +12,7 @@ from gnn3.models.prototype_defer import (
     PrototypeMemoryDeferHead,
     PrototypeTriageDeferHead,
     SpecialistPrototypeDeferHead,
+    SuppressorPrototypeDeferHead,
 )
 
 
@@ -230,6 +231,59 @@ def test_bandpass_prototype_defer_separates_toy_clusters() -> None:
     with torch.no_grad():
         logits = head(features, risk)
     assert float(logits[: len(positives)].mean()) > float(logits[len(positives) :].mean())
+
+
+def test_suppressor_prototype_defer_separates_positive_from_neutral_and_harmful() -> None:
+    torch.manual_seed(41)
+    positives = torch.randn(18, 2) * 0.12 + torch.tensor([1.0, 1.0])
+    neutrals = torch.randn(18, 2) * 0.12 + torch.tensor([-1.0, -1.0])
+    harmful = torch.randn(18, 2) * 0.12 + torch.tensor([-1.0, 1.0])
+    features = torch.cat([positives, neutrals, harmful], dim=0)
+    risk = features.clone()
+    labels = torch.cat(
+        [
+            torch.ones(len(positives)),
+            torch.zeros(len(neutrals) + len(harmful)),
+        ],
+        dim=0,
+    )
+    positive_mask = torch.zeros(len(features), dtype=torch.bool)
+    neutral_mask = torch.zeros(len(features), dtype=torch.bool)
+    harmful_mask = torch.zeros(len(features), dtype=torch.bool)
+    positive_mask[: len(positives)] = True
+    neutral_mask[len(positives) : len(positives) + len(neutrals)] = True
+    harmful_mask[len(positives) + len(neutrals) :] = True
+
+    head = SuppressorPrototypeDeferHead(
+        feature_dim=2,
+        risk_dim=2,
+        prototype_dim=4,
+        positive_prototypes=2,
+        neutral_prototypes=2,
+        harmful_prototypes=2,
+        hidden_dim=8,
+        use_risk_branch=True,
+    )
+    optimizer = torch.optim.AdamW(head.parameters(), lr=2e-2, weight_decay=1e-4)
+    for _ in range(200):
+        optimizer.zero_grad(set_to_none=True)
+        logits = head(features, risk)
+        bce = F.binary_cross_entropy_with_logits(logits, labels)
+        reg = head.regularization(
+            features,
+            positive_mask=positive_mask,
+            neutral_negative_mask=neutral_mask,
+            harmful_negative_mask=harmful_mask,
+        )
+        loss = bce + 0.1 * reg
+        loss.backward()
+        optimizer.step()
+
+    with torch.no_grad():
+        logits = head(features, risk)
+    positive_mean = float(logits[: len(positives)].mean())
+    negative_mean = float(logits[len(positives) :].mean())
+    assert positive_mean > negative_mean
 
 
 def test_specialist_prototype_defer_separates_two_positive_clusters() -> None:

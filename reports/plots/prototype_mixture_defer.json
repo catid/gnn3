@@ -1,0 +1,18 @@
+[
+  {
+    "variant": "prototype_mixture",
+    "use_risk_branch": false,
+    "positive_prototypes": 8,
+    "negative_prototypes": 8,
+    "prototype_dim": 32,
+    "hidden_dim": 32
+  },
+  {
+    "variant": "prototype_mixture_hybrid",
+    "use_risk_branch": true,
+    "positive_prototypes": 8,
+    "negative_prototypes": 8,
+    "prototype_dim": 32,
+    "hidden_dim": 32
+  }
+]

@@ -26,7 +26,7 @@
    - `100%` stable-positive precision
    - hard near-tie delta regret only `-0.0029`
    - requires per-state teacher-bank knowledge
-8. Keep raw retrieval / hand-built prototype defer closed, but reopen one narrow architecture lead: a learnable `prototype_hybrid` defer head.
+8. Keep raw retrieval / hand-built prototype defer closed, but keep two narrow architecture leads inside the prototype family:
    - plain prototype bank is still dead
    - committee-only prototype bank is still too weak
    - explicit positive / neutral / harmful triage prototypes are also closed
@@ -47,6 +47,10 @@
    - at `0.75%` overall coverage it reached hard near-tie target match `90.53% -> 90.73%`
    - hard near-tie mean delta regret matched the round-eleven `2%` reference at `-0.0089`
    - overall mean delta regret at that point was still only `-0.0097`, so it is a lead, not a promotion
+   - `prototype_mixture_hybrid` is the first follow-up that fully caught that hard-slice band at matched higher coverage
+   - at `2.0%` nominal budget it matched `75%` held-out stable-positive-v2 recovery and the same `90.53% -> 90.73%` hard near-tie band
+   - at that matched point it slightly improved overall mean delta regret from `-0.0134` to `-0.0138`
+   - but at `0.75%` it only recovered `50%` of held-out stable-positive-v2 and stayed in the weaker `90.53% -> 90.66%` band
    - temporal scalar context was cleaner overall, but only recovered `50%` of held-out stable-positive-v2 and only reached hard near-tie `90.53% -> 90.66%`, so it is not the right architecture direction
    - gated rescaling of prototype evidence also capped out at `50%` held-out stable-positive-v2 recovery and the same weaker `90.53% -> 90.66%` hard near-tie band
    - specialist source-family banks also capped out at `50%` held-out stable-positive-v2 recovery, but only at materially higher coverage than `prototype_hybrid`
@@ -63,9 +67,10 @@
    - broader mining fell to `1.77%` to `2.94%` precision
    - regime mining was worse and introduced nonzero harmful selection
 10. Keep the representation diagnosis unchanged. The backbone still appears to expose most of the local signals; the open problem is still precision calibration and abstention on a tiny ambiguous subset.
-11. If another round opens, bias it toward **prototype-memory hybrid defer** before any broader family:
+11. If another round opens, bias it toward **prototype-memory hybrid defer** and **prototype-mixture hybrid defer** before any broader family:
    - keep the richer teacher-bank filters from round twelve
-   - use the learnable prototype-memory plus risk-branch architecture as the first architecture contender
+   - use the learnable prototype-memory plus risk-branch architecture as the ultra-low-coverage contender
+   - use the geometry-mixture prototype head as the matched-coverage contender
    - compare against the round-eleven `margin_regime` reference at matched or lower coverage
    - preserve large-gap controls and broad feasible-suite behavior
 12. If another round opens beyond that, bias it toward **richer teachers first, then ultra-low-coverage defer**:

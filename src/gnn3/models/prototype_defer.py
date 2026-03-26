@@ -475,6 +475,185 @@ class AgreementMixturePrototypeDeferHead(torch.nn.Module):
         return loss
 
 
+class EvidenceAgreementPrototypeDeferHead(torch.nn.Module):
+    """Agreement mixture with branch-internal prototype evidence features."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+    ) -> None:
+        super().__init__()
+        if positive_prototypes <= 0 or negative_prototypes <= 0:
+            raise ValueError("Prototype counts must be positive.")
+
+        scale = 1.0 / math.sqrt(prototype_dim)
+        self.shared_feature_proj = torch.nn.Linear(feature_dim, prototype_dim, bias=False)
+        self.shared_feature_norm = torch.nn.LayerNorm(prototype_dim)
+        self.shared_positive_prototypes = torch.nn.Parameter(torch.randn(positive_prototypes, prototype_dim) * scale)
+        self.shared_negative_prototypes = torch.nn.Parameter(torch.randn(negative_prototypes, prototype_dim) * scale)
+
+        self.dual_positive_feature_proj = torch.nn.Linear(feature_dim, prototype_dim, bias=False)
+        self.dual_positive_feature_norm = torch.nn.LayerNorm(prototype_dim)
+        self.dual_negative_feature_proj = torch.nn.Linear(feature_dim, prototype_dim, bias=False)
+        self.dual_negative_feature_norm = torch.nn.LayerNorm(prototype_dim)
+        self.dual_positive_prototypes = torch.nn.Parameter(torch.randn(positive_prototypes, prototype_dim) * scale)
+        self.dual_negative_prototypes = torch.nn.Parameter(torch.randn(negative_prototypes, prototype_dim) * scale)
+
+        self.shared_logit_scale = torch.nn.Parameter(torch.tensor(math.log(8.0), dtype=torch.float32))
+        self.dual_logit_scale = torch.nn.Parameter(torch.tensor(math.log(8.0), dtype=torch.float32))
+        self.evidence_gate = torch.nn.Sequential(
+            torch.nn.Linear(10, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+        self.gate_bias = torch.nn.Parameter(torch.tensor(-1.0, dtype=torch.float32))
+        self.bias = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+        self.risk_branch = None
+        if use_risk_branch and risk_dim > 0:
+            self.risk_branch = torch.nn.Sequential(
+                torch.nn.Linear(risk_dim, hidden_dim),
+                torch.nn.GELU(),
+                torch.nn.Linear(hidden_dim, 1),
+            )
+
+    def encode_shared(self, features: torch.Tensor) -> torch.Tensor:
+        projected = self.shared_feature_norm(self.shared_feature_proj(features))
+        return F.normalize(projected, dim=-1)
+
+    def encode_dual_positive(self, features: torch.Tensor) -> torch.Tensor:
+        projected = self.dual_positive_feature_norm(self.dual_positive_feature_proj(features))
+        return F.normalize(projected, dim=-1)
+
+    def encode_dual_negative(self, features: torch.Tensor) -> torch.Tensor:
+        projected = self.dual_negative_feature_norm(self.dual_negative_feature_proj(features))
+        return F.normalize(projected, dim=-1)
+
+    def _shared_banks(self) -> tuple[torch.Tensor, torch.Tensor]:
+        return (
+            F.normalize(self.shared_positive_prototypes, dim=-1),
+            F.normalize(self.shared_negative_prototypes, dim=-1),
+        )
+
+    def _dual_banks(self) -> tuple[torch.Tensor, torch.Tensor]:
+        return (
+            F.normalize(self.dual_positive_prototypes, dim=-1),
+            F.normalize(self.dual_negative_prototypes, dim=-1),
+        )
+
+    def _shared_evidence(self, shared_encoded: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T
+        neg_logits = scale * shared_encoded @ neg.T
+        return pos_logits.amax(dim=1), neg_logits.amax(dim=1)
+
+    def _dual_evidence(self, positive_encoded: torch.Tensor, negative_encoded: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T
+        neg_logits = scale * negative_encoded @ neg.T
+        return pos_logits.amax(dim=1), neg_logits.amax(dim=1)
+
+    def _evidence_features(
+        self,
+        shared_score: torch.Tensor,
+        dual_score: torch.Tensor,
+        shared_pos_top: torch.Tensor,
+        shared_neg_top: torch.Tensor,
+        dual_pos_top: torch.Tensor,
+        dual_neg_top: torch.Tensor,
+    ) -> torch.Tensor:
+        diff = dual_score - shared_score
+        shared_margin = shared_pos_top - shared_neg_top
+        dual_margin = dual_pos_top - dual_neg_top
+        return torch.stack(
+            [
+                shared_score,
+                dual_score,
+                diff.abs(),
+                shared_score * dual_score,
+                shared_pos_top,
+                shared_neg_top,
+                dual_pos_top,
+                dual_neg_top,
+                shared_margin,
+                dual_margin,
+            ],
+            dim=1,
+        )
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor | None = None) -> torch.Tensor:
+        shared_encoded = self.encode_shared(features)
+        dual_pos_encoded = self.encode_dual_positive(features)
+        dual_neg_encoded = self.encode_dual_negative(features)
+        shared_pos_top, shared_neg_top = self._shared_evidence(shared_encoded)
+        dual_pos_top, dual_neg_top = self._dual_evidence(dual_pos_encoded, dual_neg_encoded)
+        shared_score = shared_pos_top - shared_neg_top
+        dual_score = dual_pos_top - dual_neg_top
+        gate_features = self._evidence_features(
+            shared_score,
+            dual_score,
+            shared_pos_top,
+            shared_neg_top,
+            dual_pos_top,
+            dual_neg_top,
+        )
+        gate = torch.sigmoid(self.evidence_gate(gate_features).squeeze(-1) + self.gate_bias)
+        logits = shared_score + gate * (dual_score - shared_score) + self.bias
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits
+
+    def regularization(
+        self,
+        features: torch.Tensor,
+        *,
+        positive_mask: torch.Tensor,
+        hard_negative_mask: torch.Tensor,
+        margin: float = 0.20,
+    ) -> torch.Tensor:
+        shared_pos_bank, shared_neg_bank = self._shared_banks()
+        dual_pos_bank, dual_neg_bank = self._dual_banks()
+        loss = features.new_tensor(0.0)
+
+        if bool(positive_mask.any()):
+            pos_features = features[positive_mask]
+            shared_encoded = self.encode_shared(pos_features)
+            dual_positive_encoded = self.encode_dual_positive(pos_features)
+            dual_negative_encoded = self.encode_dual_negative(pos_features)
+            shared_pos_alignment = (shared_encoded @ shared_pos_bank.T).amax(dim=1)
+            shared_neg_overlap = (shared_encoded @ shared_neg_bank.T).amax(dim=1)
+            dual_pos_alignment = (dual_positive_encoded @ dual_pos_bank.T).amax(dim=1)
+            dual_neg_overlap = (dual_negative_encoded @ dual_neg_bank.T).amax(dim=1)
+            loss = loss + (1.0 - shared_pos_alignment).mean()
+            loss = loss + F.relu(shared_neg_overlap - margin).mean()
+            loss = loss + (1.0 - dual_pos_alignment).mean()
+            loss = loss + F.relu(dual_neg_overlap - margin).mean()
+
+        if bool(hard_negative_mask.any()):
+            neg_features = features[hard_negative_mask]
+            shared_encoded = self.encode_shared(neg_features)
+            dual_positive_encoded = self.encode_dual_positive(neg_features)
+            dual_negative_encoded = self.encode_dual_negative(neg_features)
+            shared_neg_alignment = (shared_encoded @ shared_neg_bank.T).amax(dim=1)
+            shared_pos_overlap = (shared_encoded @ shared_pos_bank.T).amax(dim=1)
+            dual_neg_alignment = (dual_negative_encoded @ dual_neg_bank.T).amax(dim=1)
+            dual_pos_overlap = (dual_positive_encoded @ dual_pos_bank.T).amax(dim=1)
+            loss = loss + (1.0 - shared_neg_alignment).mean()
+            loss = loss + F.relu(shared_pos_overlap - margin).mean()
+            loss = loss + (1.0 - dual_neg_alignment).mean()
+            loss = loss + F.relu(dual_pos_overlap - margin).mean()
+
+        return loss
+
+
 class AdapterPrototypeDeferHead(torch.nn.Module):
     """Prototype bank plus a tiny learned adapter in encoded feature space."""
 

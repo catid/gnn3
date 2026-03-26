@@ -75,6 +75,7 @@
    - keep the richer teacher-bank filters from round twelve
    - use the learnable prototype-memory plus risk-branch architecture as the ultra-low-coverage contender
    - use the agreement-gated geometry-mixture head as the matched-band contender
+   - use the evidence-calibrated agreement-mixture head only when aggregate-quality-at-higher-coverage matters more than coverage efficiency
    - compare against the round-eleven `margin_regime` reference at matched or lower coverage
    - preserve large-gap controls and broad feasible-suite behavior
 12. If another round opens beyond that, bias it toward **richer teachers first, then ultra-low-coverage defer**:

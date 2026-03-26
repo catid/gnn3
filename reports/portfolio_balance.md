@@ -130,6 +130,7 @@
 | F1-R12-deployment-study | exploit | Compare the round-eleven reference, round-twelve learned defer, and round-twelve committee upper bound on a held-out deployment panel. | 0.04 | 0.0100 | completed | No round-twelve branch beat the round-eleven `margin_regime` reference on the held-out deployment panel. |
 | X1-followup-prototype-memory | explore | Test whether a learnable prototype-memory defer head can beat the dead hand-built retrieval rules on the sparse stable-positive-v2 family. | 0.02 | 0.0000 | completed | `prototype_hybrid` recovered `75%` of held-out stable-positive-v2 and matched the round-eleven hard-slice band at `0.75%` coverage, but still trailed the round-eleven reference on overall regret. |
 | X2-followup-prototype-triage | explore | Test whether explicit positive / neutral / harmful prototype memories reduce neutral spill better than the simpler prototype-hybrid head. | 0.02 | 0.0000 | completed | Closed negative: triage memory collapsed stable-positive-v2 recovery to `25%` and never matched the `prototype_hybrid` hard-slice result. |
+| X3-followup-candidate-prototype | explore | Test whether explicit top-2 candidate-pair geometry improves the live prototype-hybrid defer lead on the sparse stable-positive family. | 0.02 | 0.0000 | completed | Closed negative: candidate-aware prototype defer recovered `0–25%` of held-out stable-positive-v2 and never matched the live `prototype_hybrid` frontier result. |
 
 Current cumulative GPU-hours:
 

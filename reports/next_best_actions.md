@@ -65,6 +65,8 @@
    - `prototype_risk_prior_regime_memory_hybrid` improved broad-safe overall regret to `-0.0045`, but recovered `0%` of held-out stable-positive-v2 at every budget and left hard near-tie unchanged at `90.53%`, so injecting explicit headroom / residual priors made the branch broader instead of sharper
    - explicit risk-veto regime mixing on top of that same memory-anchor geometry is also closed
    - `prototype_risk_veto_regime_memory_hybrid` also recovered `0%` of held-out stable-positive-v2 at every budget and left hard near-tie unchanged at `90.53%`; it only found a tiny broad-safe control fix at `0.03%` overall coverage, so suppressive vetoing collapsed the already-weak regime signal back toward baseline
+   - direct memory-context injection into the current evidence-agreement gate is also closed
+   - `prototype_memory_calibrated_evidence_hybrid` recovered `0%` of held-out stable-positive-v2 at every budget, left hard near-tie unchanged at `90.53%`, and only redirected about `0.24%` overall coverage into broad-safe non-target states, so memory evidence did not improve ranking inside the live evidence-agreement family
    - `prototype_mixture_hybrid` was the first follow-up that fully caught that hard-slice band at matched higher coverage
    - `prototype_agree_mix_hybrid` now improves on it in coverage efficiency
    - at `1.5%` nominal budget it matched `75%` held-out stable-positive-v2 recovery and the same `90.53% -> 90.73%` hard near-tie band
@@ -121,6 +123,7 @@
    - do not spend another cycle on regime-split outer lift specialists over the current memory-anchor geometry, because they surfaced only a weak `25%` held-out stable-positive niche and still failed to move beyond the weaker `90.53% -> 90.60%` band
    - do not spend another cycle on explicit risk-prior regime mixing over the current memory-anchor geometry, because it broadened residual-style non-target selections and still recovered `0%` of held-out stable-positive-v2
    - do not spend another cycle on explicit risk-veto regime mixing over the current memory-anchor geometry, because it over-suppressed the already-weak specialist signal, recovered `0%` of held-out stable-positive-v2, and collapsed back toward baseline plus a single harmless control fix
+   - do not spend another cycle on feeding memory score and memory top-match context directly into the current evidence-agreement gate, because it recovered `0%` of held-out stable-positive-v2 and only redirected coverage into broad-safe non-target states
 13. Keep the hard gate for every future branch:
    - stable-positive recovery
    - false-positive deferral rate

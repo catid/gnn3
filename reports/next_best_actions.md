@@ -26,7 +26,7 @@
    - `100%` stable-positive precision
    - hard near-tie delta regret only `-0.0029`
    - requires per-state teacher-bank knowledge
-8. Keep raw retrieval / hand-built prototype defer closed, but keep two narrow architecture leads inside the prototype family:
+8. Keep raw retrieval / hand-built prototype defer closed, but keep a small shortlist of narrow architecture leads inside the prototype family:
    - plain prototype bank is still dead
    - committee-only prototype bank is still too weak
    - explicit positive / neutral / harmful triage prototypes are also closed
@@ -47,6 +47,10 @@
    - at `0.75%` overall coverage it reached hard near-tie target match `90.53% -> 90.73%`
    - hard near-tie mean delta regret matched the round-eleven `2%` reference at `-0.0089`
    - overall mean delta regret at that point was still only `-0.0097`, so it is a lead, not a promotion
+   - `prototype_memory_agree_blend_hybrid` is now the best micro-budget Tier-1 follow-up
+   - at `0.25%` overall coverage it recovered `50%` of held-out stable-positive-v2 and reached the weaker but still real `90.53% -> 90.66%` hard near-tie band
+   - at `0.50%` overall coverage it still held `50%` stable-positive-v2 recovery, kept the same `90.53% -> 90.66%` hard near-tie band, and beat `prototype_hybrid` at the same budget on both hard-slice regret and overall mean delta regret
+   - but it capped out there and never reached the full `75%` / `90.73%` frontier band, so it is a micro-budget companion rather than a replacement lead
    - `prototype_mixture_hybrid` was the first follow-up that fully caught that hard-slice band at matched higher coverage
    - `prototype_agree_mix_hybrid` now improves on it in coverage efficiency
    - at `1.5%` nominal budget it matched `75%` held-out stable-positive-v2 recovery and the same `90.53% -> 90.73%` hard near-tie band
@@ -78,6 +82,7 @@
 11. If another round opens, bias it toward **prototype-memory hybrid defer** and **agreement-gated prototype-mixture hybrid defer** before any broader family:
    - keep the richer teacher-bank filters from round twelve
    - use the learnable prototype-memory plus risk-branch architecture as the ultra-low-coverage contender
+   - use the memory-agreement blend hybrid as the micro-budget contender below roughly `0.5%` overall coverage
    - use the agreement-gated geometry-mixture head as the matched-band contender
    - use the evidence-calibrated agreement-mixture head only when aggregate-quality-at-higher-coverage matters more than coverage efficiency
    - compare against the round-eleven `margin_regime` reference at matched or lower coverage

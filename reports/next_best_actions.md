@@ -41,6 +41,7 @@
    - score-band prototype residuals are also closed
    - explicit harmful-memory suppressor banks are also closed
    - score-aware prototype interaction residuals are also closed
+   - positive-only prototype lift residuals are also closed
    - but `prototype_hybrid` recovered `75%` of held-out stable-positive-v2
    - at `0.75%` overall coverage it reached hard near-tie target match `90.53% -> 90.73%`
    - hard near-tie mean delta regret matched the round-eleven `2%` reference at `-0.0089`
@@ -54,6 +55,7 @@
    - score-band prototype residuals also capped out at `50%` held-out stable-positive-v2 recovery and only reached the weaker `90.53% -> 90.66%` hard near-tie band
    - explicit harmful-memory suppressor banks recovered `0%` of held-out stable-positive-v2 and effectively collapsed to baseline
    - score-aware interaction residuals improved aggregate overall regret but still capped out at `25%` held-out stable-positive-v2 recovery and only reached the weaker `90.53% -> 90.60%` hard near-tie band
+   - positive-only lift residuals are also closed: the plain lift recovered `0%` of held-out stable-positive-v2, while the gated lift only reached `25%` recovery and still capped out at the weaker `90.53% -> 90.60%` hard near-tie band
 9. Do not reopen conservative student retry. Round-twelve positive mining showed that source-family expansion through training-side mining is too noisy:
    - best coarse mining recovered all held-out positives only at `5.97%` precision
    - broader mining fell to `1.77%` to `2.94%` precision

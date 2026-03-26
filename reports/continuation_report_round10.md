@@ -148,5 +148,15 @@ Key plot/data artifacts:
 
 ## Merge / push status
 
-Round ten has not yet been merged back to local `main` in this report draft.
-The final merged commit hash and remote push outcome are added after the local merge and push attempt.
+Round ten is merged into local `main`.
+
+- local merged commit: `1dcaf22b6fc8569b0e08070619ef2cabb981cc29`
+
+Remote sync and push are still blocked in this shell:
+
+- `git pull --ff-only origin main` -> `git@github.com: Permission denied (publickey)`
+- `bd sync` -> failed on remote pull with the same SSH error
+- `git push origin main` -> `git@github.com: Permission denied (publickey)`
+- process-local HTTPS push with the stored `gh` token -> `remote: Permission to catid/gnn3.git denied to catid.` and `The requested URL returned error: 403`
+
+So the round is complete locally on `main`, but publishing still requires a shell with GitHub write access.

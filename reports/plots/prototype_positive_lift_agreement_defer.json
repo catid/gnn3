@@ -1,0 +1,34 @@
+{
+  "prototype_positive_lift_agree": [
+    {
+      "split": "round11_feature_cache_seed315",
+      "score_min": -3.7823400497436523,
+      "score_max": 0.48954853415489197,
+      "score_mean": -1.846889853477478,
+      "use_risk_branch": false
+    },
+    {
+      "split": "round11_feature_cache_seed316",
+      "score_min": -4.181022644042969,
+      "score_max": 2.4605159759521484,
+      "score_mean": -0.3014151155948639,
+      "use_risk_branch": false
+    }
+  ],
+  "prototype_positive_lift_agree_hybrid": [
+    {
+      "split": "round11_feature_cache_seed315",
+      "score_min": -5.540249824523926,
+      "score_max": 2.5418810844421387,
+      "score_mean": -2.5446650981903076,
+      "use_risk_branch": true
+    },
+    {
+      "split": "round11_feature_cache_seed316",
+      "score_min": -6.956609725952148,
+      "score_max": 3.411592960357666,
+      "score_mean": -1.556569218635559,
+      "use_risk_branch": true
+    }
+  ]
+}

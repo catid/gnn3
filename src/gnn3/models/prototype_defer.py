@@ -183,6 +183,125 @@ class GatedPrototypeDeferHead(torch.nn.Module):
         return loss
 
 
+class SpecialistPrototypeDeferHead(torch.nn.Module):
+    """Prototype head with separate positive banks for distinct source families."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int,
+        prototype_dim: int = 32,
+        headroom_prototypes: int = 6,
+        residual_prototypes: int = 6,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_gate: bool = True,
+        use_bias_branch: bool = True,
+    ) -> None:
+        super().__init__()
+        if min(headroom_prototypes, residual_prototypes, negative_prototypes) <= 0:
+            raise ValueError("Prototype counts must be positive.")
+        if risk_dim <= 0:
+            raise ValueError("risk_dim must be positive for specialist prototype heads.")
+
+        self.feature_proj = torch.nn.Linear(feature_dim, prototype_dim, bias=False)
+        self.feature_norm = torch.nn.LayerNorm(prototype_dim)
+        scale = 1.0 / math.sqrt(prototype_dim)
+        self.headroom_prototypes = torch.nn.Parameter(torch.randn(headroom_prototypes, prototype_dim) * scale)
+        self.residual_prototypes = torch.nn.Parameter(torch.randn(residual_prototypes, prototype_dim) * scale)
+        self.negative_prototypes = torch.nn.Parameter(torch.randn(negative_prototypes, prototype_dim) * scale)
+        self.logit_scale = torch.nn.Parameter(torch.tensor(math.log(8.0), dtype=torch.float32))
+        self.prototype_bias = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+        self.use_gate = use_gate
+        self.gate_branch = None
+        if use_gate:
+            self.gate_branch = torch.nn.Sequential(
+                torch.nn.Linear(risk_dim, hidden_dim),
+                torch.nn.GELU(),
+                torch.nn.Linear(hidden_dim, 2),
+            )
+        self.bias_branch = None
+        if use_bias_branch:
+            self.bias_branch = torch.nn.Sequential(
+                torch.nn.Linear(risk_dim, hidden_dim),
+                torch.nn.GELU(),
+                torch.nn.Linear(hidden_dim, 1),
+            )
+
+    def encode(self, features: torch.Tensor) -> torch.Tensor:
+        projected = self.feature_norm(self.feature_proj(features))
+        return F.normalize(projected, dim=-1)
+
+    def _scores(self, encoded: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        scale = self.logit_scale.exp().clamp(min=1.0, max=64.0)
+        headroom = F.normalize(self.headroom_prototypes, dim=-1)
+        residual = F.normalize(self.residual_prototypes, dim=-1)
+        negative = F.normalize(self.negative_prototypes, dim=-1)
+        headroom_score = torch.logsumexp(scale * encoded @ headroom.T, dim=1)
+        residual_score = torch.logsumexp(scale * encoded @ residual.T, dim=1)
+        negative_score = torch.logsumexp(scale * encoded @ negative.T, dim=1)
+        return headroom_score, residual_score, negative_score
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor) -> torch.Tensor:
+        encoded = self.encode(features)
+        headroom_score, residual_score, negative_score = self._scores(encoded)
+        positive_scores = torch.stack([headroom_score, residual_score], dim=1)
+        if self.gate_branch is not None:
+            mix = torch.softmax(self.gate_branch(risk_features), dim=1)
+            positive_score = (mix * positive_scores).sum(dim=1)
+        else:
+            positive_score = positive_scores.max(dim=1).values
+        logits = positive_score - negative_score + self.prototype_bias
+        if self.bias_branch is not None:
+            logits = logits + self.bias_branch(risk_features).squeeze(-1)
+        return logits
+
+    def regularization(
+        self,
+        features: torch.Tensor,
+        *,
+        headroom_positive_mask: torch.Tensor,
+        residual_positive_mask: torch.Tensor,
+        hard_negative_mask: torch.Tensor,
+        margin: float = 0.20,
+    ) -> torch.Tensor:
+        encoded = self.encode(features)
+        headroom = F.normalize(self.headroom_prototypes, dim=-1)
+        residual = F.normalize(self.residual_prototypes, dim=-1)
+        negative = F.normalize(self.negative_prototypes, dim=-1)
+        loss = encoded.new_tensor(0.0)
+
+        if bool(headroom_positive_mask.any()):
+            current = encoded[headroom_positive_mask]
+            align = (current @ headroom.T).amax(dim=1)
+            residual_overlap = (current @ residual.T).amax(dim=1)
+            negative_overlap = (current @ negative.T).amax(dim=1)
+            loss = loss + (1.0 - align).mean()
+            loss = loss + F.relu(residual_overlap - margin).mean()
+            loss = loss + F.relu(negative_overlap - margin).mean()
+
+        if bool(residual_positive_mask.any()):
+            current = encoded[residual_positive_mask]
+            align = (current @ residual.T).amax(dim=1)
+            headroom_overlap = (current @ headroom.T).amax(dim=1)
+            negative_overlap = (current @ negative.T).amax(dim=1)
+            loss = loss + (1.0 - align).mean()
+            loss = loss + F.relu(headroom_overlap - margin).mean()
+            loss = loss + F.relu(negative_overlap - margin).mean()
+
+        if bool(hard_negative_mask.any()):
+            current = encoded[hard_negative_mask]
+            align = (current @ negative.T).amax(dim=1)
+            headroom_overlap = (current @ headroom.T).amax(dim=1)
+            residual_overlap = (current @ residual.T).amax(dim=1)
+            loss = loss + (1.0 - align).mean()
+            loss = loss + F.relu(headroom_overlap - margin).mean()
+            loss = loss + F.relu(residual_overlap - margin).mean()
+
+        return loss
+
+
 class PrototypeTriageDeferHead(torch.nn.Module):
     """Prototype bank with explicit positive / neutral / harmful memories."""
 

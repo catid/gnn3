@@ -7,6 +7,7 @@ from gnn3.models.prototype_defer import (
     GatedPrototypeDeferHead,
     PrototypeMemoryDeferHead,
     PrototypeTriageDeferHead,
+    SpecialistPrototypeDeferHead,
 )
 
 
@@ -83,6 +84,60 @@ def test_gated_prototype_defer_separates_toy_clusters() -> None:
     with torch.no_grad():
         logits = head(features, risk)
     assert float(logits[: len(positives)].mean()) > float(logits[len(positives) :].mean())
+
+
+def test_specialist_prototype_defer_separates_two_positive_clusters() -> None:
+    torch.manual_seed(23)
+    headroom = torch.randn(18, 2) * 0.12 + torch.tensor([1.0, 1.0])
+    residual = torch.randn(18, 2) * 0.12 + torch.tensor([1.0, -1.0])
+    negatives = torch.randn(24, 2) * 0.12 + torch.tensor([-1.0, -1.0])
+    features = torch.cat([headroom, residual, negatives], dim=0)
+    risk = features.clone()
+    labels = torch.cat(
+        [
+            torch.ones(len(headroom) + len(residual)),
+            torch.zeros(len(negatives)),
+        ],
+        dim=0,
+    )
+    headroom_mask = torch.zeros(len(features), dtype=torch.bool)
+    residual_mask = torch.zeros(len(features), dtype=torch.bool)
+    negative_mask = torch.zeros(len(features), dtype=torch.bool)
+    headroom_mask[: len(headroom)] = True
+    residual_mask[len(headroom) : len(headroom) + len(residual)] = True
+    negative_mask[len(headroom) + len(residual) :] = True
+
+    head = SpecialistPrototypeDeferHead(
+        feature_dim=2,
+        risk_dim=2,
+        prototype_dim=4,
+        headroom_prototypes=2,
+        residual_prototypes=2,
+        negative_prototypes=2,
+        hidden_dim=8,
+        use_gate=True,
+        use_bias_branch=True,
+    )
+    optimizer = torch.optim.AdamW(head.parameters(), lr=2e-2, weight_decay=1e-4)
+    for _ in range(200):
+        optimizer.zero_grad(set_to_none=True)
+        logits = head(features, risk)
+        bce = F.binary_cross_entropy_with_logits(logits, labels)
+        reg = head.regularization(
+            features,
+            headroom_positive_mask=headroom_mask,
+            residual_positive_mask=residual_mask,
+            hard_negative_mask=negative_mask,
+        )
+        loss = bce + 0.1 * reg
+        loss.backward()
+        optimizer.step()
+
+    with torch.no_grad():
+        logits = head(features, risk)
+    positive_mean = float(logits[: len(headroom) + len(residual)].mean())
+    negative_mean = float(logits[len(headroom) + len(residual) :].mean())
+    assert positive_mean > negative_mean
 
 
 def test_prototype_triage_defer_separates_three_way_clusters() -> None:

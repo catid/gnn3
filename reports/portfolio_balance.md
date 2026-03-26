@@ -120,6 +120,14 @@
 | C1-R11-top2-comparator | explore | Test top-2 comparator-with-abstain variants as low-coverage correction policies. | 0.14 | 0.0800 | completed | Frozen variants were inert and candidate-conditioned narrow variants were actively harmful on held-out seed316. |
 | D1-R11-subset-distill | explore | Distill only on the stable-positive pack to test whether narrow supervision avoids round-ten regressions. | 0.18 | 0.1200 | completed | No subset-only student promoted; `gated_pairwise` stayed safest but still missed the hard near-tie gate. |
 | E1-R11-deployment-study | exploit | Quantify the actual low-coverage defer-to-teacher deployment tradeoff before considering any contender step. | 0.08 | 0.0400 | completed | A tiny `1–2%` defer band exists, but the gain is too small and the source family too sparse to promote deployment. |
+| A0-R12-validation-smoke | exploit | Revalidate the baseline path, cached teacher-bank inputs, and new round-twelve helper code before launching the richer-bank defer campaign. | 0.05 | 0.0200 | completed | Lint, targeted pytest, smoke train, and cached teacher-bank smoke all passed before round-twelve launches. |
+| A1-R12-teacher-bank-expansion | exploit | Expand the offline teacher bank with safe compute and prior correction branches before reopening defer work. | 0.10 | 0.0400 | completed | Richer bank improved confidence but not coverage: `stable_positive_v2` stayed at `46` total / `4` held-out, with `compute5` still best-safe on `45 / 46` cases. |
+| A2-R12-stable-positive-v2 | exploit | Rebuild the stable-positive pack around teacher-bank agreement and audit whether transfer improved. | 0.06 | 0.0200 | completed | Committee / strict subsets shrank to `30` cases, but fine overlap stayed `0.0` and coarse overlap stayed tiny; transfer did not improve materially. |
+| B1-R12-ultralow-defer | explore | Re-run defer gating at much finer budgets and test whether the learned gate can beat the round-eleven reference. | 0.10 | 0.0600 | completed | Only `margin_regime` survived; best held-out point was `0.5%` coverage with hard near-tie delta regret `-0.0071`, but it did not beat the round-eleven reference. |
+| C1-R12-retrieval-defer | explore | Test whether the sparse positive family is locally structured enough for prototype or nearest-neighbor defer. | 0.08 | 0.0200 | completed | Retrieval family was dead: `0` held-out stable-positive recall and effectively zero hard-slice movement across all variants. |
+| D1-R12-committee-defer | explore | Use teacher-bank agreement directly as a precision-first offline defer upper bound. | 0.06 | 0.0200 | completed | Best new round-twelve branch: held-out committee defer reached `100%` stable-positive precision at about `0.25%` overall coverage, but remained an offline upper bound rather than a deployable policy. |
+| E1-R12-positive-mining | explore | Test whether training-only mining can expand the sparse positive source family before reopening student work. | 0.04 | 0.0300 | completed | Best coarse mining recovered all held-out positives only at `5.97%` precision; mining did not create a clean expanded source family. |
+| F1-R12-deployment-study | exploit | Compare the round-eleven reference, round-twelve learned defer, and round-twelve committee upper bound on a held-out deployment panel. | 0.04 | 0.0100 | completed | No round-twelve branch beat the round-eleven `margin_regime` reference on the held-out deployment panel. |
 
 Current cumulative GPU-hours:
 
@@ -146,6 +154,9 @@ Current cumulative GPU-hours:
 - Round-eleven exploit final: `0.1800`
 - Round-eleven explore final: `0.2900`
 - Round-eleven split final: `38.3% / 61.7%`
-- Overall exploit: `8.5977`
-- Overall explore: `7.2531`
-- Overall split: `54.2% / 45.8%`
+- Round-twelve exploit final: `0.0900`
+- Round-twelve explore final: `0.1300`
+- Round-twelve split final: `40.9% / 59.1%`
+- Overall exploit: `8.6877`
+- Overall explore: `7.3831`
+- Overall split: `54.1% / 45.9%`

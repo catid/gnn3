@@ -1,0 +1,51 @@
+{
+  "compute_decision_csvs": [
+    "reports/plots/round10_helpfulness_seed314_decisions.csv",
+    "reports/plots/round10_helpfulness_seed315_decisions.csv",
+    "reports/plots/round10_helpfulness_seed316_decisions.csv"
+  ],
+  "selective_decisions_csv": "reports/plots/round10_selective_compute_decisions.csv",
+  "subset_distill_decisions_csv": "reports/plots/round11_subset_distill_heldout_decisions.csv",
+  "aux_policy_csvs": [
+    "reports/plots/round9_compute_policy_seed314_deeper_packets6_fixed_final_decisions.csv",
+    "reports/plots/round9_compute_policy_seed314_deeper_packets6_fixed_middle_decisions.csv",
+    "reports/plots/round9_compute_policy_seed314_deeper_packets6_margin050_decisions.csv",
+    "reports/plots/round9_compute_policy_seed314_deeper_packets6_margin100_decisions.csv",
+    "reports/plots/round9_compute_policy_seed314_deeper_packets6_risktight_decisions.csv",
+    "reports/plots/round9_compute_policy_seed314_deeper_packets6_learnedgate_decisions.csv"
+  ],
+  "min_regret_gain": 0.25,
+  "strict_regret_gain": 0.5,
+  "seed_summary": [
+    {
+      "seed": 314,
+      "decisions": 4438,
+      "hard_near_tie": 684,
+      "round11_pack": 42,
+      "stable_positive_v2": 42,
+      "stable_positive_v2_committee": 28,
+      "stable_positive_v2_strict": 28,
+      "harmful_teacher_bank": 983
+    },
+    {
+      "seed": 315,
+      "decisions": 4344,
+      "hard_near_tie": 832,
+      "round11_pack": 1,
+      "stable_positive_v2": 1,
+      "stable_positive_v2_committee": 0,
+      "stable_positive_v2_strict": 0,
+      "harmful_teacher_bank": 68
+    },
+    {
+      "seed": 316,
+      "decisions": 4339,
+      "hard_near_tie": 657,
+      "round11_pack": 3,
+      "stable_positive_v2": 3,
+      "stable_positive_v2_committee": 2,
+      "stable_positive_v2_strict": 2,
+      "harmful_teacher_bank": 18
+    }
+  ]
+}

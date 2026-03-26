@@ -1,29 +1,46 @@
 # Next Best Actions
 
-1. Keep plain `multiheavy` as the default exploit policy. Round eleven did not find a precision-first defer/correct branch that beat it cleanly on the accepted hard near-tie frontier.
-2. Keep using the round-nine frontier pack and guard as the only promotion surface:
+1. Keep plain `multiheavy` as the default exploit policy. Round twelve still did not produce a deployable correction branch that beats it cleanly on the accepted hard near-tie frontier.
+2. Keep using the round-nine/ten frontier pack and guard as the only Tier-2 promotion surface:
    - hard near-tie intersection
    - stable near-tie
    - high-headroom near-tie
    - baseline-error subset inside the intersection
    - large-gap control slice
-3. Treat the live opportunity as a **tiny stable-positive correction** problem, not a broad hard near-tie compute problem. Round eleven showed the canonical stable-positive pack has only `46` audited decisions total, with just `4` held-out positives across seeds `315` and `316`, and effectively zero source-signature overlap across seeds.
-4. Do not promote fixed `compute5`. It still helps the narrow high-headroom and baseline-error source families, but aggregate hard near-tie helpfulness remains below harmfulness and the full-cost trade is still unjustified.
-5. Do not promote broad learned defer gates. Linear and MLP gates stayed inert on held-out seeds. The only surviving gate was the simple `margin_regime` ranker, and even that only helped at very low coverage.
-6. Keep `margin_regime` defer as the only round-eleven reference branch worth remembering. On held-out seeds, the `1%` budget recovered `50%` of the stable-positive pack and slightly improved the full hard near-tie slice (`90.53% -> 90.66%` target match, mean delta regret `-0.0071`) with no false positives. At `2%`, it recovered `75%` of the stable-positive pack and improved the full hard near-tie slice a bit more (`90.53% -> 90.73%`, mean delta regret `-0.0089`), but coverage remains too broad relative to the tiny source family for clean promotion.
-7. Do not promote the top-2 comparator-with-abstain family. Frozen comparators were essentially inert; candidate-conditioned narrow comparators were actively harmful on held-out seed316 and regressed large-gap controls.
-8. Do not promote subset-only distillation from the current stable-positive teacher bank. `pairwise` and `kl` recovered some positive states but still broke too many solved cases overall, while `residual` remained aggressively destructive. `gated_pairwise` was again the safest student, but it stayed too close to baseline on seed315 and still regressed aggregate hard near-tie on held-out seeds (`90.53% -> 90.46%`, mean delta regret `+0.0036`).
-9. Keep the representation diagnosis unchanged. Round eleven still did not overturn the earlier conclusion that the backbone already carries most of the local signals; the open problem is still precision calibration and abstention on a tiny ambiguous subset.
-10. If another round opens, bias it toward **ultra-low-coverage defer-to-teacher** rather than new student capacity:
-   - richer or more diverse teacher bank first
-   - larger and more stable stable-positive source-family construction
-   - explicit operating-point selection under tiny coverage budgets
+3. Keep treating the live opportunity as a **tiny stable-positive correction** problem. Round twelve confirmed that the richer teacher bank still yields only `46` stable-positive-v2 audited decisions total, with just `4` held-out positives across seeds `315` and `316`.
+4. Do not claim that richer teacher-bank construction solved the source-family problem. It improved confidence, but not coverage:
+   - `compute5` remains the best safe teacher on `45 / 46` stable-positive-v2 cases
+   - fine-signature overlap across seeds is still `0.0`
+   - coarse-signature overlap is still only `0.0833`, `0.1667`, and `0.0`
+5. Do not promote round-twelve `margin_regime`. It is still the only surviving learned defer gate, but it only matches the old behavior:
+   - at `0.5%` coverage it recovers `50%` of the held-out stable-positive-v2 pack
+   - hard near-tie mean delta regret is `-0.0071`
+   - overall mean delta regret is only `-0.0075`
+   - that does not beat the round-eleven reference
+6. Keep the round-eleven `margin_regime` defer at `1–2%` coverage as the current reference operating point. It is still the strongest remembered deployment-style branch:
+   - `1%`: hard near-tie delta regret `-0.0071`, overall `-0.0134`
+   - `2%`: hard near-tie delta regret `-0.0089`, overall `-0.0151`
+7. Remember round-twelve committee defer only as an **offline upper bound**, not a deployment policy. On held-out seeds it is cleaner but smaller:
+   - about `0.25%` overall coverage
+   - `50%` stable-positive-v2 recovery
+   - `100%` stable-positive precision
+   - hard near-tie delta regret only `-0.0029`
+   - requires per-state teacher-bank knowledge
+8. Do not reopen retrieval / prototype defer. kNN, prototype, and margin-plus-retrieval were all effectively inert with `0` held-out stable-positive recall.
+9. Do not reopen conservative student retry. Round-twelve positive mining showed that source-family expansion through training-side mining is too noisy:
+   - best coarse mining recovered all held-out positives only at `5.97%` precision
+   - broader mining fell to `1.77%` to `2.94%` precision
+   - regime mining was worse and introduced nonzero harmful selection
+10. Keep the representation diagnosis unchanged. The backbone still appears to expose most of the local signals; the open problem is still precision calibration and abstention on a tiny ambiguous subset.
+11. If another round opens, bias it toward **richer teachers first, then ultra-low-coverage defer**:
+   - more diverse safe teacher bank members
+   - teacher agreement / correction-margin filters
+   - explicit held-out comparison against the round-eleven reference at matched or lower coverage
    - hard false-positive penalties and large-gap preservation
-11. Keep the hard gate for every future branch:
-   - baseline-error correction rate on the hard near-tie slice
-   - new-error rate on baseline-correct near-tie states
-   - net corrected errors
-   - slice regret / miss delta
+12. Keep the hard gate for every future branch:
+   - stable-positive recovery
+   - false-positive deferral rate
+   - hard near-tie regret / miss delta
    - large-gap control preservation
    - runtime overhead
-12. Keep `detach_warmup` mandatory in every future shortlist. That contract remains unbroken by every round since it was established.
+13. Keep `detach_warmup` mandatory in every future shortlist. That contract remains unbroken by every round since it was established.

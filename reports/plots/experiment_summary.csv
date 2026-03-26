@@ -127,3 +127,4 @@ prototype_pair_metric_hybrid_defer_200,explore,0.0,,,,,0.968329,-0.014508,,,,0.0
 prototype_temporal_scalar_hybrid_defer_100,explore,0.0,,,,,0.967408,-0.012902,,,,-0.00023
 prototype_gated_offset_defer_050,explore,0.0,,,,,0.966141,-0.007159,,,,-0.00023
 prototype_specialist_max_defer_150,explore,0.0,,,,,0.966832,-0.009915,,,,-0.00023
+prototype_adapter_hybrid_defer_150,explore,0.0,,,,,0.966832,-0.006972,,,,-0.00023

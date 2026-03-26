@@ -27,6 +27,7 @@ from gnn3.models.prototype_defer import (
     PrototypeTriageDeferHead,
     RegimeSplitMemoryBlendPrototypeDeferHead,
     RiskPriorRegimeMemoryBlendPrototypeDeferHead,
+    RiskVetoRegimeMemoryBlendPrototypeDeferHead,
     SharpnessEvidenceAgreementPrototypeDeferHead,
     SpecialistPrototypeDeferHead,
     SuppressorPrototypeDeferHead,
@@ -1097,4 +1098,63 @@ def test_risk_prior_regime_memory_blend_prototype_defer_separates_positive_regim
     assert float(regime_probs[: len(headroom), 1].mean()) > float(regime_probs[: len(headroom), 2].mean())
     assert float(regime_probs[len(headroom) : len(headroom) + len(residual), 2].mean()) > float(
         regime_probs[len(headroom) : len(headroom) + len(residual), 1].mean()
+    )
+
+
+def test_risk_veto_regime_memory_blend_prototype_defer_separates_positive_regimes() -> None:
+    torch.manual_seed(97)
+    headroom = torch.randn(18, 2) * 0.12 + torch.tensor([1.0, 1.0])
+    residual = torch.randn(18, 2) * 0.12 + torch.tensor([1.0, -1.0])
+    negatives = torch.randn(24, 2) * 0.12 + torch.tensor([-1.0, -1.0])
+    features = torch.cat([headroom, residual, negatives], dim=0)
+    risk = features.clone()
+    labels = torch.cat([torch.ones(len(headroom) + len(residual)), torch.zeros(len(negatives))], dim=0)
+    regime_labels = torch.cat(
+        [
+            torch.ones(len(headroom), dtype=torch.long),
+            2 * torch.ones(len(residual), dtype=torch.long),
+            torch.zeros(len(negatives), dtype=torch.long),
+        ],
+        dim=0,
+    )
+    veto_labels = torch.zeros((len(features), 2), dtype=torch.float32)
+    veto_labels[: len(headroom), 0] = 1.0
+    veto_labels[len(headroom) : len(headroom) + len(residual), 1] = 1.0
+    hard_negatives = torch.zeros(len(features), dtype=torch.bool)
+    hard_negatives[len(headroom) + len(residual) :] = True
+    positive_mask = labels.bool()
+
+    head = RiskVetoRegimeMemoryBlendPrototypeDeferHead(
+        feature_dim=2,
+        risk_dim=2,
+        prototype_dim=4,
+        positive_prototypes=2,
+        negative_prototypes=2,
+        hidden_dim=8,
+        use_risk_branch=True,
+    )
+    optimizer = torch.optim.AdamW(head.parameters(), lr=2e-2, weight_decay=1e-4)
+    for _ in range(200):
+        optimizer.zero_grad(set_to_none=True)
+        logits, regime_logits, veto_logits = head.forward_with_regime(features, risk)
+        bce = F.binary_cross_entropy_with_logits(logits, labels)
+        reg = head.regularization(features, positive_mask=positive_mask, hard_negative_mask=hard_negatives)
+        ce = F.cross_entropy(regime_logits[positive_mask], regime_labels[positive_mask])
+        veto = F.binary_cross_entropy_with_logits(veto_logits, veto_labels)
+        loss = bce + 0.1 * reg + 0.1 * ce + 0.05 * veto
+        loss.backward()
+        optimizer.step()
+
+    with torch.no_grad():
+        logits, regime_logits, veto_logits = head.forward_with_regime(features, risk)
+        regime_probs = torch.softmax(regime_logits, dim=1)
+        veto_masks = torch.sigmoid(veto_logits)
+    assert float(logits[: len(headroom) + len(residual)].mean()) > float(logits[len(headroom) + len(residual) :].mean())
+    assert float(regime_probs[: len(headroom), 1].mean()) > float(regime_probs[: len(headroom), 2].mean())
+    assert float(regime_probs[len(headroom) : len(headroom) + len(residual), 2].mean()) > float(
+        regime_probs[len(headroom) : len(headroom) + len(residual), 1].mean()
+    )
+    assert float(veto_masks[: len(headroom), 0].mean()) > float(veto_masks[: len(headroom), 1].mean())
+    assert float(veto_masks[len(headroom) : len(headroom) + len(residual), 1].mean()) > float(
+        veto_masks[len(headroom) : len(headroom) + len(residual), 0].mean()
     )

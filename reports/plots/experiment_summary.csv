@@ -151,3 +151,4 @@ prototype_budget_memory_hybrid_defer_200,explore,0.0,,,,,0.966486,-0.007901,,,,-
 prototype_teacher_margin_memory_hybrid_defer_150,explore,0.0,,,,,0.965795,-0.004167,,,,0.0
 prototype_regime_split_memory_hybrid_defer_200,explore,0.0,,,,,0.96568,-0.003776,,,,-0.00023
 prototype_risk_prior_regime_memory_hybrid_defer_200,explore,0.0,,,,,0.96591,-0.004488,,,,0.0
+prototype_risk_veto_regime_memory_hybrid_defer_200,explore,0.0,,,,,0.965335,-0.002044,,,,-0.000115

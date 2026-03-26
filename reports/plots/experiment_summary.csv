@@ -114,3 +114,9 @@ round11_teacher_bank_audit,exploit,0.08,,,,,1.0,-2.7310,,,,0.02117
 round11_defer_gate_margin_regime_2pct,explore,0.09,,,,,0.968444,-0.015073,,,,-0.000346
 round11_top2_comparator_candidate_conditioned_narrow,explore,0.08,,,,,0.852921,-1.061261,,,,0.000672
 round11_subset_distill_gated_pairwise,explore,0.12,,,,,0.966026,-0.003769,,,,0.002073
+round12_teacher_bank_expansion,exploit,0.04,,,,,1.0,-2.731003,,,,-0.021169
+round12_ultralow_defer_margin_regime_050,explore,0.06,,,,,0.966141,-0.007483,,,,-0.00023
+round12_retrieval_defer_margin_retrieval,explore,0.02,,,,,0.965104,0.0,,,,0.0
+round12_committee_defer_margin_committee_075,explore,0.02,,,,,0.967638,-0.008944,,,,0.0
+round12_positive_mining_high_headroom_coarse,explore,0.03,,,,,0.059701,0.221324,,,,0.007716
+round12_deployment_panel,exploit,0.01,,,,,0.967638,-0.008944,,,,0.0

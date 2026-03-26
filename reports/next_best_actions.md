@@ -65,6 +65,7 @@
    - positive-only lift residuals are also closed: the plain lift recovered `0%` of held-out stable-positive-v2, while the gated lift only reached `25%` recovery and still capped out at the weaker `90.53% -> 90.60%` hard near-tie band
    - asymmetric dual-projection prototype defer is also closed: it found a tiny useful niche at ultra-low coverage, but still capped out at `25%` held-out stable-positive-v2 recovery and the same weaker `90.53% -> 90.60%` hard near-tie band
    - shared-anchor cascade prototype defer is also closed: it improved aggregate regret cleanly, but capped out at `50%` held-out stable-positive-v2 recovery and still only reached the weaker `90.53% -> 90.66%` hard near-tie band
+   - switch-gated branch routing is also closed: plain switch selected only inert controls, and the hybrid switch collapsed fully to baseline
 9. Do not reopen conservative student retry. Round-twelve positive mining showed that source-family expansion through training-side mining is too noisy:
    - best coarse mining recovered all held-out positives only at `5.97%` precision
    - broader mining fell to `1.77%` to `2.94%` precision
@@ -84,6 +85,7 @@
    - do not spend another cycle on temporal drift features unless they are used only as a secondary risk calibrator under the existing `prototype_hybrid` lead
    - do not spend another cycle on multiplicative prototype gating unless it changes the prototype bank itself rather than just reweighting the same score
    - do not spend another cycle on shared-anchor lift cascades unless they can move beyond `50%` held-out stable-positive-v2 recovery without giving back the hard-slice band
+   - do not spend another cycle on branch-switch routing unless the branches themselves change, because routing between the current live branches produced no Tier-1 recovery
 13. Keep the hard gate for every future branch:
    - stable-positive recovery
    - false-positive deferral rate

@@ -188,6 +188,12 @@
      - at `1.0%` overall coverage it recovers the full `75%` / `90.73%` frontier with overall mean delta regret `-0.0152`
    - but it still loses to the live sharp-negative branch below `1%`, still never preserves the branchwise-max branch's `100%` / `90.80%` higher-budget recall lane, and by `1.5%` it still trails both the older `prototype_support_weighted_agree_mix_hybrid` higher-budget reference and the newer branchwise-max result
    - so adding a learned branch margin is better than replacing branchwise max with a soft learned lift, but hard branchwise max still remains the best live fusion for this family
+   - strict joint-support branchwise fusion on that same branch-strength sharp base is now also closed
+   - the plain joint-support head is inert through `1.5%` coverage and only wakes up slightly at `2.0%`, where it still recovers only `25%` of held-out stable-positive-v2
+   - the hybrid finds only the tiny ultra-low-coverage niche:
+     - by `0.1%` coverage it recovers `25%` of held-out stable-positive-v2 and reaches the weaker `90.53% -> 90.60%` hard near-tie band
+     - then it saturates completely, topping out at only `0.68%` overall coverage and never improving beyond that same `25%` / `90.60%` niche
+   - so the live branchwise-max gain is not just “avoid one-branch takeovers”; requiring both branches to share the same fixed-cleanup gain is too conservative and throws away almost all of the useful recall signal
    - asymmetric positive-plus-negative tail cleanup over that same support-weighted agreement-mixture bank is now also closed
    - the plain asymmetric-tail head is inert, and `prototype_asymmetric_tail_support_agree_mix_hybrid @ 0.75%` only matches the full `75%` / `90.73%` frontier band with weaker overall mean delta regret (`-0.0085`) than the existing soft-tail branch
    - at `1.00%` overall coverage it still only recovers `75%` of held-out stable-positive-v2 and reaches overall mean delta regret `-0.0105`, so it also trails both the original support-weighted branch on aggregate quality and the negative-tail branch on held-out recall

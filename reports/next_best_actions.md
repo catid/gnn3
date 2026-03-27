@@ -47,6 +47,9 @@
    - at `0.75%` overall coverage it reached hard near-tie target match `90.53% -> 90.73%`
    - hard near-tie mean delta regret matched the round-eleven `2%` reference at `-0.0089`
    - overall mean delta regret at that point was still only `-0.0097`, so it is a lead, not a promotion
+   - direct bank-internal support weighting on top of that original prototype-memory geometry is now also closed
+   - `prototype_support_weighted_hybrid` improved broad overall regret to `-0.0142`, but it only recovered `25%` of held-out stable-positive-v2 through `0.75%` coverage and only `50%` by `1.0–2.0%`
+   - it still capped out at the weaker `90.53% -> 90.66%` hard near-tie band, so support weighting alone is not enough on the raw prototype-memory geometry
    - `prototype_memory_agree_blend_hybrid` is now the best micro-budget Tier-1 follow-up
    - at `0.25%` overall coverage it recovered `50%` of held-out stable-positive-v2 and reached the weaker but still real `90.53% -> 90.66%` hard near-tie band
    - at `0.50%` overall coverage it still held `50%` stable-positive-v2 recovery, kept the same `90.53% -> 90.66%` hard near-tie band, and beat `prototype_hybrid` at the same budget on both hard-slice regret and overall mean delta regret
@@ -147,7 +150,8 @@
    - do not spend another cycle on regime-specialized bank families inside the current evidence-agreement family, because they only recovered `25%` of held-out stable-positive-v2 by spending very broad false-positive coverage across the headroom and baseline-error slices and still only reached the weaker `90.53% -> 90.60%` hard-slice band
    - do not spend another cycle on anchored residual regime specialists inside the current evidence-agreement family, because they still only recovered `25%` of held-out stable-positive-v2 and also stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
    - do not spend another cycle on explicit positive-support gating over those anchored residual regime specialists, because it preserved the same weak `25%` held-out stable-positive-v2 recovery and slightly improved coverage-efficiency, but still spent about `75%` false-positive rate inside the targeted regime slices and still stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
-   - do spend future cycles on bank-internal support weighting before adding more outer gates, because support-weighted retrieval now materially improved the matched-band frontier in both the memory-agreement and agreement-mixture geometries
+   - do spend future cycles on bank-internal support weighting before adding more outer gates only inside the stronger agreement/anchor geometries, because support-weighted retrieval materially improved the matched-band frontier in the memory-agreement and agreement-mixture families
+   - do not spend another cycle on applying that same support weighting directly to the raw prototype-memory geometry, because it improved broad regret but still only reached `50%` held-out stable-positive-v2 recovery and the weaker `90.53% -> 90.66%` hard-slice band
 13. Keep the hard gate for every future branch:
    - stable-positive recovery
    - false-positive deferral rate

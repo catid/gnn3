@@ -1,0 +1,18 @@
+{
+  "variants": [
+    "prototype_support_weighted_memory",
+    "prototype_support_weighted_hybrid"
+  ],
+  "budgets": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.5,
+    2.0
+  ],
+  "summary_csv": "reports/plots/prototype_support_weighted_memory_defer_summary.csv",
+  "decisions_csv": "reports/plots/prototype_support_weighted_memory_defer_decisions.csv",
+  "plot_png": "reports/plots/prototype_support_weighted_memory_defer_summary.png"
+}

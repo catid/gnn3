@@ -164,6 +164,11 @@
    - the hybrid only recovered `25%` of held-out stable-positive-v2 through `1.0%` overall coverage and only reached the full `75%` / `90.73%` frontier once coverage rose to about `1.5–2.0%`
    - at `2.0%` overall coverage it improved overall mean delta regret to `-0.0162`, but that still trails the older `prototype_support_weighted_agree_mix_hybrid` reference slightly and completely fails to preserve the fixed negative-tail branch's `100%` recall lane around `1%`
    - so fixed-cleanup lift remains the wrong fusion mechanism for this family even after improving the sharp base with branch-specific cleanup amplitude
+   - max-style union on top of that newer branch-strength sharp cleanup is now also closed
+   - the plain branch-strength max head collapsed fully to baseline, recovering `0%` of held-out stable-positive-v2 and leaving hard near-tie unchanged across the full budget range
+   - the hybrid is better than the failed branch-strength lift: by `1.0%` overall coverage it recovered `50%` of held-out stable-positive-v2 and reached the weaker `90.53% -> 90.66%` hard-slice band
+   - but it still loses to the branch-strength sharp base at matched coverage, still does not preserve the fixed negative-tail branch's `100%` / `90.80%` high-recall lane, and only reaches the full `75%` / `90.73%` frontier at `2.0%` overall coverage with overall mean delta regret `-0.0158`
+   - so even with the improved branch-strength sharp base, hard max fusion remains a dominated compromise rather than a new live lane
    - asymmetric positive-plus-negative tail cleanup over that same support-weighted agreement-mixture bank is now also closed
    - the plain asymmetric-tail head is inert, and `prototype_asymmetric_tail_support_agree_mix_hybrid @ 0.75%` only matches the full `75%` / `90.73%` frontier band with weaker overall mean delta regret (`-0.0085`) than the existing soft-tail branch
    - at `1.00%` overall coverage it still only recovers `75%` of held-out stable-positive-v2 and reaches overall mean delta regret `-0.0105`, so it also trails both the original support-weighted branch on aggregate quality and the negative-tail branch on held-out recall

@@ -1507,6 +1507,73 @@ class BranchStrengthNegativeCleanupLiftSupportAgreementMixturePrototypeDeferHead
         return logits
 
 
+class BranchStrengthNegativeCleanupMaxSupportAgreementMixturePrototypeDeferHead(
+    BranchStrengthSharpNegativeTailSupportAgreementMixturePrototypeDeferHead
+):
+    """Take a max-style union between fixed cleanup and branch-strength sharp cleanup."""
+
+    def _shared_branch_scores(self, shared_encoded: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        fixed_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(neg_logits, self.shared_negative_tail),
+            dim=1,
+        )
+        sharp_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(
+                neg_logits,
+                self.shared_negative_tail,
+                raw_scale=self.shared_tail_scale,
+            ),
+            dim=1,
+        )
+        return fixed_score, sharp_score
+
+    def _dual_branch_scores(
+        self,
+        positive_encoded: torch.Tensor,
+        negative_encoded: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        fixed_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(neg_logits, self.dual_negative_tail),
+            dim=1,
+        )
+        sharp_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(
+                neg_logits,
+                self.dual_negative_tail,
+                raw_scale=self.dual_tail_scale,
+            ),
+            dim=1,
+        )
+        return fixed_score, sharp_score
+
+    def _mixture_logit(self, shared_score: torch.Tensor, dual_score: torch.Tensor) -> torch.Tensor:
+        gate_features = self._agreement_features(shared_score, dual_score)
+        gate = torch.sigmoid(self.agreement_gate(gate_features).squeeze(-1) + self.gate_bias)
+        return shared_score + gate * (dual_score - shared_score) + self.bias
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor | None = None) -> torch.Tensor:
+        shared_encoded = self.encode_shared(features)
+        dual_pos_encoded = self.encode_dual_positive(features)
+        dual_neg_encoded = self.encode_dual_negative(features)
+
+        fixed_shared, sharp_shared = self._shared_branch_scores(shared_encoded)
+        fixed_dual, sharp_dual = self._dual_branch_scores(dual_pos_encoded, dual_neg_encoded)
+        fixed_logits = self._mixture_logit(fixed_shared, fixed_dual)
+        sharp_logits = self._mixture_logit(sharp_shared, sharp_dual)
+        logits = torch.maximum(sharp_logits, fixed_logits)
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits
+
+
 class LearnedGateNegativeTailSupportAgreementMixturePrototypeDeferHead(
     NegativeTailSupportAgreementMixturePrototypeDeferHead
 ):

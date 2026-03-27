@@ -1,0 +1,129 @@
+{
+  "variants": [
+    "prototype_branch_strength_negative_cleanup_max_support_agree_mix",
+    "prototype_branch_strength_negative_cleanup_max_support_agree_mix_hybrid"
+  ],
+  "budgets": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.5,
+    2.0
+  ],
+  "overall": [
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix",
+      "budget_pct": 0.1,
+      "coverage": 0.0011516760700095966,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix",
+      "budget_pct": 0.25,
+      "coverage": 0.0025336873540211125,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix",
+      "budget_pct": 0.5,
+      "coverage": 0.005067374708042225,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix",
+      "budget_pct": 0.75,
+      "coverage": 0.007601062062063337,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix",
+      "budget_pct": 1.0,
+      "coverage": 0.01013474941608445,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix",
+      "budget_pct": 1.5,
+      "coverage": 0.015202124124126673,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix",
+      "budget_pct": 2.0,
+      "coverage": 0.020039163618166978,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix_hybrid",
+      "budget_pct": 0.1,
+      "coverage": 0.0011516760700095966,
+      "target_match_rate": 0.9656785941206506,
+      "mean_delta_regret": -0.004893004476557047,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix_hybrid",
+      "budget_pct": 0.25,
+      "coverage": 0.0025336873540211125,
+      "target_match_rate": 0.9661395298201205,
+      "mean_delta_regret": -0.007670532678906694,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix_hybrid",
+      "budget_pct": 0.5,
+      "coverage": 0.005067374708042225,
+      "target_match_rate": 0.9666004655195904,
+      "mean_delta_regret": -0.009860079893911479,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix_hybrid",
+      "budget_pct": 0.75,
+      "coverage": 0.007601062062063337,
+      "target_match_rate": 0.9669461672941928,
+      "mean_delta_regret": -0.010867965616933182,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix_hybrid",
+      "budget_pct": 1.0,
+      "coverage": 0.01013474941608445,
+      "target_match_rate": 0.9674071029936628,
+      "mean_delta_regret": -0.012711382024778336,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix_hybrid",
+      "budget_pct": 1.5,
+      "coverage": 0.015202124124126673,
+      "target_match_rate": 0.9683289743926027,
+      "mean_delta_regret": -0.015484258454814184,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_negative_cleanup_max_support_agree_mix_hybrid",
+      "budget_pct": 2.0,
+      "coverage": 0.020039163618166978,
+      "target_match_rate": 0.9684442083174701,
+      "mean_delta_regret": -0.015802077728816262,
+      "mean_delta_miss": -0.00023020257826887662
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "prototype_floor_sharp_negative_tail_support_agree_mix": {
+    "score_mean": -2.877941370010376,
+    "score_std": 0.981109619140625
+  },
+  "prototype_floor_sharp_negative_tail_support_agree_mix_hybrid": {
+    "score_mean": -3.3517167568206787,
+    "score_std": 1.7682363986968994
+  }
+}

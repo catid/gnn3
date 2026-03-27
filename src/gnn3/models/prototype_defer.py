@@ -987,6 +987,49 @@ class SharpNegativeTailSupportAgreementMixturePrototypeDeferHead(NegativeTailSup
         return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
 
 
+class FloorGatedSharpNegativeTailSupportAgreementMixturePrototypeDeferHead(
+    SharpNegativeTailSupportAgreementMixturePrototypeDeferHead
+):
+    """Sharp negative-tail cleanup with a nonzero minimum gate."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+        sharpness_center: float = 0.75,
+        sharpness_scale: float = 4.0,
+        min_tail_gate: float = 0.35,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+            tail_margin=tail_margin,
+            tail_shrink_scale=tail_shrink_scale,
+            sharpness_center=sharpness_center,
+            sharpness_scale=sharpness_scale,
+        )
+        self.min_tail_gate = min_tail_gate
+
+    def _negative_tail_gate(self, logits: torch.Tensor) -> torch.Tensor:
+        base_gate = super()._negative_tail_gate(logits)
+        return self.min_tail_gate + (1.0 - self.min_tail_gate) * base_gate
+
+
 class SharedSharpNegativeTailSupportAgreementMixturePrototypeDeferHead(NegativeTailSupportAgreementMixturePrototypeDeferHead):
     """Sharpness-gated negative cleanup only on the shared branch, fixed cleanup on the dual branch."""
 

@@ -101,6 +101,10 @@
    - the plain split-scale head recovered `0%` of held-out stable-positive-v2 at every budget
    - the hybrid only recovered `25%` at `1.5–2.0%` overall coverage, still stayed in the weaker `90.53% -> 90.60%` hard near-tie band, and only reached `-0.0021` overall mean delta regret
    - so the live gain does not come from giving the current support-weighted banks extra temperature freedom either
+   - hard top-k pooling on top of that same support-weighted agreement-mixture head is now also closed
+   - the plain top-k head only recovered `50%` of held-out stable-positive-v2 at `2.0%` overall coverage, still capped out at the weaker `90.53% -> 90.66%` hard near-tie band, and only reached `-0.0030` overall mean delta regret
+   - the hybrid top-k branch recovered `0%` of held-out stable-positive-v2 at every budget and collapsed to a tiny large-gap control fix
+   - so the live gain depends on soft full-bank pooling over the cleaned bank, not on hard tail truncation
    - temporal scalar context was cleaner overall, but only recovered `50%` of held-out stable-positive-v2 and only reached hard near-tie `90.53% -> 90.66%`, so it is not the right architecture direction
    - gated rescaling of prototype evidence also capped out at `50%` held-out stable-positive-v2 recovery and the same weaker `90.53% -> 90.66%` hard near-tie band
    - specialist source-family banks also capped out at `50%` held-out stable-positive-v2 recovery, but only at materially higher coverage than `prototype_hybrid`
@@ -164,6 +168,7 @@
    - do spend future cycles on bank-internal support weighting before adding more outer gates only inside the stronger agreement/anchor geometries, because support-weighted retrieval materially improved the matched-band frontier in the memory-agreement and agreement-mixture families
    - do not spend another cycle on tiny risk-conditioned support modulation on top of the current support-weighted agreement-mixture head, because both variants recovered `0%` of held-out stable-positive-v2 and left the accepted frontier unchanged
    - do not spend another cycle on splitting positive and negative bank temperatures inside the current support-weighted agreement-mixture head, because the hybrid only recovered `25%` of held-out stable-positive-v2 at `1.5–2.0%` overall coverage and still stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
+   - do not spend another cycle on hard top-k pooling inside the current support-weighted agreement-mixture head, because the plain branch only reached `50%` held-out stable-positive-v2 recovery at `2.0%` overall coverage and the hybrid collapsed to `0%` recovery
    - do not spend another cycle on applying that same support weighting directly to the raw prototype-memory geometry, because it improved broad regret but still only reached `50%` held-out stable-positive-v2 recovery and the weaker `90.53% -> 90.66%` hard-slice band
 13. Keep the hard gate for every future branch:
    - stable-positive recovery

@@ -1,0 +1,10 @@
+{
+  "prototype_topk_support_agree_mix": {
+    "score_mean": -2.2956676483154297,
+    "score_std": 1.4075853824615479
+  },
+  "prototype_topk_support_agree_mix_hybrid": {
+    "score_mean": -6.156719207763672,
+    "score_std": 1.6305311918258667
+  }
+}

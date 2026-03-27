@@ -644,6 +644,57 @@ class SplitScaleSupportAgreementMixturePrototypeDeferHead(SupportWeightedAgreeme
         return deltas.pow(2).mean()
 
 
+class TopKSupportAgreementMixturePrototypeDeferHead(SupportWeightedAgreementMixturePrototypeDeferHead):
+    """Support-weighted agreement mixture with capped top-k pooling per bank."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        pool_topk: int = 4,
+    ) -> None:
+        if pool_topk <= 0:
+            raise ValueError("pool_topk must be positive.")
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+        )
+        self.pool_topk = pool_topk
+
+    def _topk_logsumexp(self, logits: torch.Tensor) -> torch.Tensor:
+        topk = min(self.pool_topk, logits.size(1))
+        if topk < logits.size(1):
+            logits = logits.topk(topk, dim=1).values
+        return torch.logsumexp(logits, dim=1)
+
+    def _shared_score(self, shared_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        return self._topk_logsumexp(pos_logits) - self._topk_logsumexp(neg_logits)
+
+    def _dual_score(self, positive_encoded: torch.Tensor, negative_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        return self._topk_logsumexp(pos_logits) - self._topk_logsumexp(neg_logits)
+
+
 class RiskConditionedSupportAgreementMixturePrototypeDeferHead(SupportWeightedAgreementMixturePrototypeDeferHead):
     """Support-weighted agreement mixture with per-state support deltas."""
 

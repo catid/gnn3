@@ -369,6 +369,16 @@
        near-tie by `0.25–0.75%`, but it lost overall regret at every matched
        budget, stalled at only `83.3%` held-out recovery through `2.0%`, and
        never recovered the accepted higher-budget branchwise-max frontier
+     - rescue-weighted anchored dual lift is now the one positive lift variant
+       that actually improves the accepted branchwise-max reference on the full
+       held-out promotion surface
+       - at `0.10–0.25%` it keeps the same `50%` held-out stable-positive-v2
+         and the same `90.45%` hard near-tie point while improving overall mean
+         delta regret from `-0.0050 -> -0.0064` and `-0.0074 -> -0.0088`
+       - but it only survives as a micro-budget companion
+       - by `0.50%` it is already weaker than accepted branchwise-max on
+         overall regret, and from `1.00%` upward it also trails on held-out
+         stable-positive-v2 and hard near-tie
      - if bank editing reopens again, require the selected keep mask to differ
        materially from the all-keep baseline before treating the result as an
        architecture change

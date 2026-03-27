@@ -200,3 +200,4 @@ prototype_hard_negative_conditioned_branchwise_max_negative_cleanup_support_agre
 prototype_dual_hard_negative_conditioned_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_150,explore,0.0,,,,,0.968329,-0.015002,,,,-0.000230
 prototype_anchored_dual_lift_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_150,explore,0.0,,,,,0.968214,-0.015359,,,,-0.000230
 prototype_fixed_rescue_anchored_dual_lift_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_075,explore,0.0,,,,,0.967177,-0.010614,,,,-0.000230
+prototype_rescue_weighted_anchored_dual_lift_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_025,explore,0.0,,,,,0.966370,-0.008788,,,,-0.000230

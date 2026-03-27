@@ -349,6 +349,11 @@
        because the searched fixed-margin follow-up chose aggressive `0.2`
        shared margins on train and then collapsed to only `33.3%` held-out
        stable-positive-v2 recovery with much weaker overall regret
+     - and not via simple train-pack utility-ranked hard negative-bank masking
+       either, because the hard-negative-conditioned follow-up always selected
+       a collapsed `2/8` shared negative bank and still only recovered
+       `16.7–33.3%` of held-out stable-positive-v2 while trailing the accepted
+       branchwise-max frontier badly
      - if threshold tuning reopens, require rerun-stable outer validation and
        hard-negative-conditioned calibration beyond four scalar margins
    - rerun robustness first, before any new composite or student work

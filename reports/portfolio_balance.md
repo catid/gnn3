@@ -202,6 +202,7 @@
 | X72-followup-prototype-hard-dedup-branchwise-max-negative-cleanup-support-agree-mix | explore | Test whether the accepted branchwise-max family improves if negative-bank redundancy is removed explicitly by support-ranked hard cosine-threshold deduplication before pooling. | 0.02 | 0.0000 | completed | Closed weak positive: the plain branch was dead, and the hybrid did activate real bank surgery by cutting the negative banks from `8` to about `5` prototypes, but it only found a tiny micro-budget aggregate gain and gave back the accepted `1.0%` and `2.0%` frontier positions. |
 | X73-followup-prototype-tail-margin-calibrated-branchwise-max-negative-cleanup-support-agree-mix | explore | Test whether the accepted branchwise-max family improves if the shared/dual fixed and sharp cleanup paths learn separate bounded tail margins around the default cleanup threshold. | 0.02 | 0.0000 | completed | Closed weak positive: the plain branch was dead, and the hybrid only found small aggregate gains at `0.10–0.25%` while the learned margins stayed pinned near `0.5` and the branch gave back the accepted `1.0%` and `2.0%` frontier positions. |
 | X74-followup-prototype-searched-fixed-margin-branchwise-max-negative-cleanup-support-agree-mix | explore | Test whether the accepted branchwise-max family improves if shared/dual fixed/sharp cleanup margins are selected explicitly by offline search on the training stable-positive and harmful-negative packs. | 0.02 | 0.0000 | completed | Closed negative: the search chose aggressive `0.2` shared margins on train, but held-out recall collapsed to `33.3%` and the hybrid fell far behind the accepted `1.0%` and `2.0%` frontier points. |
+| X75-followup-prototype-hard-negative-conditioned-branchwise-max-negative-cleanup-support-agree-mix | explore | Test whether the accepted branchwise-max family improves if negative-bank masks are selected by train-pack utility against stable positives and harmful negatives rather than geometry-only rules or scalar thresholds. | 0.02 | 0.0000 | completed | Closed negative: the search always collapsed the shared negative bank to `2/8` kept prototypes, but held-out recovery fell to only `16.7–33.3%` stable-positive-v2 and the hybrid trailed the accepted `1.0%` and `2.0%` frontier points by a wide margin. |
 
 Current cumulative GPU-hours:
 
@@ -254,11 +255,11 @@ Round-13 batch summary:
 Round-thirteen incremental GPU-hours:
 
 - exploit: `0.0500`
-- explore: `0.0400`
-- split: `55.6% / 44.4%`
+- explore: `0.0600`
+- split: `45.5% / 54.5%`
 
 Updated cumulative GPU-hours:
 
 - Overall exploit: `8.7377`
-- Overall explore: `7.4631`
+- Overall explore: `7.4831`
 - Overall split: `53.9% / 46.1%`

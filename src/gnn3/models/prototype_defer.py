@@ -1893,6 +1893,118 @@ class HardDedupBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDefer
         }
 
 
+class HardNegativeConditionedBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
+    BranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead
+):
+    """Branchwise max with externally selected negative-bank masks."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+        shared_tail_shrink_scale: float = 2.0,
+        dual_tail_shrink_scale: float = 2.0,
+        sharpness_center: float = 0.75,
+        sharpness_scale: float = 4.0,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+            tail_margin=tail_margin,
+            tail_shrink_scale=tail_shrink_scale,
+            shared_tail_shrink_scale=shared_tail_shrink_scale,
+            dual_tail_shrink_scale=dual_tail_shrink_scale,
+            sharpness_center=sharpness_center,
+            sharpness_scale=sharpness_scale,
+        )
+        self.register_buffer("shared_negative_keep_mask", torch.ones(negative_prototypes, dtype=torch.bool))
+        self.register_buffer("dual_negative_keep_mask", torch.ones(negative_prototypes, dtype=torch.bool))
+
+    def set_negative_keep_masks(self, *, shared_keep_mask: torch.Tensor, dual_keep_mask: torch.Tensor) -> None:
+        shared_keep = shared_keep_mask.to(dtype=torch.bool, device=self.shared_negative_keep_mask.device)
+        dual_keep = dual_keep_mask.to(dtype=torch.bool, device=self.dual_negative_keep_mask.device)
+        if shared_keep.shape != self.shared_negative_keep_mask.shape:
+            raise ValueError("shared_keep_mask has wrong shape.")
+        if dual_keep.shape != self.dual_negative_keep_mask.shape:
+            raise ValueError("dual_keep_mask has wrong shape.")
+        if not bool(shared_keep.any()):
+            raise ValueError("shared_keep_mask must keep at least one prototype.")
+        if not bool(dual_keep.any()):
+            raise ValueError("dual_keep_mask must keep at least one prototype.")
+        self.shared_negative_keep_mask.copy_(shared_keep)
+        self.dual_negative_keep_mask.copy_(dual_keep)
+
+    def _apply_hard_bank_mask(self, logits: torch.Tensor, keep_mask: torch.Tensor) -> torch.Tensor:
+        return logits.masked_fill(~keep_mask.unsqueeze(0), torch.finfo(logits.dtype).min)
+
+    def _shared_branch_scores(self, shared_encoded: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        neg_logits = self._apply_hard_bank_mask(neg_logits, self.shared_negative_keep_mask)
+        fixed_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(neg_logits, self.shared_negative_tail),
+            dim=1,
+        )
+        sharp_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(
+                neg_logits,
+                self.shared_negative_tail,
+                raw_scale=self.shared_tail_scale,
+            ),
+            dim=1,
+        )
+        return fixed_score, sharp_score
+
+    def _dual_branch_scores(
+        self,
+        positive_encoded: torch.Tensor,
+        negative_encoded: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        neg_logits = self._apply_hard_bank_mask(neg_logits, self.dual_negative_keep_mask)
+        fixed_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(neg_logits, self.dual_negative_tail),
+            dim=1,
+        )
+        sharp_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(
+                neg_logits,
+                self.dual_negative_tail,
+                raw_scale=self.dual_tail_scale,
+            ),
+            dim=1,
+        )
+        return fixed_score, sharp_score
+
+    def keep_summary(self) -> dict[str, float]:
+        return {
+            "shared_negative_kept": float(self.shared_negative_keep_mask.sum().item()),
+            "shared_negative_total": float(self.shared_negative_keep_mask.numel()),
+            "dual_negative_kept": float(self.dual_negative_keep_mask.sum().item()),
+            "dual_negative_total": float(self.dual_negative_keep_mask.numel()),
+        }
+
+
 class TailMarginCalibratedBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
     BranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead
 ):

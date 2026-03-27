@@ -196,3 +196,4 @@ prototype_pruned_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_
 prototype_hard_dedup_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_025,explore,0.0,,,,,0.966140,-0.007688,,,,-0.000230
 prototype_tail_margin_calibrated_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_025,explore,0.0,,,,,0.966255,-0.008605,,,,-0.000230
 prototype_searched_fixed_margin_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_100,explore,0.0,,,,,0.966485,-0.007158,,,,0.0
+prototype_hard_negative_conditioned_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_100,explore,0.0,,,,,0.967407,-0.012312,,,,-0.000115

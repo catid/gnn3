@@ -29,6 +29,7 @@ from gnn3.models.prototype_defer import (
     FloorSharpNegativeTailSupportAgreementMixturePrototypeDeferHead,
     GatedPrototypeDeferHead,
     HardDedupBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead,
+    HardNegativeConditionedBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead,
     InteractionPrototypeDeferHead,
     JointSupportBranchwiseNegativeCleanupSupportAgreementMixturePrototypeDeferHead,
     LearnedGateNegativeTailSupportAgreementMixturePrototypeDeferHead,
@@ -1635,6 +1636,54 @@ def test_fixed_tail_margin_branchwise_max_negative_cleanup_support_agreement_mix
         "shared_sharp_margin": 0.55,
         "dual_fixed_margin": 0.65,
         "dual_sharp_margin": 0.45,
+    }
+
+
+def test_hard_negative_conditioned_branchwise_max_negative_cleanup_support_agreement_mixture_prototype_defer_masks_and_separates() -> None:
+    torch.manual_seed(127)
+    positives = torch.randn(24, 2) * 0.15 + torch.tensor([1.0, 1.0])
+    negatives = torch.randn(24, 2) * 0.15 + torch.tensor([-1.0, -1.0])
+    features = torch.cat([positives, negatives], dim=0)
+    risk = features.clone()
+    labels = torch.cat([torch.ones(len(positives)), torch.zeros(len(negatives))], dim=0)
+    hard_negatives = torch.zeros(len(features), dtype=torch.bool)
+    hard_negatives[len(positives) :] = True
+    positive_mask = labels.bool()
+
+    head = HardNegativeConditionedBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
+        feature_dim=2,
+        risk_dim=2,
+        prototype_dim=4,
+        positive_prototypes=4,
+        negative_prototypes=4,
+        hidden_dim=8,
+        use_risk_branch=True,
+    )
+    head.set_negative_keep_masks(
+        shared_keep_mask=torch.tensor([True, False, True, False]),
+        dual_keep_mask=torch.tensor([True, True, False, False]),
+    )
+    optimizer = torch.optim.AdamW(head.parameters(), lr=2e-2, weight_decay=1e-4)
+    for _ in range(180):
+        optimizer.zero_grad(set_to_none=True)
+        logits = head(features, risk)
+        bce = F.binary_cross_entropy_with_logits(logits, labels)
+        reg = head.regularization(features, positive_mask=positive_mask, hard_negative_mask=hard_negatives)
+        support_reg = head.support_regularization()
+        tail_reg = head.tail_regularization()
+        loss = bce + 0.1 * reg + 0.01 * support_reg + 0.01 * tail_reg
+        loss.backward()
+        optimizer.step()
+
+    with torch.no_grad():
+        logits = head(features, risk)
+        summary = head.keep_summary()
+    assert float(logits[: len(positives)].mean()) > float(logits[len(positives) :].mean())
+    assert summary == {
+        "shared_negative_kept": 2.0,
+        "shared_negative_total": 4.0,
+        "dual_negative_kept": 2.0,
+        "dual_negative_total": 4.0,
     }
 
 

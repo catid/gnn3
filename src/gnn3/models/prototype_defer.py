@@ -857,6 +857,72 @@ class SoftTailBlendSupportAgreementMixturePrototypeDeferHead(SoftTailSupportAgre
         return logits
 
 
+class NegativeTailSupportAgreementMixturePrototypeDeferHead(SupportWeightedAgreementMixturePrototypeDeferHead):
+    """Support-weighted agreement mixture with soft tail suppression only on negative banks."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+        )
+        self.tail_margin = tail_margin
+        self.tail_shrink_scale = tail_shrink_scale
+        self.shared_negative_tail = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+        self.dual_negative_tail = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+
+    def _bounded_tail_strength(self, raw_strength: torch.Tensor) -> torch.Tensor:
+        return self.tail_shrink_scale * torch.sigmoid(raw_strength)
+
+    def _soft_tail_logits(self, logits: torch.Tensor, raw_strength: torch.Tensor) -> torch.Tensor:
+        lead = logits.max(dim=1, keepdim=True).values
+        penalty = self._bounded_tail_strength(raw_strength) * torch.relu((lead - logits) - self.tail_margin)
+        return logits - penalty
+
+    def _shared_score(self, shared_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        neg_logits = self._soft_tail_logits(neg_logits, self.shared_negative_tail)
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def _dual_score(self, positive_encoded: torch.Tensor, negative_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        neg_logits = self._soft_tail_logits(neg_logits, self.dual_negative_tail)
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def tail_regularization(self) -> torch.Tensor:
+        strengths = torch.stack(
+            [
+                self._bounded_tail_strength(self.shared_negative_tail),
+                self._bounded_tail_strength(self.dual_negative_tail),
+            ]
+        )
+        return strengths.mean()
+
+
 class RiskConditionedSupportAgreementMixturePrototypeDeferHead(SupportWeightedAgreementMixturePrototypeDeferHead):
     """Support-weighted agreement mixture with per-state support deltas."""
 

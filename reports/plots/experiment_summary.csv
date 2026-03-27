@@ -168,3 +168,4 @@ prototype_split_scale_support_agree_mix_hybrid_defer_150,explore,0.0,,,,,0.96533
 prototype_topk_support_agree_mix_defer_200,explore,0.0,,,,,0.965910,-0.003025,,,,0.0
 prototype_soft_tail_support_agree_mix_hybrid_defer_075,explore,0.0,,,,,0.966947,-0.010354,,,,-0.00023
 prototype_soft_tail_blend_support_agree_mix_hybrid_defer_200,explore,0.0,,,,,0.966486,-0.008510,,,,-0.00023
+prototype_negative_tail_support_agree_mix_hybrid_defer_100,explore,0.0,,,,,0.967638,-0.013083,,,,-0.00023

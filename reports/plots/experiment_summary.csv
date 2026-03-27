@@ -166,3 +166,4 @@ prototype_support_weighted_hybrid_defer_200,explore,0.0,,,,,0.967753,-0.014168,,
 prototype_risk_support_agree_mix_hybrid_defer_200,explore,0.0,,,,,0.965104,0.000000,,,,0.0
 prototype_split_scale_support_agree_mix_hybrid_defer_150,explore,0.0,,,,,0.965335,-0.002066,,,,-0.00023
 prototype_topk_support_agree_mix_defer_200,explore,0.0,,,,,0.965910,-0.003025,,,,0.0
+prototype_soft_tail_support_agree_mix_hybrid_defer_075,explore,0.0,,,,,0.966947,-0.010354,,,,-0.00023

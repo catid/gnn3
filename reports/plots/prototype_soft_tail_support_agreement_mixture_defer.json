@@ -1,0 +1,10 @@
+{
+  "prototype_soft_tail_support_agree_mix": {
+    "score_mean": -2.9943418502807617,
+    "score_std": 1.2148993015289307
+  },
+  "prototype_soft_tail_support_agree_mix_hybrid": {
+    "score_mean": -4.139874458312988,
+    "score_std": 2.0697569847106934
+  }
+}

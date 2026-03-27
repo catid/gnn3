@@ -94,6 +94,10 @@
    - `prototype_support_weighted_agree_mix_hybrid @ 1.50%` keeps that same `75%` / `90.73%` frontier band at `1.52%` overall coverage and improves overall mean delta regret to `-0.0158`
    - `prototype_support_weighted_agree_mix_hybrid @ 2.00%` improves overall mean delta regret further to `-0.0165`
    - that means it now supersedes `prototype_agree_mix_hybrid` as the coverage-efficient matched-band leader, and also edges past `prototype_support_weighted_memory_blend_hybrid` and `prototype_evidence_agree_hybrid` on aggregate matched-band quality
+   - soft tail suppression over that same support-weighted agreement-mixture bank is now a real positive follow-up
+   - the plain soft-tail head is inert, but `prototype_soft_tail_support_agree_mix_hybrid @ 0.75%` reaches `75%` held-out stable-positive-v2 recovery and the full `90.53% -> 90.73%` hard near-tie band at `0.76%` overall coverage
+   - at that same point it slightly improves on `prototype_hybrid` overall mean delta regret (`-0.0104` vs `-0.0097`) while preserving clean large-gap controls
+   - that makes it the best sub-`1%` full-band architecture lead, while `prototype_support_weighted_agree_mix_hybrid` still remains the best matched-band branch overall once coverage can rise to `~1%`
    - explicit per-state risk-conditioned support modulation on top of that same support-weighted agreement-mixture head is now also closed
    - both `prototype_risk_support_agree_mix` variants recovered `0%` of held-out stable-positive-v2 at every budget, left hard near-tie unchanged at `90.53%`, and produced `0.0000` overall mean delta regret
    - so the live gain appears to come from static bank cleanup, not from tiny state-conditional support perturbations layered on top
@@ -129,7 +133,8 @@
 10. Keep the representation diagnosis unchanged. The backbone still appears to expose most of the local signals; the open problem is still precision calibration and abstention on a tiny ambiguous subset.
 11. If another round opens, bias it toward **prototype-memory hybrid defer** and **agreement-gated prototype-mixture hybrid defer** before any broader family:
    - keep the richer teacher-bank filters from round twelve
-   - use the learnable prototype-memory plus risk-branch architecture as the ultra-low-coverage contender
+   - use the soft-tail support-weighted agreement-mixture hybrid as the primary sub-`1%` full-band contender
+   - keep the original learnable prototype-memory plus risk-branch architecture as the lighter low-coverage reference behind it
    - use the memory-agreement blend hybrid as the micro-budget contender below roughly `0.5%` overall coverage
    - use the support-weighted agreement-mixture head as the primary matched-band contender
    - keep the older agreement-gated geometry-mixture head only as the lighter pre-support-weighting reference
@@ -166,6 +171,7 @@
    - do not spend another cycle on anchored residual regime specialists inside the current evidence-agreement family, because they still only recovered `25%` of held-out stable-positive-v2 and also stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
    - do not spend another cycle on explicit positive-support gating over those anchored residual regime specialists, because it preserved the same weak `25%` held-out stable-positive-v2 recovery and slightly improved coverage-efficiency, but still spent about `75%` false-positive rate inside the targeted regime slices and still stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
    - do spend future cycles on bank-internal support weighting before adding more outer gates only inside the stronger agreement/anchor geometries, because support-weighted retrieval materially improved the matched-band frontier in the memory-agreement and agreement-mixture families
+   - do spend future cycles on soft bank-tail cleanup before hard truncation inside the support-weighted agreement-mixture family, because soft tail suppression preserved the full frontier band below `1%` coverage while hard top-k truncation killed it
    - do not spend another cycle on tiny risk-conditioned support modulation on top of the current support-weighted agreement-mixture head, because both variants recovered `0%` of held-out stable-positive-v2 and left the accepted frontier unchanged
    - do not spend another cycle on splitting positive and negative bank temperatures inside the current support-weighted agreement-mixture head, because the hybrid only recovered `25%` of held-out stable-positive-v2 at `1.5–2.0%` overall coverage and still stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
    - do not spend another cycle on hard top-k pooling inside the current support-weighted agreement-mixture head, because the plain branch only reached `50%` held-out stable-positive-v2 recovery at `2.0%` overall coverage and the hybrid collapsed to `0%` recovery

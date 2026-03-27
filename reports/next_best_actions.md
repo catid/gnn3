@@ -363,6 +363,12 @@
        recovery by `1.5%`, but it still lost aggregate overall regret at
        `1.5–2.0%` and became strictly worse once the accepted branchwise-max
        branch also reached full held-out recall
+     - and not via a fixed-rescue-only anchored dual lift either, because the
+       fixed-rescue follow-up did sharpen the ultra-low target slice to
+       `66.7–83.3%` held-out stable-positive-v2 with `90.53–90.60%` hard
+       near-tie by `0.25–0.75%`, but it lost overall regret at every matched
+       budget, stalled at only `83.3%` held-out recovery through `2.0%`, and
+       never recovered the accepted higher-budget branchwise-max frontier
      - if bank editing reopens again, require the selected keep mask to differ
        materially from the all-keep baseline before treating the result as an
        architecture change

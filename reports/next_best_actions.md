@@ -384,6 +384,10 @@
        follow-up lost the rescue-weighted micro-budget win at `0.10–0.25%`
        while still staying weaker than accepted branchwise-max from `1.00%`
        upward
+     - and not via extra anchor-confidence gating on top of rescue weighting
+       either, because the confident rescue-weighted follow-up exactly
+       reproduced the rescue-weighted micro-budget win at `0.10–0.25%` but
+       stayed weaker than accepted branchwise-max from `0.50%` upward
      - if bank editing reopens again, require the selected keep mask to differ
        materially from the all-keep baseline before treating the result as an
        architecture change

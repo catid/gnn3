@@ -1911,6 +1911,82 @@ class RescueWeightedAnchoredDualLiftBranchwiseMaxNegativeCleanupSupportAgreement
         return logits
 
 
+class ConfidentRescueWeightedAnchoredDualLiftBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
+    AnchoredDualLiftBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead
+):
+    """Apply rescue-weighted lift, but only strongly when the anchor score is already confident."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+        shared_tail_shrink_scale: float = 2.0,
+        dual_tail_shrink_scale: float = 2.0,
+        sharpness_center: float = 0.75,
+        sharpness_scale: float = 4.0,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+            tail_margin=tail_margin,
+            tail_shrink_scale=tail_shrink_scale,
+            shared_tail_shrink_scale=shared_tail_shrink_scale,
+            dual_tail_shrink_scale=dual_tail_shrink_scale,
+            sharpness_center=sharpness_center,
+            sharpness_scale=sharpness_scale,
+        )
+        self.rescue_weight_scale = torch.nn.Parameter(torch.tensor(1.0, dtype=torch.float32))
+        self.rescue_weight_bias = torch.nn.Parameter(torch.tensor(0.0, dtype=torch.float32))
+        self.confidence_gate_scale = torch.nn.Parameter(torch.tensor(1.0, dtype=torch.float32))
+        self.confidence_gate_bias = torch.nn.Parameter(torch.tensor(0.0, dtype=torch.float32))
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor | None = None) -> torch.Tensor:
+        shared_encoded = self.encode_shared(features)
+        dual_pos_encoded = self.encode_dual_positive(features)
+        dual_neg_encoded = self.encode_dual_negative(features)
+
+        fixed_shared, sharp_shared = self._shared_branch_scores(shared_encoded)
+        fixed_dual, sharp_dual = self._dual_branch_scores(dual_pos_encoded, dual_neg_encoded)
+        branch_shared = torch.maximum(sharp_shared, fixed_shared)
+        branch_dual = torch.maximum(sharp_dual, fixed_dual)
+        logits = self._mixture_logit(branch_shared, branch_dual)
+
+        lift_gate = torch.sigmoid(
+            self.dual_lift_gate(
+                self._dual_lift_features(
+                    branch_shared,
+                    branch_dual,
+                    fixed_dual,
+                    sharp_dual,
+                )
+            ).squeeze(-1)
+            + self.dual_lift_bias
+        )
+        rescue_weight = torch.sigmoid(
+            self.rescue_weight_scale * (fixed_dual - sharp_dual) + self.rescue_weight_bias
+        )
+        confidence_gate = torch.sigmoid(self.confidence_gate_scale * logits + self.confidence_gate_bias)
+        logits = logits + lift_gate * rescue_weight * confidence_gate * torch.relu(branch_dual - branch_shared)
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits
+
+
 class RampedRescueWeightedAnchoredDualLiftBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
     AnchoredDualLiftBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead
 ):

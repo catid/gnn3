@@ -767,6 +767,96 @@ class SoftTailSupportAgreementMixturePrototypeDeferHead(SupportWeightedAgreement
         return strengths.mean()
 
 
+class SoftTailBlendSupportAgreementMixturePrototypeDeferHead(SoftTailSupportAgreementMixturePrototypeDeferHead):
+    """Blend the live support-weighted score with the soft-tail score from the same bank."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+            tail_margin=tail_margin,
+            tail_shrink_scale=tail_shrink_scale,
+        )
+        self.blend_gate = torch.nn.Linear(4, 1)
+        self.blend_bias = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+
+    def _shared_score_base(self, shared_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def _dual_score_base(self, positive_encoded: torch.Tensor, negative_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def _shared_score_soft(self, shared_encoded: torch.Tensor) -> torch.Tensor:
+        return super()._shared_score(shared_encoded)
+
+    def _dual_score_soft(self, positive_encoded: torch.Tensor, negative_encoded: torch.Tensor) -> torch.Tensor:
+        return super()._dual_score(positive_encoded, negative_encoded)
+
+    def _mixture_logit(self, shared_score: torch.Tensor, dual_score: torch.Tensor) -> torch.Tensor:
+        gate_features = self._agreement_features(shared_score, dual_score)
+        gate = torch.sigmoid(self.agreement_gate(gate_features).squeeze(-1) + self.gate_bias)
+        return shared_score + gate * (dual_score - shared_score) + self.bias
+
+    def _blend_features(self, base_logits: torch.Tensor, soft_logits: torch.Tensor) -> torch.Tensor:
+        diff = soft_logits - base_logits
+        return torch.stack(
+            [
+                base_logits,
+                soft_logits,
+                diff.abs(),
+                base_logits * soft_logits,
+            ],
+            dim=1,
+        )
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor | None = None) -> torch.Tensor:
+        shared_encoded = self.encode_shared(features)
+        dual_pos_encoded = self.encode_dual_positive(features)
+        dual_neg_encoded = self.encode_dual_negative(features)
+
+        base_shared = self._shared_score_base(shared_encoded)
+        base_dual = self._dual_score_base(dual_pos_encoded, dual_neg_encoded)
+        base_logits = self._mixture_logit(base_shared, base_dual)
+
+        soft_shared = self._shared_score_soft(shared_encoded)
+        soft_dual = self._dual_score_soft(dual_pos_encoded, dual_neg_encoded)
+        soft_logits = self._mixture_logit(soft_shared, soft_dual)
+
+        blend_features = self._blend_features(base_logits, soft_logits)
+        blend = torch.sigmoid(self.blend_gate(blend_features).squeeze(-1) + self.blend_bias)
+        logits = base_logits + blend * (soft_logits - base_logits)
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits
+
+
 class RiskConditionedSupportAgreementMixturePrototypeDeferHead(SupportWeightedAgreementMixturePrototypeDeferHead):
     """Support-weighted agreement mixture with per-state support deltas."""
 

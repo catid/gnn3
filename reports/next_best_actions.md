@@ -98,6 +98,9 @@
    - the plain soft-tail head is inert, but `prototype_soft_tail_support_agree_mix_hybrid @ 0.75%` reaches `75%` held-out stable-positive-v2 recovery and the full `90.53% -> 90.73%` hard near-tie band at `0.76%` overall coverage
    - at that same point it slightly improves on `prototype_hybrid` overall mean delta regret (`-0.0104` vs `-0.0097`) while preserving clean large-gap controls
    - that makes it the best sub-`1%` full-band architecture lead, while `prototype_support_weighted_agree_mix_hybrid` still remains the best matched-band branch overall once coverage can rise to `~1%`
+   - learned interpolation between the live support-weighted score and the new soft-tail score is now also closed
+   - `prototype_soft_tail_blend_support_agree_mix_hybrid` only recovered `50%` of held-out stable-positive-v2 through `0.25–2.0%` coverage and stayed capped at the weaker `90.53% -> 90.66%` hard-slice band
+   - so the soft-tail gain appears to require committing to that retrieval view directly, not blending it back toward the older score
    - explicit per-state risk-conditioned support modulation on top of that same support-weighted agreement-mixture head is now also closed
    - both `prototype_risk_support_agree_mix` variants recovered `0%` of held-out stable-positive-v2 at every budget, left hard near-tie unchanged at `90.53%`, and produced `0.0000` overall mean delta regret
    - so the live gain appears to come from static bank cleanup, not from tiny state-conditional support perturbations layered on top
@@ -172,6 +175,7 @@
    - do not spend another cycle on explicit positive-support gating over those anchored residual regime specialists, because it preserved the same weak `25%` held-out stable-positive-v2 recovery and slightly improved coverage-efficiency, but still spent about `75%` false-positive rate inside the targeted regime slices and still stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
    - do spend future cycles on bank-internal support weighting before adding more outer gates only inside the stronger agreement/anchor geometries, because support-weighted retrieval materially improved the matched-band frontier in the memory-agreement and agreement-mixture families
    - do spend future cycles on soft bank-tail cleanup before hard truncation inside the support-weighted agreement-mixture family, because soft tail suppression preserved the full frontier band below `1%` coverage while hard top-k truncation killed it
+   - do not spend another cycle on learned interpolation between the live support-weighted score and the new soft-tail score, because it collapsed back to the weaker `50%` / `90.66%` band across the whole budget range
    - do not spend another cycle on tiny risk-conditioned support modulation on top of the current support-weighted agreement-mixture head, because both variants recovered `0%` of held-out stable-positive-v2 and left the accepted frontier unchanged
    - do not spend another cycle on splitting positive and negative bank temperatures inside the current support-weighted agreement-mixture head, because the hybrid only recovered `25%` of held-out stable-positive-v2 at `1.5–2.0%` overall coverage and still stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
    - do not spend another cycle on hard top-k pooling inside the current support-weighted agreement-mixture head, because the plain branch only reached `50%` held-out stable-positive-v2 recovery at `2.0%` overall coverage and the hybrid collapsed to `0%` recovery

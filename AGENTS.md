@@ -22,6 +22,16 @@ bd close <id>         # Complete work
 bd sync               # Sync with git
 ```
 
+## Artifact Policy
+
+- Never commit `.pt` artifacts of any kind. This includes model checkpoints,
+  feature caches, and serialized tensors used for local experiments.
+- Treat large generated experiment exports as disposable unless the user
+  explicitly asks to version them. In particular, do not commit oversized
+  `reports/plots/*_decisions.csv`-style artifacts.
+- If a forbidden artifact is ever committed locally, purge it from history
+  before handoff and retry the push.
+
 ## Landing the Plane (Session Completion)
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.

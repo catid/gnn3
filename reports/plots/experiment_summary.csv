@@ -160,3 +160,4 @@ prototype_regime_evidence_agree_hybrid_defer_075,explore,0.0,,,,,0.966256,-0.008
 prototype_residual_regime_evidence_hybrid_defer_200,explore,0.0,,,,,0.966947,-0.009552,,,,0.0
 prototype_supported_residual_regime_evidence_hybrid_defer_075,explore,0.0,,,,,0.966601,-0.009341,,,,-0.00023
 prototype_support_weighted_memory_blend_hybrid_defer_200,explore,0.0,,,,,0.968559,-0.016166,,,,-0.00023
+prototype_support_weighted_agree_mix_hybrid_defer_200,explore,0.0,,,,,0.968790,-0.016536,,,,-0.00023

@@ -56,7 +56,7 @@
    - at `0.75%` overall coverage it recovered `50%` of held-out stable-positive-v2, reached the weaker `90.53% -> 90.66%` band, and improved overall mean delta regret to `-0.0130`
    - at `1.50%` overall coverage it recovered `75%` of held-out stable-positive-v2, matched the full `90.53% -> 90.73%` hard near-tie band, and improved overall mean delta regret to `-0.0157`
    - at `2.00%` overall coverage it kept that same `75%` / `90.73%` frontier band and improved overall mean delta regret further to `-0.0162`
-   - it is not the most coverage-efficient matched-band branch, but it is now the best aggregate-quality matched-band branch inside the prototype family and the first one to edge past the remembered round-eleven `margin_regime` reference on overall regret while matching the same held-out hard-slice band
+   - it proved that bank-internal support weighting is a real architecture direction, but it is no longer the top matched-band branch after the newer support-weighted agreement-mixture follow-up
    - direct fusion of that memory anchor with the richer evidence-aware inner agreement gate is now also closed
    - `prototype_memory_evidence_blend_hybrid` gave back the micro-budget Tier-1 win, recovering only `25%` at `0.50–1.50%` nominal budgets and only reaching `50%` by `2.0%`, while still capping out at the weaker `90.53% -> 90.66%` hard near-tie band
    - parallel dual-lift max routing on top of the same memory anchor is also closed
@@ -83,8 +83,11 @@
    - it reached that matched band at about `1.05%` overall coverage instead of `1.84%`
    - its overall mean delta regret at that point was `-0.0137`, essentially matching the old mixture result while paying much less coverage
    - but at `0.75%` it only recovered `50%` of held-out stable-positive-v2 and stayed in the weaker `90.53% -> 90.66%` band
-   - `prototype_evidence_agree_hybrid` is no longer the best aggregate-quality matched-band follow-up
-   - `prototype_support_weighted_memory_blend_hybrid` now dominates it at matched high-coverage points: at `1.50%` overall coverage it keeps the same `75%` stable-positive-v2 recovery and `90.53% -> 90.73%` hard-slice band, but improves overall mean delta regret from `-0.0140` to `-0.0157`; at `2.00%` it improves overall mean delta regret from `-0.0148` to `-0.0162`
+   - bank-internal support weighting inside that same agreement-mixture geometry is now the strongest matched-band result overall
+   - `prototype_support_weighted_agree_mix_hybrid @ 1.00%` already reaches `75%` held-out stable-positive-v2 recovery and the full `90.53% -> 90.73%` hard near-tie band at about `1.01%` overall coverage, with overall mean delta regret `-0.0148`
+   - `prototype_support_weighted_agree_mix_hybrid @ 1.50%` keeps that same `75%` / `90.73%` frontier band at `1.52%` overall coverage and improves overall mean delta regret to `-0.0158`
+   - `prototype_support_weighted_agree_mix_hybrid @ 2.00%` improves overall mean delta regret further to `-0.0165`
+   - that means it now supersedes `prototype_agree_mix_hybrid` as the coverage-efficient matched-band leader, and also edges past `prototype_support_weighted_memory_blend_hybrid` and `prototype_evidence_agree_hybrid` on aggregate matched-band quality
    - temporal scalar context was cleaner overall, but only recovered `50%` of held-out stable-positive-v2 and only reached hard near-tie `90.53% -> 90.66%`, so it is not the right architecture direction
    - gated rescaling of prototype evidence also capped out at `50%` held-out stable-positive-v2 recovery and the same weaker `90.53% -> 90.66%` hard near-tie band
    - specialist source-family banks also capped out at `50%` held-out stable-positive-v2 recovery, but only at materially higher coverage than `prototype_hybrid`
@@ -111,9 +114,10 @@
    - keep the richer teacher-bank filters from round twelve
    - use the learnable prototype-memory plus risk-branch architecture as the ultra-low-coverage contender
    - use the memory-agreement blend hybrid as the micro-budget contender below roughly `0.5%` overall coverage
-   - use the agreement-gated geometry-mixture head as the matched-band contender
-   - use the support-weighted memory-agreement blend hybrid when aggregate-quality-at-higher-coverage matters more than coverage efficiency
-   - keep the evidence-calibrated agreement-mixture head only as a reference point behind that newer support-weighted matched-band branch
+   - use the support-weighted agreement-mixture head as the primary matched-band contender
+   - keep the older agreement-gated geometry-mixture head only as the lighter pre-support-weighting reference
+   - keep the support-weighted memory-agreement blend hybrid only as a supporting bank-weighting reference behind the newer agreement-mixture result
+   - keep the evidence-calibrated agreement-mixture head only as an older aggregate-quality reference behind the newer support-weighted agreement-mixture branch
    - compare against the round-eleven `margin_regime` reference at matched or lower coverage
    - preserve large-gap controls and broad feasible-suite behavior
 12. If another round opens beyond that, bias it toward **richer teachers first, then ultra-low-coverage defer**:
@@ -143,7 +147,7 @@
    - do not spend another cycle on regime-specialized bank families inside the current evidence-agreement family, because they only recovered `25%` of held-out stable-positive-v2 by spending very broad false-positive coverage across the headroom and baseline-error slices and still only reached the weaker `90.53% -> 90.60%` hard-slice band
    - do not spend another cycle on anchored residual regime specialists inside the current evidence-agreement family, because they still only recovered `25%` of held-out stable-positive-v2 and also stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
    - do not spend another cycle on explicit positive-support gating over those anchored residual regime specialists, because it preserved the same weak `25%` held-out stable-positive-v2 recovery and slightly improved coverage-efficiency, but still spent about `75%` false-positive rate inside the targeted regime slices and still stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
-   - do spend future cycles on bank-internal support weighting before adding more outer gates, because support-weighted retrieval inside the live memory-agreement geometry was the first bank-level change that materially improved the matched-band frontier
+   - do spend future cycles on bank-internal support weighting before adding more outer gates, because support-weighted retrieval now materially improved the matched-band frontier in both the memory-agreement and agreement-mixture geometries
 13. Keep the hard gate for every future branch:
    - stable-positive recovery
    - false-positive deferral rate

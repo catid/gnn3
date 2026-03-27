@@ -475,6 +475,66 @@ class AgreementMixturePrototypeDeferHead(torch.nn.Module):
         return loss
 
 
+class SupportWeightedAgreementMixturePrototypeDeferHead(AgreementMixturePrototypeDeferHead):
+    """Agreement mixture with bounded per-prototype support weights."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+        )
+        self.support_scale = support_scale
+        self.shared_positive_support = torch.nn.Parameter(torch.zeros(positive_prototypes, dtype=torch.float32))
+        self.shared_negative_support = torch.nn.Parameter(torch.zeros(negative_prototypes, dtype=torch.float32))
+        self.dual_positive_support = torch.nn.Parameter(torch.zeros(positive_prototypes, dtype=torch.float32))
+        self.dual_negative_support = torch.nn.Parameter(torch.zeros(negative_prototypes, dtype=torch.float32))
+
+    def _bounded_support(self, raw_support: torch.Tensor) -> torch.Tensor:
+        centered = raw_support - raw_support.mean()
+        return self.support_scale * torch.tanh(centered)
+
+    def _shared_score(self, shared_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def _dual_score(self, positive_encoded: torch.Tensor, negative_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def support_regularization(self) -> torch.Tensor:
+        penalties = []
+        for support in (
+            self.shared_positive_support,
+            self.shared_negative_support,
+            self.dual_positive_support,
+            self.dual_negative_support,
+        ):
+            penalties.append(self._bounded_support(support).abs().mean())
+        return torch.stack(penalties).mean()
+
+
 class EvidenceAgreementPrototypeDeferHead(torch.nn.Module):
     """Agreement mixture with branch-internal prototype evidence features."""
 

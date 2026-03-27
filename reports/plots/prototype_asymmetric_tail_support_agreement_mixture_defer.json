@@ -1,0 +1,10 @@
+{
+  "prototype_asymmetric_tail_support_agree_mix": {
+    "score_mean": -3.1898462772369385,
+    "score_std": 1.6874147653579712
+  },
+  "prototype_asymmetric_tail_support_agree_mix_hybrid": {
+    "score_mean": -4.074324607849121,
+    "score_std": 2.6106069087982178
+  }
+}

@@ -923,6 +923,18 @@ class NegativeTailSupportAgreementMixturePrototypeDeferHead(SupportWeightedAgree
         return strengths.mean()
 
 
+class Top2NegativeTailSupportAgreementMixturePrototypeDeferHead(NegativeTailSupportAgreementMixturePrototypeDeferHead):
+    """Negative-tail cleanup that preserves the top-2 negative matches and only suppresses the broader tail."""
+
+    def _soft_tail_logits(self, logits: torch.Tensor, raw_strength: torch.Tensor) -> torch.Tensor:
+        if logits.size(1) < 3:
+            return logits
+        top2 = logits.topk(k=2, dim=1).values
+        runner_up = top2[:, 1:2]
+        penalty = self._bounded_tail_strength(raw_strength) * torch.relu((runner_up - logits) - self.tail_margin)
+        return logits - penalty
+
+
 class SharpNegativeTailSupportAgreementMixturePrototypeDeferHead(NegativeTailSupportAgreementMixturePrototypeDeferHead):
     """Negative-tail cleanup that strengthens only when the negative bank is diffuse."""
 

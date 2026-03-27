@@ -193,3 +193,4 @@ round13_frontier_archived_branchwise_max_defer_200,exploit,0.05,,,,,0.968905,-0.
 round13_frontier_rerun1_branchwise_max_defer_200,exploit,0.0,,,,,0.968559,-0.016173,,,,-0.000230
 round13_frontier_rerun2_branchwise_max_defer_200,exploit,0.0,,,,,0.968675,-0.016358,,,,-0.000230
 prototype_pruned_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_025,explore,0.0,,,,,0.966255,-0.008274,,,,-0.000230
+prototype_hard_dedup_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_025,explore,0.0,,,,,0.966140,-0.007688,,,,-0.000230

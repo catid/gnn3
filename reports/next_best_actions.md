@@ -334,6 +334,11 @@
        branchwise-max follow-up kept bank means around `0.98` and a same-config
        rerun collapsed from a brief `83.3%` / `90.60%` point back to the weaker
        `66.7%` / `90.53%` lane
-     - if pruning reopens, require explicit bank editing or hard deduplication
+     - and not via static support-ranked cosine-threshold hard deduplication,
+       because the hard-dedup follow-up really cut the negative banks from `8`
+       to about `5` prototypes but still gave back the accepted `1.0%` and
+       `2.0%` frontier positions
+     - if pruning reopens again, require offline bank reconstruction,
+       teacher-guided bank rebuild, or hard-negative-conditioned bank editing
    - cleanup-threshold tuning against the `71` useful hard negatives from round 13
    - rerun robustness first, before any new composite or student work

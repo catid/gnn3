@@ -1764,6 +1764,135 @@ class PrunedBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHea
         }
 
 
+class HardDedupBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
+    BranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead
+):
+    """Branchwise max with support-ranked hard deduplication inside the negative banks."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+        shared_tail_shrink_scale: float = 2.0,
+        dual_tail_shrink_scale: float = 2.0,
+        sharpness_center: float = 0.75,
+        sharpness_scale: float = 4.0,
+        negative_dedup_threshold: float = 0.8,
+    ) -> None:
+        if negative_dedup_threshold <= -1.0 or negative_dedup_threshold >= 1.0:
+            raise ValueError("negative_dedup_threshold must lie strictly between -1 and 1.")
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+            tail_margin=tail_margin,
+            tail_shrink_scale=tail_shrink_scale,
+            shared_tail_shrink_scale=shared_tail_shrink_scale,
+            dual_tail_shrink_scale=dual_tail_shrink_scale,
+            sharpness_center=sharpness_center,
+            sharpness_scale=sharpness_scale,
+        )
+        self.negative_dedup_threshold = negative_dedup_threshold
+
+    def _support_ranked_dedup_mask(self, bank: torch.Tensor, raw_support: torch.Tensor) -> torch.Tensor:
+        support = self._bounded_support(raw_support)
+        order = torch.argsort(support, descending=True)
+        keep = torch.zeros(bank.size(0), dtype=torch.bool, device=bank.device)
+        kept_indices: list[int] = []
+        for proto_idx in order.tolist():
+            if not kept_indices:
+                keep[proto_idx] = True
+                kept_indices.append(proto_idx)
+                continue
+            similarity = bank[kept_indices] @ bank[proto_idx]
+            if bool((similarity <= self.negative_dedup_threshold).all()):
+                keep[proto_idx] = True
+                kept_indices.append(proto_idx)
+        if not bool(keep.any()):
+            keep[order[0]] = True
+        return keep
+
+    def _apply_hard_bank_mask(self, logits: torch.Tensor, keep_mask: torch.Tensor) -> torch.Tensor:
+        return logits.masked_fill(~keep_mask.unsqueeze(0), torch.finfo(logits.dtype).min)
+
+    def _shared_branch_scores(self, shared_encoded: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        neg_logits = self._apply_hard_bank_mask(
+            neg_logits,
+            self._support_ranked_dedup_mask(neg, self.shared_negative_support),
+        )
+        fixed_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(neg_logits, self.shared_negative_tail),
+            dim=1,
+        )
+        sharp_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(
+                neg_logits,
+                self.shared_negative_tail,
+                raw_scale=self.shared_tail_scale,
+            ),
+            dim=1,
+        )
+        return fixed_score, sharp_score
+
+    def _dual_branch_scores(
+        self,
+        positive_encoded: torch.Tensor,
+        negative_encoded: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        neg_logits = self._apply_hard_bank_mask(
+            neg_logits,
+            self._support_ranked_dedup_mask(neg, self.dual_negative_support),
+        )
+        fixed_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(neg_logits, self.dual_negative_tail),
+            dim=1,
+        )
+        sharp_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(
+                neg_logits,
+                self.dual_negative_tail,
+                raw_scale=self.dual_tail_scale,
+            ),
+            dim=1,
+        )
+        return fixed_score, sharp_score
+
+    def dedup_summary(self) -> dict[str, float]:
+        with torch.no_grad():
+            shared_neg = self._shared_banks()[1]
+            dual_neg = self._dual_banks()[1]
+            shared_keep = self._support_ranked_dedup_mask(shared_neg, self.shared_negative_support)
+            dual_keep = self._support_ranked_dedup_mask(dual_neg, self.dual_negative_support)
+        return {
+            "shared_negative_kept": float(shared_keep.sum().item()),
+            "shared_negative_total": float(shared_keep.numel()),
+            "dual_negative_kept": float(dual_keep.sum().item()),
+            "dual_negative_total": float(dual_keep.numel()),
+        }
+
+
 class BranchwiseLiftNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
     BranchStrengthSharpNegativeTailSupportAgreementMixturePrototypeDeferHead
 ):

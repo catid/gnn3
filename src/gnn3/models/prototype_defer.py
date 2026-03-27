@@ -1157,6 +1157,111 @@ class SharpNegativeTailSupportAgreementMixturePrototypeDeferHead(NegativeTailSup
         return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
 
 
+class BranchCalibratedSharpNegativeTailSupportAgreementMixturePrototypeDeferHead(
+    NegativeTailSupportAgreementMixturePrototypeDeferHead
+):
+    """Sharp negative-tail cleanup with separate learned shared and dual gate calibration."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+        shared_sharpness_center: float = 0.75,
+        shared_sharpness_scale: float = 4.0,
+        dual_sharpness_center: float = 0.75,
+        dual_sharpness_scale: float = 4.0,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+            tail_margin=tail_margin,
+            tail_shrink_scale=tail_shrink_scale,
+        )
+        self.shared_sharpness_center = torch.nn.Parameter(
+            torch.tensor(shared_sharpness_center, dtype=torch.float32)
+        )
+        self.shared_sharpness_scale = torch.nn.Parameter(
+            torch.tensor(math.log(shared_sharpness_scale), dtype=torch.float32)
+        )
+        self.dual_sharpness_center = torch.nn.Parameter(
+            torch.tensor(dual_sharpness_center, dtype=torch.float32)
+        )
+        self.dual_sharpness_scale = torch.nn.Parameter(
+            torch.tensor(math.log(dual_sharpness_scale), dtype=torch.float32)
+        )
+
+    def _bounded_sharpness_scale(self, raw_scale: torch.Tensor) -> torch.Tensor:
+        return raw_scale.exp().clamp(min=0.1, max=16.0)
+
+    def _negative_tail_gate(
+        self,
+        logits: torch.Tensor,
+        *,
+        center: torch.Tensor,
+        raw_scale: torch.Tensor,
+    ) -> torch.Tensor:
+        if logits.size(1) < 2:
+            return torch.ones(logits.size(0), 1, device=logits.device, dtype=logits.dtype)
+        top2 = logits.topk(k=2, dim=1).values
+        gap = top2[:, 0] - top2[:, 1]
+        scale = self._bounded_sharpness_scale(raw_scale)
+        return torch.sigmoid(scale * (center - gap)).unsqueeze(1)
+
+    def _adaptive_soft_tail_logits(
+        self,
+        logits: torch.Tensor,
+        raw_strength: torch.Tensor,
+        *,
+        center: torch.Tensor,
+        raw_scale: torch.Tensor,
+    ) -> torch.Tensor:
+        lead = logits.max(dim=1, keepdim=True).values
+        gate = self._negative_tail_gate(logits, center=center, raw_scale=raw_scale)
+        penalty = gate * self._bounded_tail_strength(raw_strength) * torch.relu((lead - logits) - self.tail_margin)
+        return logits - penalty
+
+    def _shared_score(self, shared_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        neg_logits = self._adaptive_soft_tail_logits(
+            neg_logits,
+            self.shared_negative_tail,
+            center=self.shared_sharpness_center,
+            raw_scale=self.shared_sharpness_scale,
+        )
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def _dual_score(self, positive_encoded: torch.Tensor, negative_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        neg_logits = self._adaptive_soft_tail_logits(
+            neg_logits,
+            self.dual_negative_tail,
+            center=self.dual_sharpness_center,
+            raw_scale=self.dual_sharpness_scale,
+        )
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+
 class FloorGatedSharpNegativeTailSupportAgreementMixturePrototypeDeferHead(
     SharpNegativeTailSupportAgreementMixturePrototypeDeferHead
 ):

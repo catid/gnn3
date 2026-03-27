@@ -583,6 +583,128 @@ class SupportWeightedAgreementMixturePrototypeDeferHead(AgreementMixturePrototyp
         return torch.stack(penalties).mean()
 
 
+class RiskConditionedSupportAgreementMixturePrototypeDeferHead(SupportWeightedAgreementMixturePrototypeDeferHead):
+    """Support-weighted agreement mixture with per-state support deltas."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        dynamic_support_scale: float = 1.0,
+    ) -> None:
+        if risk_dim <= 0:
+            raise ValueError("Risk-conditioned support requires risk features.")
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+        )
+        self.dynamic_support_scale = dynamic_support_scale
+        self._dynamic_split_sizes = (
+            positive_prototypes,
+            negative_prototypes,
+            positive_prototypes,
+            negative_prototypes,
+        )
+        self.support_context = torch.nn.Sequential(
+            torch.nn.Linear(risk_dim, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, sum(self._dynamic_split_sizes)),
+        )
+
+    def _bounded_dynamic_support(self, raw_support: torch.Tensor) -> torch.Tensor:
+        centered = raw_support - raw_support.mean(dim=-1, keepdim=True)
+        return self.dynamic_support_scale * torch.tanh(centered)
+
+    def _support_deltas(self, risk_features: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        raw = self.support_context(risk_features)
+        raw_shared_pos, raw_shared_neg, raw_dual_pos, raw_dual_neg = torch.split(
+            raw,
+            self._dynamic_split_sizes,
+            dim=1,
+        )
+        return (
+            self._bounded_dynamic_support(raw_shared_pos),
+            self._bounded_dynamic_support(raw_shared_neg),
+            self._bounded_dynamic_support(raw_dual_pos),
+            self._bounded_dynamic_support(raw_dual_neg),
+        )
+
+    def _shared_score_with_deltas(
+        self,
+        shared_encoded: torch.Tensor,
+        shared_positive_delta: torch.Tensor,
+        shared_negative_delta: torch.Tensor,
+    ) -> torch.Tensor:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = (
+            scale * shared_encoded @ pos.T
+            + self._bounded_support(self.shared_positive_support).unsqueeze(0)
+            + shared_positive_delta
+        )
+        neg_logits = (
+            scale * shared_encoded @ neg.T
+            + self._bounded_support(self.shared_negative_support).unsqueeze(0)
+            + shared_negative_delta
+        )
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def _dual_score_with_deltas(
+        self,
+        positive_encoded: torch.Tensor,
+        negative_encoded: torch.Tensor,
+        dual_positive_delta: torch.Tensor,
+        dual_negative_delta: torch.Tensor,
+    ) -> torch.Tensor:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = (
+            scale * positive_encoded @ pos.T
+            + self._bounded_support(self.dual_positive_support).unsqueeze(0)
+            + dual_positive_delta
+        )
+        neg_logits = (
+            scale * negative_encoded @ neg.T
+            + self._bounded_support(self.dual_negative_support).unsqueeze(0)
+            + dual_negative_delta
+        )
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor | None = None) -> torch.Tensor:
+        if risk_features is None:
+            raise ValueError("Risk-conditioned support requires risk features at inference time.")
+        shared_encoded = self.encode_shared(features)
+        dual_pos_encoded = self.encode_dual_positive(features)
+        dual_neg_encoded = self.encode_dual_negative(features)
+        shared_pos_delta, shared_neg_delta, dual_pos_delta, dual_neg_delta = self._support_deltas(risk_features)
+        shared_score = self._shared_score_with_deltas(shared_encoded, shared_pos_delta, shared_neg_delta)
+        dual_score = self._dual_score_with_deltas(dual_pos_encoded, dual_neg_encoded, dual_pos_delta, dual_neg_delta)
+        gate_features = self._agreement_features(shared_score, dual_score)
+        gate = torch.sigmoid(self.agreement_gate(gate_features).squeeze(-1) + self.gate_bias)
+        logits = shared_score + gate * (dual_score - shared_score) + self.bias
+        if self.risk_branch is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits
+
+    def dynamic_support_regularization(self, risk_features: torch.Tensor) -> torch.Tensor:
+        deltas = self._support_deltas(risk_features)
+        penalties = [delta.abs().mean() for delta in deltas]
+        return torch.stack(penalties).mean()
+
+
 class EvidenceAgreementPrototypeDeferHead(torch.nn.Module):
     """Agreement mixture with branch-internal prototype evidence features."""
 

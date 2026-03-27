@@ -388,6 +388,12 @@
        either, because the confident rescue-weighted follow-up exactly
        reproduced the rescue-weighted micro-budget win at `0.10–0.25%` but
        stayed weaker than accepted branchwise-max from `0.50%` upward
+     - and not via simple full teacher-guided harmful-state negative-bank
+       reconstruction either, because the teacher-rebuilt follow-up really
+       replaced all `8/8` shared and dual negative prototypes with harmful-state
+       centroids and nontrivial support spreads, but the plain branch collapsed
+       to baseline and the hybrid only recovered the weak `50%` / `90.45%` lane
+       with overall mean delta regret only `-0.0035`
      - if bank editing reopens again, require the selected keep mask to differ
        materially from the all-keep baseline before treating the result as an
        architecture change

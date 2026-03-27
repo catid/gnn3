@@ -203,3 +203,4 @@ prototype_fixed_rescue_anchored_dual_lift_branchwise_max_negative_cleanup_suppor
 prototype_rescue_weighted_anchored_dual_lift_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_025,explore,0.0,,,,,0.966370,-0.008788,,,,-0.000230
 prototype_ramped_rescue_weighted_anchored_dual_lift_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_150,explore,0.0,,,,,0.968214,-0.015306,,,,-0.000230
 prototype_confident_rescue_weighted_anchored_dual_lift_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_025,explore,0.0,,,,,0.966370,-0.008788,,,,-0.000230
+prototype_teacher_rebuilt_negative_bank_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_050,explore,0.0,,,,,0.965448,-0.003464,,,,-0.000230

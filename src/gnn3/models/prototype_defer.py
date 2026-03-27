@@ -2428,6 +2428,60 @@ class HardNegativeConditionedBranchwiseMaxNegativeCleanupSupportAgreementMixture
         }
 
 
+class TeacherRebuiltNegativeBankBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
+    BranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead
+):
+    """Branchwise max with fixed-cardinality teacher-guided negative-bank replacement."""
+
+    def set_rebuilt_negative_banks(
+        self,
+        *,
+        shared_negative_prototypes: torch.Tensor,
+        dual_negative_prototypes: torch.Tensor,
+        shared_negative_support: torch.Tensor | None = None,
+        dual_negative_support: torch.Tensor | None = None,
+    ) -> None:
+        shared_proto = shared_negative_prototypes.to(
+            dtype=self.shared_negative_prototypes.dtype,
+            device=self.shared_negative_prototypes.device,
+        )
+        dual_proto = dual_negative_prototypes.to(
+            dtype=self.dual_negative_prototypes.dtype,
+            device=self.dual_negative_prototypes.device,
+        )
+        if shared_proto.shape != self.shared_negative_prototypes.shape:
+            raise ValueError("shared_negative_prototypes has wrong shape.")
+        if dual_proto.shape != self.dual_negative_prototypes.shape:
+            raise ValueError("dual_negative_prototypes has wrong shape.")
+        with torch.no_grad():
+            self.shared_negative_prototypes.copy_(F.normalize(shared_proto, dim=-1))
+            self.dual_negative_prototypes.copy_(F.normalize(dual_proto, dim=-1))
+            if shared_negative_support is not None:
+                shared_support = shared_negative_support.to(
+                    dtype=self.shared_negative_support.dtype,
+                    device=self.shared_negative_support.device,
+                )
+                if shared_support.shape != self.shared_negative_support.shape:
+                    raise ValueError("shared_negative_support has wrong shape.")
+                self.shared_negative_support.copy_(shared_support)
+            if dual_negative_support is not None:
+                dual_support = dual_negative_support.to(
+                    dtype=self.dual_negative_support.dtype,
+                    device=self.dual_negative_support.device,
+                )
+                if dual_support.shape != self.dual_negative_support.shape:
+                    raise ValueError("dual_negative_support has wrong shape.")
+                self.dual_negative_support.copy_(dual_support)
+
+    def rebuild_summary(self) -> dict[str, float]:
+        return {
+            "shared_negative_count": float(self.shared_negative_prototypes.size(0)),
+            "dual_negative_count": float(self.dual_negative_prototypes.size(0)),
+            "shared_negative_support_std": float(self.shared_negative_support.std().item()),
+            "dual_negative_support_std": float(self.dual_negative_support.std().item()),
+        }
+
+
 class TailMarginCalibratedBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
     BranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead
 ):

@@ -2482,6 +2482,43 @@ class TeacherRebuiltNegativeBankBranchwiseMaxNegativeCleanupSupportAgreementMixt
         }
 
 
+class SharedTeacherRebuiltNegativeBankBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
+    BranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead
+):
+    """Branchwise max with only the shared negative bank rebuilt from teacher-marked harmful states."""
+
+    def set_rebuilt_shared_negative_bank(
+        self,
+        *,
+        shared_negative_prototypes: torch.Tensor,
+        shared_negative_support: torch.Tensor | None = None,
+    ) -> None:
+        shared_proto = shared_negative_prototypes.to(
+            dtype=self.shared_negative_prototypes.dtype,
+            device=self.shared_negative_prototypes.device,
+        )
+        if shared_proto.shape != self.shared_negative_prototypes.shape:
+            raise ValueError("shared_negative_prototypes has wrong shape.")
+        with torch.no_grad():
+            self.shared_negative_prototypes.copy_(F.normalize(shared_proto, dim=-1))
+            if shared_negative_support is not None:
+                shared_support = shared_negative_support.to(
+                    dtype=self.shared_negative_support.dtype,
+                    device=self.shared_negative_support.device,
+                )
+                if shared_support.shape != self.shared_negative_support.shape:
+                    raise ValueError("shared_negative_support has wrong shape.")
+                self.shared_negative_support.copy_(shared_support)
+
+    def rebuild_summary(self) -> dict[str, float]:
+        return {
+            "shared_negative_count": float(self.shared_negative_prototypes.size(0)),
+            "shared_negative_support_std": float(self.shared_negative_support.std().item()),
+            "dual_negative_count": float(self.dual_negative_prototypes.size(0)),
+            "dual_negative_support_std": float(self.dual_negative_support.std().item()),
+        }
+
+
 class TailMarginCalibratedBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
     BranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead
 ):

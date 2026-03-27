@@ -394,6 +394,11 @@
        centroids and nontrivial support spreads, but the plain branch collapsed
        to baseline and the hybrid only recovered the weak `50%` / `90.45%` lane
        with overall mean delta regret only `-0.0035`
+     - and not via shared-only teacher-guided harmful-state negative-bank
+       reconstruction either, because the shared-only rebuild did improve the
+       accepted branchwise-max reference at `0.10–0.25%`, but it only recreated
+       a weaker version of the rescue-weighted micro-budget companion and still
+       fell back behind accepted branchwise-max from `0.50%` upward
      - if bank editing reopens again, require the selected keep mask to differ
        materially from the all-keep baseline before treating the result as an
        architecture change

@@ -1,0 +1,34 @@
+{
+  "prototype_memory_agree_blend": [
+    {
+      "split": "round11_feature_cache_seed315",
+      "score_min": -5.216302871704102,
+      "score_max": 0.3725387156009674,
+      "score_mean": -2.737656354904175,
+      "use_risk_branch": false
+    },
+    {
+      "split": "round11_feature_cache_seed316",
+      "score_min": -2.4734556674957275,
+      "score_max": 4.028775691986084,
+      "score_mean": 1.7658406496047974,
+      "use_risk_branch": false
+    }
+  ],
+  "prototype_memory_agree_blend_hybrid": [
+    {
+      "split": "round11_feature_cache_seed315",
+      "score_min": -7.313010215759277,
+      "score_max": -0.32244348526000977,
+      "score_mean": -4.5724358558654785,
+      "use_risk_branch": true
+    },
+    {
+      "split": "round11_feature_cache_seed316",
+      "score_min": -3.5127296447753906,
+      "score_max": 2.2193658351898193,
+      "score_mean": -0.9100102186203003,
+      "use_risk_branch": true
+    }
+  ]
+}

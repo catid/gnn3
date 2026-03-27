@@ -1,0 +1,10 @@
+budget_pct,leader_variant,stable_positive_recall,hard_target_match,hard_mean_delta_regret,overall_mean_delta_regret,overall_p95_delta_regret
+0.1,prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid,0.5,0.9045001683058189,-0.004254937171936035,-0.004978130294433768,0.0
+0.25,prototype_memory_agree_blend_hybrid,0.6666666666666666,0.9052612033134293,-0.006902400942879362,-0.004854712881245763,0.0
+0.5,prototype_memory_agree_blend_hybrid,0.6666666666666666,0.9052612033134293,-0.006902400942879362,-0.009343457438932608,0.0
+0.75,prototype_sharp_negative_tail_support_agree_mix_hybrid,0.75,0.9073203492276696,-0.008943598729960466,-0.014446054805908062,0.0
+1.0,prototype_negative_tail_support_agree_mix_hybrid,1.0,0.9079919408999328,-0.009958821867359333,-0.013083241247545941,0.0
+1.25,prototype_negative_tail_support_agree_mix_hybrid,1.0,0.9079919408999328,-0.009958821867359333,-0.013472595399362103,0.0
+1.5,prototype_negative_tail_support_agree_mix_hybrid,1.0,0.9079919408999328,-0.009958821867359333,-0.013802980780807437,0.0
+2.0,prototype_negative_tail_support_agree_mix_hybrid,1.0,0.9079919408999328,-0.009958821867359333,-0.013802980780807437,0.0
+2.5,prototype_negative_tail_support_agree_mix_hybrid,1.0,0.9079919408999328,-0.009958821867359333,-0.014062981636832006,0.0

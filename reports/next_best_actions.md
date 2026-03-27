@@ -305,3 +305,30 @@
    - large-gap control preservation
    - runtime overhead
 14. Keep `detach_warmup` mandatory in every future shortlist. That contract remains unbroken by every round since it was established.
+
+## Round 13 Update
+
+15. Narrow the active prototype promotion surface to the one branch that survived the rerun robustness gate:
+   - promote `prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid` as the only robust prototype correction reference
+   - demote `prototype_memory_agree_blend_hybrid` from the active frontier pack
+   - demote `prototype_sharp_negative_tail_support_agree_mix_hybrid` and `prototype_negative_tail_support_agree_mix_hybrid` from deployment-facing promotion; keep them only as mechanism probes
+16. Treat the archived frontier as descriptive, not promotive:
+   - archived leaders still split by budget band
+   - rerun 1 and rerun 2 collapse that ladder back to branchwise-max at every matched budget
+   - do not accept archived-only operating regions without a rerun confirmation
+17. Keep the accepted mechanism simple:
+   - support-weighted agreement-mixture banks
+   - shared plus dual branch scoring
+   - branch-local negative cleanup
+   - hard branchwise max before the outer mix
+18. Do not promote a hierarchical dispatcher:
+   - the static budget ladder was only an archived convenience view
+   - the score-band dispatcher lost to the best single branch on the archived frontier and lost clearly on both fresh reruns
+19. Do not reopen conservative student retry:
+   - `stable_positive_v3_total` stayed at `4`
+   - `new_v3_total` stayed at `0`
+   - there are `31` unstable positives, but they are not stable enough to support compression
+20. If another round opens, bias it toward branchwise-max stabilization only:
+   - prototype pruning and deduplication inside the branchwise-max family
+   - cleanup-threshold tuning against the `71` useful hard negatives from round 13
+   - rerun robustness first, before any new composite or student work

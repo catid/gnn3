@@ -1,0 +1,119 @@
+{
+  "budgets": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.25,
+    1.5,
+    2.0,
+    2.5
+  ],
+  "decision_source": "round13_rerun2",
+  "variants": [
+    {
+      "label": "memory_agree_blend_hybrid",
+      "variant": "prototype_memory_agree_blend_hybrid",
+      "decisions_csv": "reports/plots/round13_rerun2_memory_agreement_blend_defer_decisions.csv"
+    },
+    {
+      "label": "sharp_negative_tail_support_agree_mix_hybrid",
+      "variant": "prototype_sharp_negative_tail_support_agree_mix_hybrid",
+      "decisions_csv": "reports/plots/round13_rerun2_sharp_negative_tail_support_agreement_mixture_defer_decisions.csv"
+    },
+    {
+      "label": "negative_tail_support_agree_mix_hybrid",
+      "variant": "prototype_negative_tail_support_agree_mix_hybrid",
+      "decisions_csv": "reports/plots/round13_rerun2_negative_tail_support_agreement_mixture_defer_decisions.csv"
+    },
+    {
+      "label": "branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "decisions_csv": "reports/plots/round13_rerun2_branchwise_max_negative_cleanup_support_agreement_mixture_defer_decisions.csv"
+    }
+  ],
+  "leaders": [
+    {
+      "budget_pct": 0.1,
+      "leader_variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "stable_positive_recall": 0.5,
+      "hard_target_match": 0.9045001683058189,
+      "hard_mean_delta_regret": -0.004254937171936035,
+      "overall_mean_delta_regret": -0.005654669360112829,
+      "overall_p95_delta_regret": 0.0
+    },
+    {
+      "budget_pct": 0.25,
+      "leader_variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "stable_positive_recall": 0.5,
+      "hard_target_match": 0.9045001683058189,
+      "hard_mean_delta_regret": -0.004254937171936035,
+      "overall_mean_delta_regret": -0.008274341055327088,
+      "overall_p95_delta_regret": 0.0
+    },
+    {
+      "budget_pct": 0.5,
+      "leader_variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "stable_positive_recall": 0.5,
+      "hard_target_match": 0.9045001683058189,
+      "hard_mean_delta_regret": -0.004254937171936035,
+      "overall_mean_delta_regret": -0.01010935440337394,
+      "overall_p95_delta_regret": 0.0
+    },
+    {
+      "budget_pct": 0.75,
+      "leader_variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "stable_positive_recall": 0.6666666666666666,
+      "hard_target_match": 0.9052612033134293,
+      "hard_mean_delta_regret": -0.006902400942879362,
+      "overall_mean_delta_regret": -0.01287045013128436,
+      "overall_p95_delta_regret": 0.0
+    },
+    {
+      "budget_pct": 1.0,
+      "leader_variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "stable_positive_recall": 0.6666666666666666,
+      "hard_target_match": 0.9052612033134293,
+      "hard_mean_delta_regret": -0.006902400942879362,
+      "overall_mean_delta_regret": -0.014173786641170059,
+      "overall_p95_delta_regret": 0.0
+    },
+    {
+      "budget_pct": 1.25,
+      "leader_variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "stable_positive_recall": 0.8333333333333333,
+      "hard_target_match": 0.9060222383210397,
+      "hard_mean_delta_regret": -0.009001362632217291,
+      "overall_mean_delta_regret": -0.015444674267049617,
+      "overall_p95_delta_regret": 0.0
+    },
+    {
+      "budget_pct": 1.5,
+      "leader_variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "stable_positive_recall": 0.8333333333333333,
+      "hard_target_match": 0.9060222383210397,
+      "hard_mean_delta_regret": -0.009001362632217291,
+      "overall_mean_delta_regret": -0.015940762393030626,
+      "overall_p95_delta_regret": 0.0
+    },
+    {
+      "budget_pct": 2.0,
+      "leader_variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "stable_positive_recall": 0.8333333333333333,
+      "hard_target_match": 0.9060222383210397,
+      "hard_mean_delta_regret": -0.009001362632217291,
+      "overall_mean_delta_regret": -0.016357801709932864,
+      "overall_p95_delta_regret": 0.0
+    },
+    {
+      "budget_pct": 2.5,
+      "leader_variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "stable_positive_recall": 0.8333333333333333,
+      "hard_target_match": 0.9060222383210397,
+      "hard_mean_delta_regret": -0.009001362632217291,
+      "overall_mean_delta_regret": -0.016542999921251123,
+      "overall_p95_delta_regret": 0.0
+    }
+  ]
+}

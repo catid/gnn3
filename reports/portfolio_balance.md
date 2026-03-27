@@ -230,3 +230,31 @@ Current cumulative GPU-hours:
 - Overall exploit: `8.6877`
 - Overall explore: `7.3831`
 - Overall split: `54.1% / 45.9%`
+
+## Round 13 Campaign
+
+Round 13 reused cached decision exports heavily, so the incremental GPU spend was small and concentrated in validation plus matched reruns.
+
+Round-13 batch summary:
+
+| batch | bucket | purpose | gpu_hours | status | outcome |
+| --- | --- | --- | ---: | --- | --- |
+| R13-A1-frontier-sweep | exploit | Matched archived frontier plus rerun-1 and rerun-2 robustness over the four live shortlist members. | 0.05 | completed | Archived frontier split by budget, but rerun-1 and rerun-2 both collapsed to `prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid` as the only robust leader. |
+| R13-B1-branchwise-ablation | explore | Mechanism ablation for max timing, branch source, negative cleanup source, support / agree / mix, and calibration. | 0.00 | completed | Accepted mechanism is support-weighted agreement mixture + shared/dual branches + branch-local negative cleanup + hard branchwise max before the outer mix. |
+| R13-C1-stable-positive-v3 | explore | Mine a larger stable-positive pack from archived plus rerun shortlist corrections. | 0.00 | completed | `stable_positive_v3` did not expand beyond the original four stable positives; `31` unstable positives and `71` useful hard negatives were found. |
+| R13-D1-hierarchical-dispatcher | exploit | Static ladder and score-band dispatcher evaluation against the best single branch. | 0.00 | completed | No promotion: the dispatcher lost to the best single branch on the archived frontier and on both reruns. |
+| R13-E1-retrieval-calibration | explore | Consolidate retrieval/calibration conclusions from the round-13 ablations and robustness checks. | 0.00 | completed | No new retrieval/calibration variant promoted; branchwise-max remained the accepted robust answer. |
+| R13-F1-conservative-student | explore | Conditional retry only if v3 or the composite frontier improved materially. | 0.00 | completed | Closed without training because `stable_positive_v3` did not expand and no composite beat the best single branch. |
+| R13-G1-deployment-panel | exploit | Conditional deployment comparison only if a new branch from Waves D-F promoted. | 0.00 | completed | Closed without a new panel because only the already-accepted branchwise-max branch survived promotion gates. |
+
+Round-thirteen incremental GPU-hours:
+
+- exploit: `0.0500`
+- explore: `0.0000`
+- split: `100.0% / 0.0%`
+
+Updated cumulative GPU-hours:
+
+- Overall exploit: `8.7377`
+- Overall explore: `7.3831`
+- Overall split: `54.2% / 45.8%`

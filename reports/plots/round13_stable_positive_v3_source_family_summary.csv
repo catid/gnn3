@@ -1,0 +1,17 @@
+model_family,category,decisions
+branchwise_max,dead_noisy_positive,165
+branchwise_max,stable_positive_v3,4
+branchwise_max,unstable_positive,30
+branchwise_max,useful_hard_negative,69
+memory_agree,dead_noisy_positive,318
+memory_agree,stable_positive_v3,2
+memory_agree,unstable_positive,22
+memory_agree,useful_hard_negative,31
+negative_tail,dead_noisy_positive,318
+negative_tail,stable_positive_v3,4
+negative_tail,unstable_positive,22
+negative_tail,useful_hard_negative,43
+sharp_negative,dead_noisy_positive,336
+sharp_negative,stable_positive_v3,3
+sharp_negative,unstable_positive,29
+sharp_negative,useful_hard_negative,41

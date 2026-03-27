@@ -1,0 +1,10 @@
+budget_pct,leader_variant,stable_positive_recall,hard_target_match,hard_mean_delta_regret,overall_mean_delta_regret,overall_p95_delta_regret
+0.1,prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid,0.5,0.9045001683058189,-0.004254937171936035,-0.006124239999169905,0.0
+0.25,prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid,0.5,0.9045001683058189,-0.004254937171936035,-0.00813355837355401,0.0
+0.5,prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid,0.5,0.9045001683058189,-0.004254937171936035,-0.009677317519332465,0.0
+0.75,prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid,0.5,0.9045001683058189,-0.004254937171936035,-0.011692202766979059,0.0
+1.0,prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid,0.6666666666666666,0.9052612033134293,-0.006902400942879362,-0.013392262517499302,0.0
+1.25,prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid,0.8333333333333333,0.9060222383210397,-0.009001362632217291,-0.015184523606429506,0.0
+1.5,prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid,0.8333333333333333,0.9060222383210397,-0.009001362632217291,-0.015444674267049617,0.0
+2.0,prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid,0.8333333333333333,0.9060222383210397,-0.009001362632217291,-0.01617292340480671,0.0
+2.5,prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid,0.8333333333333333,0.9060222383210397,-0.009001362632217291,-0.016542999921251123,0.0

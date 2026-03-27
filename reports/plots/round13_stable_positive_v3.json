@@ -1,0 +1,245 @@
+{
+  "sources": [
+    {
+      "source_run": "archived",
+      "model_family": "memory_agree",
+      "variant": "prototype_memory_agree_blend_hybrid",
+      "decisions_csv": "reports/plots/prototype_memory_agreement_blend_defer_decisions.csv",
+      "budgets": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        2.5
+      ]
+    },
+    {
+      "source_run": "archived",
+      "model_family": "sharp_negative",
+      "variant": "prototype_sharp_negative_tail_support_agree_mix_hybrid",
+      "decisions_csv": "reports/plots/prototype_sharp_negative_tail_support_agreement_mixture_defer_decisions.csv",
+      "budgets": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        2.5
+      ]
+    },
+    {
+      "source_run": "archived",
+      "model_family": "negative_tail",
+      "variant": "prototype_negative_tail_support_agree_mix_hybrid",
+      "decisions_csv": "reports/plots/prototype_negative_tail_support_agreement_mixture_defer_decisions.csv",
+      "budgets": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        2.5
+      ]
+    },
+    {
+      "source_run": "archived",
+      "model_family": "branchwise_max",
+      "variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "decisions_csv": "reports/plots/prototype_branchwise_max_negative_cleanup_support_agreement_mixture_defer_decisions.csv",
+      "budgets": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        2.5
+      ]
+    },
+    {
+      "source_run": "rerun1",
+      "model_family": "memory_agree",
+      "variant": "prototype_memory_agree_blend_hybrid",
+      "decisions_csv": "reports/plots/round13_memory_agreement_blend_defer_decisions.csv",
+      "budgets": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        2.5
+      ]
+    },
+    {
+      "source_run": "rerun1",
+      "model_family": "sharp_negative",
+      "variant": "prototype_sharp_negative_tail_support_agree_mix_hybrid",
+      "decisions_csv": "reports/plots/round13_sharp_negative_tail_support_agreement_mixture_defer_decisions.csv",
+      "budgets": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        2.5
+      ]
+    },
+    {
+      "source_run": "rerun1",
+      "model_family": "negative_tail",
+      "variant": "prototype_negative_tail_support_agree_mix_hybrid",
+      "decisions_csv": "reports/plots/round13_negative_tail_support_agreement_mixture_defer_decisions.csv",
+      "budgets": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        2.5
+      ]
+    },
+    {
+      "source_run": "rerun1",
+      "model_family": "branchwise_max",
+      "variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "decisions_csv": "reports/plots/round13_branchwise_max_negative_cleanup_support_agreement_mixture_defer_decisions.csv",
+      "budgets": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        2.5
+      ]
+    },
+    {
+      "source_run": "rerun2",
+      "model_family": "memory_agree",
+      "variant": "prototype_memory_agree_blend_hybrid",
+      "decisions_csv": "reports/plots/round13_rerun2_memory_agreement_blend_defer_decisions.csv",
+      "budgets": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        2.5
+      ]
+    },
+    {
+      "source_run": "rerun2",
+      "model_family": "sharp_negative",
+      "variant": "prototype_sharp_negative_tail_support_agree_mix_hybrid",
+      "decisions_csv": "reports/plots/round13_rerun2_sharp_negative_tail_support_agreement_mixture_defer_decisions.csv",
+      "budgets": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        2.5
+      ]
+    },
+    {
+      "source_run": "rerun2",
+      "model_family": "negative_tail",
+      "variant": "prototype_negative_tail_support_agree_mix_hybrid",
+      "decisions_csv": "reports/plots/round13_rerun2_negative_tail_support_agreement_mixture_defer_decisions.csv",
+      "budgets": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        2.5
+      ]
+    },
+    {
+      "source_run": "rerun2",
+      "model_family": "branchwise_max",
+      "variant": "prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid",
+      "decisions_csv": "reports/plots/round13_rerun2_branchwise_max_negative_cleanup_support_agreement_mixture_defer_decisions.csv",
+      "budgets": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        2.5
+      ]
+    }
+  ],
+  "summary": [
+    {
+      "category": "dead_noisy_positive",
+      "decisions": 837,
+      "mean_best_safe_teacher_gain": 0.0,
+      "mean_selection_events": 6.31063321385902,
+      "mean_model_family_count": 1.3584229390681004,
+      "mean_source_run_count": 1.4050179211469533
+    },
+    {
+      "category": "stable_positive_v3",
+      "decisions": 4,
+      "mean_best_safe_teacher_gain": 3.707171440124512,
+      "mean_selection_events": 35.5,
+      "mean_model_family_count": 3.25,
+      "mean_source_run_count": 2.5
+    },
+    {
+      "category": "unstable_positive",
+      "decisions": 31,
+      "mean_best_safe_teacher_gain": 4.228338641505087,
+      "mean_selection_events": 40.516129032258064,
+      "mean_model_family_count": 3.3225806451612905,
+      "mean_source_run_count": 2.935483870967742
+    },
+    {
+      "category": "useful_hard_negative",
+      "decisions": 71,
+      "mean_best_safe_teacher_gain": 0.0,
+      "mean_selection_events": 24.788732394366196,
+      "mean_model_family_count": 2.591549295774648,
+      "mean_source_run_count": 2.7464788732394365
+    }
+  ],
+  "stable_positive_v2_total": 4,
+  "stable_positive_v3_total": 4,
+  "new_v3_total": 0
+}

@@ -239,6 +239,8 @@
    - use the sharp-negative-tail support-weighted agreement-mixture hybrid as the primary sub-`1%` full-band contender
    - use the negative-tail support-weighted agreement-mixture hybrid as the high-recall contender around `1%` coverage
    - use the branchwise-max negative-cleanup support-weighted agreement-mixture hybrid as the higher-budget matched-band and high-recall contender once coverage can rise to roughly `1.5–2.0%`
+   - use the rescue-weighted anchored dual lift as the branchwise-max-family micro-budget companion at `0.10–0.25%`
+   - use the dual-teacher-rebuilt rescue-weighted anchored dual lift as a target-heavy companion around `0.50%` when stronger stable-positive / hard near-tie lift matters more than a tiny aggregate-regret trade against accepted branchwise-max
    - keep the original learnable prototype-memory plus risk-branch architecture as the lighter low-coverage reference behind it
    - use the memory-agreement blend hybrid as the micro-budget contender below roughly `0.5%` overall coverage
    - use the sharp-negative-tail support-weighted agreement-mixture head as the primary coverage-efficient matched-band contender around `0.75–1.0%`
@@ -404,6 +406,20 @@
        teacher-guided bank-edit variant and did recover `83.3%` held-out
        stable-positive-v2 with `90.60%` hard near-tie by `1.50–2.00%`, but it
        still stayed weaker than accepted branchwise-max at every matched budget
+     - dual-only teacher-guided harmful-state reconstruction does become
+       meaningfully more useful once it is combined with the rescue-weighted
+       anchored lift
+       - the combined follow-up is the first teacher-guided bank edit that
+         creates a real new operating lane inside the branchwise-max family
+       - at `0.50%` it improves rescue-weighted anchored lift from
+         `50%` / `90.45%` / `-0.0105` to `66.7%` / `90.53%` / `-0.0113`
+       - compared with accepted branchwise-max at the same `0.50%` budget, it
+         trades only a tiny aggregate-regret loss (`-0.0111 -> -0.0113`) for
+         a materially stronger target slice (`50% -> 66.7%`,
+         `90.45% -> 90.53%`)
+       - but by `0.75%` it no longer improves the accepted frontier, and from
+         `1.00%` upward it still trails accepted branchwise-max on held-out
+         stable-positive-v2 and hard near-tie
      - if bank editing reopens again, require the selected keep mask to differ
        materially from the all-keep baseline before treating the result as an
        architecture change

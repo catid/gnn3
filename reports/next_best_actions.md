@@ -357,6 +357,12 @@
      - and not via dual-only train-pack utility-ranked hard masking either,
        because the dual-only follow-up selected the all-keep `8/8` dual bank,
        so it did not instantiate a real bank edit at all
+     - and not via an anchored bounded dual lift on top of branchwise-max
+       either, because the anchored-dual-lift follow-up did preserve the
+       accepted `1.0%` point and reached full held-out stable-positive-v2
+       recovery by `1.5%`, but it still lost aggregate overall regret at
+       `1.5–2.0%` and became strictly worse once the accepted branchwise-max
+       branch also reached full held-out recall
      - if bank editing reopens again, require the selected keep mask to differ
        materially from the all-keep baseline before treating the result as an
        architecture change

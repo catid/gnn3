@@ -198,3 +198,4 @@ prototype_tail_margin_calibrated_branchwise_max_negative_cleanup_support_agree_m
 prototype_searched_fixed_margin_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_100,explore,0.0,,,,,0.966485,-0.007158,,,,0.0
 prototype_hard_negative_conditioned_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_100,explore,0.0,,,,,0.967407,-0.012312,,,,-0.000115
 prototype_dual_hard_negative_conditioned_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_150,explore,0.0,,,,,0.968329,-0.015002,,,,-0.000230
+prototype_anchored_dual_lift_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_150,explore,0.0,,,,,0.968214,-0.015359,,,,-0.000230

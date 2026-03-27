@@ -379,6 +379,11 @@
        - by `0.50%` it is already weaker than accepted branchwise-max on
          overall regret, and from `1.00%` upward it also trails on held-out
          stable-positive-v2 and hard near-tie
+     - and not via a simple anchor-score ramp between rescue-weighted and
+       broader anchored lift either, because the ramped rescue-weighted
+       follow-up lost the rescue-weighted micro-budget win at `0.10–0.25%`
+       while still staying weaker than accepted branchwise-max from `1.00%`
+       upward
      - if bank editing reopens again, require the selected keep mask to differ
        materially from the all-keep baseline before treating the result as an
        architecture change

@@ -183,3 +183,4 @@ prototype_sharp_mass_negative_tail_support_agree_mix_hybrid_defer_200,explore,0.
 prototype_branch_calibrated_sharp_negative_tail_support_agree_mix_hybrid_defer_200,explore,0.0,,,,,0.968559,-0.016166,,,,-0.000230
 prototype_learned_gate_negative_tail_support_agree_mix_hybrid_defer_200,explore,0.0,,,,,0.968559,-0.016119,,,,-0.000230
 prototype_branch_strength_sharp_negative_tail_support_agree_mix_hybrid_defer_150,explore,0.0,,,,,0.968214,-0.015438,,,,-0.000230
+prototype_branch_strength_negative_cleanup_lift_support_agree_mix_hybrid_defer_200,explore,0.0,,,,,0.968559,-0.016166,,,,-0.000230

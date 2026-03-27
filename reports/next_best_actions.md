@@ -420,6 +420,18 @@
        - but by `0.75%` it no longer improves the accepted frontier, and from
          `1.00%` upward it still trails accepted branchwise-max on held-out
          stable-positive-v2 and hard near-tie
+     - and not via a rescue-sensitive learned blend between the learned and
+       rebuilt dual negative banks either, because the gated dual-teacher
+       follow-up learned only a weak blend (`scale ~ 0.12–0.14`, `bias ~ -0.86`)
+       and effectively collapsed back to the rescue-weighted anchored lift
+       curve
+       - it gave back the hard-swap `0.50%` gain entirely, returning to only
+         `50%` held-out stable-positive-v2 and `90.45%` hard near-tie with
+         overall mean delta regret `-0.0105`
+       - at `0.10–0.25%` it only matched or slightly trailed the older
+         rescue-weighted micro-budget companion
+       - and from `0.75%` upward it still remained weaker than accepted
+         branchwise-max
      - if bank editing reopens again, require the selected keep mask to differ
        materially from the all-keep baseline before treating the result as an
        architecture change

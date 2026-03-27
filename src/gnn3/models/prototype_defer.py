@@ -2593,6 +2593,135 @@ class DualTeacherRebuiltNegativeBankRescueWeightedAnchoredDualLiftBranchwiseMaxN
         }
 
 
+class GatedDualTeacherRebuiltNegativeBankRescueWeightedAnchoredDualLiftBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
+    RescueWeightedAnchoredDualLiftBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead
+):
+    """Blend learned and rebuilt dual negative banks with a rescue-sensitive gate."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+        shared_tail_shrink_scale: float = 2.0,
+        dual_tail_shrink_scale: float = 2.0,
+        sharpness_center: float = 0.75,
+        sharpness_scale: float = 4.0,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+            tail_margin=tail_margin,
+            tail_shrink_scale=tail_shrink_scale,
+            shared_tail_shrink_scale=shared_tail_shrink_scale,
+            dual_tail_shrink_scale=dual_tail_shrink_scale,
+            sharpness_center=sharpness_center,
+            sharpness_scale=sharpness_scale,
+        )
+        self.register_buffer(
+            "rebuilt_dual_negative_prototypes",
+            F.normalize(self.dual_negative_prototypes.detach().clone(), dim=-1),
+        )
+        self.register_buffer(
+            "rebuilt_dual_negative_support",
+            self.dual_negative_support.detach().clone(),
+        )
+        self.dual_rebuild_blend_scale = torch.nn.Parameter(torch.tensor(1.0, dtype=torch.float32))
+        self.dual_rebuild_blend_bias = torch.nn.Parameter(torch.tensor(0.0, dtype=torch.float32))
+
+    def set_rebuilt_dual_negative_bank(
+        self,
+        *,
+        dual_negative_prototypes: torch.Tensor,
+        dual_negative_support: torch.Tensor | None = None,
+    ) -> None:
+        dual_proto = dual_negative_prototypes.to(
+            dtype=self.rebuilt_dual_negative_prototypes.dtype,
+            device=self.rebuilt_dual_negative_prototypes.device,
+        )
+        if dual_proto.shape != self.rebuilt_dual_negative_prototypes.shape:
+            raise ValueError("dual_negative_prototypes has wrong shape.")
+        with torch.no_grad():
+            self.rebuilt_dual_negative_prototypes.copy_(F.normalize(dual_proto, dim=-1))
+            if dual_negative_support is not None:
+                dual_support = dual_negative_support.to(
+                    dtype=self.rebuilt_dual_negative_support.dtype,
+                    device=self.rebuilt_dual_negative_support.device,
+                )
+                if dual_support.shape != self.rebuilt_dual_negative_support.shape:
+                    raise ValueError("dual_negative_support has wrong shape.")
+                self.rebuilt_dual_negative_support.copy_(dual_support)
+
+    def _dual_branch_scores(
+        self,
+        positive_encoded: torch.Tensor,
+        negative_encoded: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, learned_neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        learned_neg_logits = scale * negative_encoded @ learned_neg.T + self._bounded_support(self.dual_negative_support)
+        rebuilt_neg_logits = scale * negative_encoded @ self.rebuilt_dual_negative_prototypes.T + self._bounded_support(
+            self.rebuilt_dual_negative_support
+        )
+
+        learned_fixed = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(learned_neg_logits, self.dual_negative_tail),
+            dim=1,
+        )
+        learned_sharp = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(
+                learned_neg_logits,
+                self.dual_negative_tail,
+                raw_scale=self.dual_tail_scale,
+            ),
+            dim=1,
+        )
+        rebuilt_fixed = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(rebuilt_neg_logits, self.dual_negative_tail),
+            dim=1,
+        )
+        rebuilt_sharp = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(
+                rebuilt_neg_logits,
+                self.dual_negative_tail,
+                raw_scale=self.dual_tail_scale,
+            ),
+            dim=1,
+        )
+        blend = torch.sigmoid(
+            self.dual_rebuild_blend_scale * (learned_fixed - learned_sharp) + self.dual_rebuild_blend_bias
+        )
+        fixed_score = learned_fixed + blend * (rebuilt_fixed - learned_fixed)
+        sharp_score = learned_sharp + blend * (rebuilt_sharp - learned_sharp)
+        return fixed_score, sharp_score
+
+    def rebuild_summary(self) -> dict[str, float]:
+        return {
+            "shared_negative_count": float(self.shared_negative_prototypes.size(0)),
+            "shared_negative_support_std": float(self.shared_negative_support.std().item()),
+            "dual_negative_count": float(self.dual_negative_prototypes.size(0)),
+            "dual_negative_support_std": float(self.dual_negative_support.std().item()),
+            "rebuilt_dual_negative_support_std": float(self.rebuilt_dual_negative_support.std().item()),
+            "dual_rebuild_blend_scale": float(self.dual_rebuild_blend_scale.item()),
+            "dual_rebuild_blend_bias": float(self.dual_rebuild_blend_bias.item()),
+        }
+
+
 class TailMarginCalibratedBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
     BranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead
 ):

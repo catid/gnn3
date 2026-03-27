@@ -213,12 +213,13 @@
 | X83-followup-prototype-shared-teacher-rebuilt-negative-bank-branchwise-max-negative-cleanup-support-agree-mix | explore | Test whether only the shared negative bank should be rebuilt from teacher-marked harmful states at fixed cardinality while the dual negative bank remains learned, so teacher guidance helps the micro-budget lane without destroying the broader branchwise-max frontier. | 0.02 | 0.0000 | completed | Closed positive but dominated: the plain branch stayed dead, and the hybrid improved accepted branchwise-max at `0.10–0.25%` while preserving the same `50%` held-out stable-positive-v2 / `90.45%` hard near-tie point, but it was still weaker than the rescue-weighted micro-budget companion there and still fell behind accepted branchwise-max from `0.50%` upward. |
 | X84-followup-prototype-dual-teacher-rebuilt-negative-bank-branchwise-max-negative-cleanup-support-agree-mix | explore | Test whether only the dual negative bank should be rebuilt from teacher-marked harmful states at fixed cardinality while the shared negative bank remains learned, so teacher guidance sharpens the broader branchwise-max lane without losing branch-local structure. | 0.02 | 0.0000 | completed | Closed positive but dominated: the plain branch stayed dead, and the hybrid was the strongest teacher-guided bank-rebuild variant, recovering `83.3%` held-out stable-positive-v2 with `90.60%` hard near-tie by `1.50–2.00%`, but it remained weaker than accepted branchwise-max at every matched budget and still lost the micro-budget lane to rescue-weighted anchored dual lift. |
 | X85-followup-prototype-dual-teacher-rebuilt-negative-bank-rescue-weighted-anchored-dual-lift-branchwise-max-negative-cleanup-support-agree-mix | explore | Test whether the rescue-weighted anchored dual-lift branchwise-max family improves if only the dual negative bank is rebuilt from teacher-marked harmful states at fixed cardinality after fitting, combining the best micro-budget lift with the strongest teacher-guided bank edit. | 0.02 | 0.0000 | completed | Positive narrow-lane result: the plain branch stayed dead, and the hybrid became the first teacher-guided bank edit that creates a real new operating lane, improving rescue-weighted anchored lift to `66.7%` held-out stable-positive-v2 with `90.53%` hard near-tie and overall mean delta regret `-0.0113` at `0.50%`, but by `0.75%` it was already dominated again by accepted branchwise-max and never replaced the higher-budget reference. |
+| X86-followup-prototype-gated-dual-teacher-rebuilt-negative-bank-rescue-weighted-anchored-dual-lift-branchwise-max-negative-cleanup-support-agree-mix | explore | Test whether the positive dual-teacher rescue-weighted branch should soften its dual negative-bank rebuild into a rescue-sensitive blend between the learned and rebuilt banks, so the `0.50%` target-heavy lane survives without overcommitting to the rebuilt bank. | 0.02 | 0.0000 | completed | Closed positive but dominated: the plain branch stayed dead, and the hybrid learned only a weak blend gate (`scale ~ 0.12–0.14`, `bias ~ -0.86`), which effectively collapsed the model back to the older rescue-weighted micro-budget curve, gave back the hard-swap `0.50%` gain entirely, and still stayed weaker than accepted branchwise-max from `0.50%` upward. |
 
 Current cumulative GPU-hours:
 
 - Round-four-plus-follow-up exploit: `1.8310`
-- Round-four-plus-follow-up explore: `0.8878`
-- Round-four-plus-follow-up split: `67.3% / 32.7%`
+- Round-four-plus-follow-up explore: `0.9078`
+- Round-four-plus-follow-up split: `66.9% / 33.1%`
 - Round-five exploit-only batch: `3.2356`
 - Round-five split: `100.0% / 0.0%`
 - Round-six exploit: `0.3604`
@@ -243,8 +244,8 @@ Current cumulative GPU-hours:
 - Round-twelve explore final: `0.1300`
 - Round-twelve split final: `40.9% / 59.1%`
 - Overall exploit: `8.6877`
-- Overall explore: `7.4031`
-- Overall split: `54.0% / 46.0%`
+- Overall explore: `7.4231`
+- Overall split: `53.9% / 46.1%`
 
 ## Round 13 Campaign
 
@@ -271,5 +272,5 @@ Round-thirteen incremental GPU-hours:
 Updated cumulative GPU-hours:
 
 - Overall exploit: `8.7377`
-- Overall explore: `7.5231`
+- Overall explore: `7.5431`
 - Overall split: `53.7% / 46.3%`

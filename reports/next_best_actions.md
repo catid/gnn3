@@ -176,6 +176,12 @@
    - at `1.50%` overall coverage it keeps that same `75%` / `90.73%` frontier and edges the older `prototype_support_weighted_agree_mix_hybrid` higher-budget reference on aggregate regret (`-0.0159` vs `-0.0158`)
    - at `2.00%` overall coverage it becomes the new higher-budget max-recall lead, reaching `100%` held-out stable-positive-v2 recovery, `90.53% -> 90.80%` on hard near-tie, and overall mean delta regret `-0.0167`
    - so the live interpretation is now split by budget: keep the older sharp-negative and fixed negative-tail lanes at lower coverage, and use branchwise max as the higher-budget matched-band and higher-budget max-recall leader
+   - branchwise positive-only lift on top of that same branch-strength sharp base is now also closed
+   - the plain branchwise-lift head is dead-to-harmful: it recovers `0%` of held-out stable-positive-v2 and starts degrading hard near-tie once it becomes active above `0.5%`
+   - the hybrid is a real improvement over the older global lift, confirming that fusion does belong inside the shared and dual branches:
+     - by `1.0%` overall coverage it recovers `50%` of held-out stable-positive-v2, reaches `90.53% -> 90.66%` on hard near-tie, and improves overall mean delta regret to `-0.0149`
+   - but it still loses cleanly to the live sharp-negative lane below `1%`, only reaches the full `75%` / `90.73%` frontier once coverage rises to `1.5%`, and even there it trails both the older `prototype_support_weighted_agree_mix_hybrid` higher-budget reference and the newer branchwise-max result
+   - so the structural insight from the positive branchwise-max result is not just “branch-local fusion”; it is that this family still wants a hard branchwise union rather than a softer learned lift
    - asymmetric positive-plus-negative tail cleanup over that same support-weighted agreement-mixture bank is now also closed
    - the plain asymmetric-tail head is inert, and `prototype_asymmetric_tail_support_agree_mix_hybrid @ 0.75%` only matches the full `75%` / `90.73%` frontier band with weaker overall mean delta regret (`-0.0085`) than the existing soft-tail branch
    - at `1.00%` overall coverage it still only recovers `75%` of held-out stable-positive-v2 and reaches overall mean delta regret `-0.0105`, so it also trails both the original support-weighted branch on aggregate quality and the negative-tail branch on held-out recall

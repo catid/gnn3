@@ -186,3 +186,4 @@ prototype_branch_strength_sharp_negative_tail_support_agree_mix_hybrid_defer_150
 prototype_branch_strength_negative_cleanup_lift_support_agree_mix_hybrid_defer_200,explore,0.0,,,,,0.968559,-0.016166,,,,-0.000230
 prototype_branch_strength_negative_cleanup_max_support_agree_mix_hybrid_defer_200,explore,0.0,,,,,0.968444,-0.015829,,,,-0.000230
 prototype_branchwise_max_negative_cleanup_support_agree_mix_hybrid_defer_200,explore,0.0,,,,,0.968905,-0.016710,,,,-0.000230
+prototype_branchwise_lift_negative_cleanup_support_agree_mix_hybrid_defer_150,explore,0.0,,,,,0.968214,-0.014969,,,,-0.000115

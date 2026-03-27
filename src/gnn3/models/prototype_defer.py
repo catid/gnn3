@@ -1641,6 +1641,141 @@ class BranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
         return logits
 
 
+class BranchwiseLiftNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
+    BranchStrengthSharpNegativeTailSupportAgreementMixturePrototypeDeferHead
+):
+    """Apply separate positive-only fixed-cleanup lifts inside shared and dual branches before agreement mixing."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+        shared_tail_shrink_scale: float = 2.0,
+        dual_tail_shrink_scale: float = 2.0,
+        sharpness_center: float = 0.75,
+        sharpness_scale: float = 4.0,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+            tail_margin=tail_margin,
+            tail_shrink_scale=tail_shrink_scale,
+            shared_tail_shrink_scale=shared_tail_shrink_scale,
+            dual_tail_shrink_scale=dual_tail_shrink_scale,
+            sharpness_center=sharpness_center,
+            sharpness_scale=sharpness_scale,
+        )
+        self.shared_cleanup_lift_gate = torch.nn.Sequential(
+            torch.nn.Linear(5, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+        self.dual_cleanup_lift_gate = torch.nn.Sequential(
+            torch.nn.Linear(5, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+        self.shared_cleanup_lift_bias = torch.nn.Parameter(torch.tensor(-1.0, dtype=torch.float32))
+        self.dual_cleanup_lift_bias = torch.nn.Parameter(torch.tensor(-1.0, dtype=torch.float32))
+
+    def _shared_branch_scores(self, shared_encoded: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        fixed_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(neg_logits, self.shared_negative_tail),
+            dim=1,
+        )
+        sharp_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(
+                neg_logits,
+                self.shared_negative_tail,
+                raw_scale=self.shared_tail_scale,
+            ),
+            dim=1,
+        )
+        return fixed_score, sharp_score
+
+    def _dual_branch_scores(
+        self,
+        positive_encoded: torch.Tensor,
+        negative_encoded: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        fixed_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(neg_logits, self.dual_negative_tail),
+            dim=1,
+        )
+        sharp_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(
+                neg_logits,
+                self.dual_negative_tail,
+                raw_scale=self.dual_tail_scale,
+            ),
+            dim=1,
+        )
+        return fixed_score, sharp_score
+
+    def _mixture_logit(self, shared_score: torch.Tensor, dual_score: torch.Tensor) -> torch.Tensor:
+        gate_features = self._agreement_features(shared_score, dual_score)
+        gate = torch.sigmoid(self.agreement_gate(gate_features).squeeze(-1) + self.gate_bias)
+        return shared_score + gate * (dual_score - shared_score) + self.bias
+
+    def _cleanup_lift_features(self, sharp_score: torch.Tensor, fixed_score: torch.Tensor) -> torch.Tensor:
+        diff = fixed_score - sharp_score
+        return torch.stack(
+            [
+                sharp_score,
+                fixed_score,
+                diff,
+                diff.abs(),
+                sharp_score * fixed_score,
+            ],
+            dim=1,
+        )
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor | None = None) -> torch.Tensor:
+        shared_encoded = self.encode_shared(features)
+        dual_pos_encoded = self.encode_dual_positive(features)
+        dual_neg_encoded = self.encode_dual_negative(features)
+
+        fixed_shared, sharp_shared = self._shared_branch_scores(shared_encoded)
+        fixed_dual, sharp_dual = self._dual_branch_scores(dual_pos_encoded, dual_neg_encoded)
+        shared_lift_gate = torch.sigmoid(
+            self.shared_cleanup_lift_gate(self._cleanup_lift_features(sharp_shared, fixed_shared)).squeeze(-1)
+            + self.shared_cleanup_lift_bias
+        )
+        dual_lift_gate = torch.sigmoid(
+            self.dual_cleanup_lift_gate(self._cleanup_lift_features(sharp_dual, fixed_dual)).squeeze(-1)
+            + self.dual_cleanup_lift_bias
+        )
+        branch_shared = sharp_shared + shared_lift_gate * torch.relu(fixed_shared - sharp_shared)
+        branch_dual = sharp_dual + dual_lift_gate * torch.relu(fixed_dual - sharp_dual)
+        logits = self._mixture_logit(branch_shared, branch_dual)
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits
+
+
 class LearnedGateNegativeTailSupportAgreementMixturePrototypeDeferHead(
     NegativeTailSupportAgreementMixturePrototypeDeferHead
 ):

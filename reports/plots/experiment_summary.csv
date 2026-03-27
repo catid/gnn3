@@ -173,3 +173,4 @@ prototype_asymmetric_tail_support_agree_mix_hybrid_defer_200,explore,0.0,,,,,0.9
 prototype_sharp_negative_tail_support_agree_mix_hybrid_defer_100,explore,0.0,,,,,0.968214,-0.015162,,,,-0.00023
 prototype_floor_sharp_negative_tail_support_agree_mix_hybrid_defer_200,explore,0.0,,,,,0.966947,-0.009552,,,,-0.000115
 prototype_shared_sharp_negative_tail_support_agree_mix_hybrid_defer_200,explore,0.0,,,,,0.965680,-0.002664,,,,0.0
+prototype_dual_sharp_negative_tail_support_agree_mix_hybrid_defer_025,explore,0.0,,,,,0.965680,-0.003253,,,,-0.000115

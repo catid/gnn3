@@ -110,6 +110,10 @@
    - the plain shared-sharp branch only recovered `50%` of held-out stable-positive-v2 and only reached the weaker `90.53% -> 90.66%` hard-slice band
    - the hybrid fully collapsed on the target slice, recovering `0%` of held-out stable-positive-v2 through the whole budget range and leaving hard near-tie unchanged at `90.53%`
    - so the sharp-negative-tail gain is not explained by shared-only cleanup while the dual branch stays fixed
+   - dual-branch-only sharp negative cleanup with fixed shared negative cleanup is now also closed
+   - the plain dual-sharp branch only found a tiny `25%` held-out stable-positive-v2 niche at `0.10%` coverage and only reached the weaker `90.53% -> 90.60%` band
+   - the hybrid only improved that weak niche to about `0.18%` overall coverage with the same `25%` held-out recovery and the same weaker `90.53% -> 90.60%` hard-slice band
+   - so the sharp-negative-tail gain also is not explained by moving the adaptive cleanup onto only the dual branch while the shared branch stays fixed
    - fixed-floor plus sharpness-gated negative cleanup on top of that same support-weighted agreement-mixture bank is now also closed
    - the plain floor-plus-sharp head collapsed fully to baseline
    - the hybrid recovered `0%` of held-out stable-positive-v2 through `1.0%` coverage and only `25%` by `1.5–2.0%`, while hard near-tie stayed unchanged until the weak `90.53% -> 90.60%` band at high coverage
@@ -200,6 +204,7 @@
    - do spend future cycles on targeted negative-bank cleanup inside the support-weighted agreement-mixture family when the goal is maximizing held-out sparse-positive recall around `1%` coverage, because the negative-tail branch reached `100%` held-out recovery and the strongest hard-slice band there
    - do spend future cycles on internal-bank sharpness-gated negative cleanup inside the support-weighted agreement-mixture family when the goal is improving aggregate quality around `0.75–1.0%` coverage, because the sharp-negative-tail branch preserved the full `75%` / `90.73%` frontier band and improved overall mean delta regret to `-0.0152`
    - do not spend another cycle on moving sharpness-gated negative cleanup onto only the shared branch while leaving the dual branch on fixed negative cleanup, because the plain branch stayed weak and the hybrid collapsed to `0%` held-out recovery across the full budget range
+   - do not spend another cycle on moving sharpness-gated negative cleanup onto only the dual branch while leaving the shared branch on fixed negative cleanup, because both variants stayed trapped in the tiny `25%` / `90.60%` niche and never recovered either live negative-cleanup lane
    - do not spend another cycle on stacking a fixed negative-tail floor with extra sharpness-gated cleanup on top of the current support-weighted agreement-mixture head, because it collapsed to `0%` held-out recovery through `1.0%` coverage and only recovered a weak `25%` / `90.60%` niche at high coverage
    - do not spend another cycle on asymmetric positive-plus-negative tail cleanup on top of the current support-weighted agreement-mixture head, because it preserved the `75%` / `90.73%` band but lost to the soft-tail branch below `1%`, lost to the original support-weighted branch above `1%`, and gave back the negative-tail branch's `100%` held-out recall
    - do not spend another cycle on learned interpolation between the live support-weighted score and the new soft-tail score, because it collapsed back to the weaker `50%` / `90.66%` band across the whole budget range

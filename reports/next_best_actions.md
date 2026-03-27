@@ -345,7 +345,10 @@
        tail-margin-calibrated branchwise-max follow-up left the hybrid margins
        effectively pinned at `0.498–0.500` and still gave back the accepted
        `1.0%` and `2.0%` frontier positions
-     - if threshold tuning reopens, prefer offline searched thresholds or
-       hard-negative-conditioned calibration over tiny differentiable margin
-       adjustments
+     - and not via offline searched branch/path-specific fixed margins either,
+       because the searched fixed-margin follow-up chose aggressive `0.2`
+       shared margins on train and then collapsed to only `33.3%` held-out
+       stable-positive-v2 recovery with much weaker overall regret
+     - if threshold tuning reopens, require rerun-stable outer validation and
+       hard-negative-conditioned calibration beyond four scalar margins
    - rerun robustness first, before any new composite or student work

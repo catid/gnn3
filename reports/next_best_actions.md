@@ -354,6 +354,12 @@
        a collapsed `2/8` shared negative bank and still only recovered
        `16.7–33.3%` of held-out stable-positive-v2 while trailing the accepted
        branchwise-max frontier badly
+     - and not via dual-only train-pack utility-ranked hard masking either,
+       because the dual-only follow-up selected the all-keep `8/8` dual bank,
+       so it did not instantiate a real bank edit at all
+     - if bank editing reopens again, require the selected keep mask to differ
+       materially from the all-keep baseline before treating the result as an
+       architecture change
      - if threshold tuning reopens, require rerun-stable outer validation and
        hard-negative-conditioned calibration beyond four scalar margins
    - rerun robustness first, before any new composite or student work

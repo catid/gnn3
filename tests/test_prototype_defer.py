@@ -24,6 +24,7 @@ from gnn3.models.prototype_defer import (
     ContrastiveEvidenceAgreementPrototypeDeferHead,
     DualProjectionPrototypeDeferHead,
     DualSharpNegativeTailSupportAgreementMixturePrototypeDeferHead,
+    DualTeacherRebuiltNegativeBankBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead,
     EvidenceAgreementPrototypeDeferHead,
     EvidencePrototypeDeferHead,
     FixedRescueAnchoredDualLiftBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead,
@@ -2022,6 +2023,61 @@ def test_shared_teacher_rebuilt_negative_bank_branchwise_max_negative_cleanup_su
     with torch.no_grad():
         assert torch.allclose(head.shared_negative_prototypes, F.normalize(shared_bank, dim=-1))
         assert torch.allclose(head.shared_negative_support, shared_support)
+
+    optimizer = torch.optim.AdamW(head.parameters(), lr=2e-2, weight_decay=1e-4)
+    for _ in range(180):
+        optimizer.zero_grad(set_to_none=True)
+        logits = head(features, risk)
+        bce = F.binary_cross_entropy_with_logits(logits, labels)
+        reg = head.regularization(features, positive_mask=positive_mask, hard_negative_mask=hard_negatives)
+        support_reg = head.support_regularization()
+        tail_reg = head.tail_regularization()
+        loss = bce + 0.1 * reg + 0.01 * support_reg + 0.01 * tail_reg
+        loss.backward()
+        optimizer.step()
+
+    with torch.no_grad():
+        logits = head(features, risk)
+    assert float(logits[: len(positives)].mean()) > float(logits[len(positives) :].mean())
+
+
+def test_dual_teacher_rebuilt_negative_bank_branchwise_max_negative_cleanup_support_agreement_mixture_prototype_defer_rebuilds_and_separates() -> None:
+    torch.manual_seed(130)
+    positives = torch.randn(24, 2) * 0.15 + torch.tensor([1.0, 1.0])
+    negatives = torch.randn(24, 2) * 0.15 + torch.tensor([-1.0, -1.0])
+    features = torch.cat([positives, negatives], dim=0)
+    risk = features.clone()
+    labels = torch.cat([torch.ones(len(positives)), torch.zeros(len(negatives))], dim=0)
+    hard_negatives = torch.zeros(len(features), dtype=torch.bool)
+    hard_negatives[len(positives) :] = True
+    positive_mask = labels.bool()
+
+    head = DualTeacherRebuiltNegativeBankBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
+        feature_dim=2,
+        risk_dim=2,
+        prototype_dim=4,
+        positive_prototypes=4,
+        negative_prototypes=4,
+        hidden_dim=8,
+        use_risk_branch=True,
+    )
+    dual_bank = torch.tensor(
+        [
+            [-1.0, -1.0, 0.0, 0.0],
+            [-1.0, -0.9, 0.0, 0.0],
+            [-0.9, -1.0, 0.0, 0.0],
+            [-0.95, -0.95, 0.0, 0.1],
+        ],
+        dtype=torch.float32,
+    )
+    dual_support = torch.tensor([0.7, 0.2, -0.1, -0.5], dtype=torch.float32)
+    head.set_rebuilt_dual_negative_bank(
+        dual_negative_prototypes=dual_bank,
+        dual_negative_support=dual_support,
+    )
+    with torch.no_grad():
+        assert torch.allclose(head.dual_negative_prototypes, F.normalize(dual_bank, dim=-1))
+        assert torch.allclose(head.dual_negative_support, dual_support)
 
     optimizer = torch.optim.AdamW(head.parameters(), lr=2e-2, weight_decay=1e-4)
     for _ in range(180):

@@ -399,6 +399,11 @@
        accepted branchwise-max reference at `0.10–0.25%`, but it only recreated
        a weaker version of the rescue-weighted micro-budget companion and still
        fell back behind accepted branchwise-max from `0.50%` upward
+     - and not via simple dual-only teacher-guided harmful-state negative-bank
+       reconstruction either, because the dual-only rebuild was the strongest
+       teacher-guided bank-edit variant and did recover `83.3%` held-out
+       stable-positive-v2 with `90.60%` hard near-tie by `1.50–2.00%`, but it
+       still stayed weaker than accepted branchwise-max at every matched budget
      - if bank editing reopens again, require the selected keep mask to differ
        materially from the all-keep baseline before treating the result as an
        architecture change

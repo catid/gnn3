@@ -200,6 +200,7 @@
 | X70-followup-prototype-joint-support-branchwise-negative-cleanup-support-agree-mix | explore | Test whether the positive branchwise-max result should only keep the fixed-cleanup gain that is jointly supported by both shared and dual branches, suppressing one-branch takeovers below `1%`. | 0.02 | 0.0000 | completed | Closed weak positive: the plain branch was inert, and the hybrid found only a tiny `25%` held-out stable-positive-v2 niche at ultra-low coverage before saturating completely at `0.68%` overall coverage, never improving beyond the weaker `90.53% -> 90.60%` hard near-tie band. |
 | X71-followup-prototype-pruned-branchwise-max-negative-cleanup-support-agree-mix | explore | Test whether the accepted branchwise-max family becomes more robust if each shared and dual prototype bank gets a suppression-only pruning mask before pooling. | 0.02 | 0.0000 | completed | Closed weak positive / unstable: the plain branch was dead, the hybrid only found tiny ultra-low-coverage aggregate gains in the official run, and a same-config rerun briefly looked stronger before collapsing back to the weaker `66.7%` / `90.53%` lane. Learned keep means stayed around `0.98`, so soft keep-mask pruning did not produce a real bank simplification. |
 | X72-followup-prototype-hard-dedup-branchwise-max-negative-cleanup-support-agree-mix | explore | Test whether the accepted branchwise-max family improves if negative-bank redundancy is removed explicitly by support-ranked hard cosine-threshold deduplication before pooling. | 0.02 | 0.0000 | completed | Closed weak positive: the plain branch was dead, and the hybrid did activate real bank surgery by cutting the negative banks from `8` to about `5` prototypes, but it only found a tiny micro-budget aggregate gain and gave back the accepted `1.0%` and `2.0%` frontier positions. |
+| X73-followup-prototype-tail-margin-calibrated-branchwise-max-negative-cleanup-support-agree-mix | explore | Test whether the accepted branchwise-max family improves if the shared/dual fixed and sharp cleanup paths learn separate bounded tail margins around the default cleanup threshold. | 0.02 | 0.0000 | completed | Closed weak positive: the plain branch was dead, and the hybrid only found small aggregate gains at `0.10–0.25%` while the learned margins stayed pinned near `0.5` and the branch gave back the accepted `1.0%` and `2.0%` frontier positions. |
 
 Current cumulative GPU-hours:
 
@@ -252,11 +253,11 @@ Round-13 batch summary:
 Round-thirteen incremental GPU-hours:
 
 - exploit: `0.0500`
-- explore: `0.0000`
-- split: `100.0% / 0.0%`
+- explore: `0.0200`
+- split: `71.4% / 28.6%`
 
 Updated cumulative GPU-hours:
 
 - Overall exploit: `8.7377`
-- Overall explore: `7.4231`
-- Overall split: `54.1% / 45.9%`
+- Overall explore: `7.4431`
+- Overall split: `54.0% / 46.0%`

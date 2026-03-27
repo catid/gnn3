@@ -341,4 +341,11 @@
      - if pruning reopens again, require offline bank reconstruction,
        teacher-guided bank rebuild, or hard-negative-conditioned bank editing
    - cleanup-threshold tuning against the `71` useful hard negatives from round 13
+     - but not via free branch/path-specific tail-margin deltas, because the
+       tail-margin-calibrated branchwise-max follow-up left the hybrid margins
+       effectively pinned at `0.498–0.500` and still gave back the accepted
+       `1.0%` and `2.0%` frontier positions
+     - if threshold tuning reopens, prefer offline searched thresholds or
+       hard-negative-conditioned calibration over tiny differentiable margin
+       adjustments
    - rerun robustness first, before any new composite or student work

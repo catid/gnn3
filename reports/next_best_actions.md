@@ -97,6 +97,10 @@
    - explicit per-state risk-conditioned support modulation on top of that same support-weighted agreement-mixture head is now also closed
    - both `prototype_risk_support_agree_mix` variants recovered `0%` of held-out stable-positive-v2 at every budget, left hard near-tie unchanged at `90.53%`, and produced `0.0000` overall mean delta regret
    - so the live gain appears to come from static bank cleanup, not from tiny state-conditional support perturbations layered on top
+   - split shared/dual positive-vs-negative temperatures on top of that same support-weighted agreement-mixture head are now also closed
+   - the plain split-scale head recovered `0%` of held-out stable-positive-v2 at every budget
+   - the hybrid only recovered `25%` at `1.5–2.0%` overall coverage, still stayed in the weaker `90.53% -> 90.60%` hard near-tie band, and only reached `-0.0021` overall mean delta regret
+   - so the live gain does not come from giving the current support-weighted banks extra temperature freedom either
    - temporal scalar context was cleaner overall, but only recovered `50%` of held-out stable-positive-v2 and only reached hard near-tie `90.53% -> 90.66%`, so it is not the right architecture direction
    - gated rescaling of prototype evidence also capped out at `50%` held-out stable-positive-v2 recovery and the same weaker `90.53% -> 90.66%` hard near-tie band
    - specialist source-family banks also capped out at `50%` held-out stable-positive-v2 recovery, but only at materially higher coverage than `prototype_hybrid`
@@ -159,6 +163,7 @@
    - do not spend another cycle on explicit positive-support gating over those anchored residual regime specialists, because it preserved the same weak `25%` held-out stable-positive-v2 recovery and slightly improved coverage-efficiency, but still spent about `75%` false-positive rate inside the targeted regime slices and still stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
    - do spend future cycles on bank-internal support weighting before adding more outer gates only inside the stronger agreement/anchor geometries, because support-weighted retrieval materially improved the matched-band frontier in the memory-agreement and agreement-mixture families
    - do not spend another cycle on tiny risk-conditioned support modulation on top of the current support-weighted agreement-mixture head, because both variants recovered `0%` of held-out stable-positive-v2 and left the accepted frontier unchanged
+   - do not spend another cycle on splitting positive and negative bank temperatures inside the current support-weighted agreement-mixture head, because the hybrid only recovered `25%` of held-out stable-positive-v2 at `1.5–2.0%` overall coverage and still stayed capped at the weaker `90.53% -> 90.60%` hard-slice band
    - do not spend another cycle on applying that same support weighting directly to the raw prototype-memory geometry, because it improved broad regret but still only reached `50%` held-out stable-positive-v2 recovery and the weaker `90.53% -> 90.66%` hard-slice band
 13. Keep the hard gate for every future branch:
    - stable-positive recovery

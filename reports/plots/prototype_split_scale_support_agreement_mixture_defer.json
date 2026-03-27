@@ -1,0 +1,18 @@
+{
+  "variants": [
+    "prototype_split_scale_support_agree_mix",
+    "prototype_split_scale_support_agree_mix_hybrid"
+  ],
+  "budgets": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.5,
+    2.0
+  ],
+  "summary_csv": "reports/plots/prototype_split_scale_support_agreement_mixture_defer_summary.csv",
+  "decisions_csv": "reports/plots/prototype_split_scale_support_agreement_mixture_defer_decisions.csv",
+  "plot_png": "reports/plots/prototype_split_scale_support_agreement_mixture_defer_summary.png"
+}

@@ -583,6 +583,67 @@ class SupportWeightedAgreementMixturePrototypeDeferHead(AgreementMixturePrototyp
         return torch.stack(penalties).mean()
 
 
+class SplitScaleSupportAgreementMixturePrototypeDeferHead(SupportWeightedAgreementMixturePrototypeDeferHead):
+    """Support-weighted agreement mixture with separate positive/negative temperatures."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+        )
+        self.shared_positive_scale_delta = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+        self.shared_negative_scale_delta = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+        self.dual_positive_scale_delta = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+        self.dual_negative_scale_delta = torch.nn.Parameter(torch.zeros((), dtype=torch.float32))
+
+    def _scaled_temperature(self, base_log_scale: torch.Tensor, delta: torch.Tensor) -> torch.Tensor:
+        return (base_log_scale + delta).exp().clamp(min=1.0, max=64.0)
+
+    def _shared_score(self, shared_encoded: torch.Tensor) -> torch.Tensor:
+        pos_scale = self._scaled_temperature(self.shared_logit_scale, self.shared_positive_scale_delta)
+        neg_scale = self._scaled_temperature(self.shared_logit_scale, self.shared_negative_scale_delta)
+        pos, neg = self._shared_banks()
+        pos_logits = pos_scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = neg_scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def _dual_score(self, positive_encoded: torch.Tensor, negative_encoded: torch.Tensor) -> torch.Tensor:
+        pos_scale = self._scaled_temperature(self.dual_logit_scale, self.dual_positive_scale_delta)
+        neg_scale = self._scaled_temperature(self.dual_logit_scale, self.dual_negative_scale_delta)
+        pos, neg = self._dual_banks()
+        pos_logits = pos_scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = neg_scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def scale_regularization(self) -> torch.Tensor:
+        deltas = torch.stack(
+            [
+                self.shared_positive_scale_delta,
+                self.shared_negative_scale_delta,
+                self.dual_positive_scale_delta,
+                self.dual_negative_scale_delta,
+            ]
+        )
+        return deltas.pow(2).mean()
+
+
 class RiskConditionedSupportAgreementMixturePrototypeDeferHead(SupportWeightedAgreementMixturePrototypeDeferHead):
     """Support-weighted agreement mixture with per-state support deltas."""
 

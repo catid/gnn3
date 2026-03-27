@@ -1007,6 +1007,92 @@ class MassAwareSharpNegativeTailSupportAgreementMixturePrototypeDeferHead(
         return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
 
 
+class SharpMassNegativeTailSupportAgreementMixturePrototypeDeferHead(
+    NegativeTailSupportAgreementMixturePrototypeDeferHead
+):
+    """Negative-tail cleanup that activates from either local sharpness or broader tail mass."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+        sharpness_center: float = 0.75,
+        sharpness_scale: float = 4.0,
+        tail_mass_center: float = 0.5,
+        tail_mass_scale: float = 4.0,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+            tail_margin=tail_margin,
+            tail_shrink_scale=tail_shrink_scale,
+        )
+        self.sharpness_center = sharpness_center
+        self.sharpness_scale = sharpness_scale
+        self.tail_mass_center = tail_mass_center
+        self.tail_mass_scale = tail_mass_scale
+
+    def _sharpness_gate(self, logits: torch.Tensor) -> torch.Tensor:
+        if logits.size(1) < 2:
+            return torch.ones(logits.size(0), 1, device=logits.device, dtype=logits.dtype)
+        top2 = logits.topk(k=2, dim=1).values
+        gap = top2[:, 0] - top2[:, 1]
+        return torch.sigmoid(self.sharpness_scale * (self.sharpness_center - gap)).unsqueeze(1)
+
+    def _tail_mass_gate(self, logits: torch.Tensor) -> torch.Tensor:
+        if logits.size(1) < 2:
+            return torch.ones(logits.size(0), 1, device=logits.device, dtype=logits.dtype)
+        lead_idx = logits.argmax(dim=1, keepdim=True)
+        mask = torch.zeros_like(logits, dtype=torch.bool).scatter(1, lead_idx, True)
+        masked = logits.masked_fill(mask, torch.finfo(logits.dtype).min)
+        lead = logits.gather(1, lead_idx).squeeze(1)
+        tail_mass = torch.logsumexp(masked, dim=1)
+        tail_gap = lead - tail_mass
+        return torch.sigmoid(self.tail_mass_scale * (self.tail_mass_center - tail_gap)).unsqueeze(1)
+
+    def _negative_tail_gate(self, logits: torch.Tensor) -> torch.Tensor:
+        sharp_gate = self._sharpness_gate(logits)
+        mass_gate = self._tail_mass_gate(logits)
+        return 1.0 - (1.0 - sharp_gate) * (1.0 - mass_gate)
+
+    def _adaptive_soft_tail_logits(self, logits: torch.Tensor, raw_strength: torch.Tensor) -> torch.Tensor:
+        lead = logits.max(dim=1, keepdim=True).values
+        gate = self._negative_tail_gate(logits)
+        penalty = gate * self._bounded_tail_strength(raw_strength) * torch.relu((lead - logits) - self.tail_margin)
+        return logits - penalty
+
+    def _shared_score(self, shared_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        neg_logits = self._adaptive_soft_tail_logits(neg_logits, self.shared_negative_tail)
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def _dual_score(self, positive_encoded: torch.Tensor, negative_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        neg_logits = self._adaptive_soft_tail_logits(neg_logits, self.dual_negative_tail)
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+
 class SharpNegativeTailSupportAgreementMixturePrototypeDeferHead(NegativeTailSupportAgreementMixturePrototypeDeferHead):
     """Negative-tail cleanup that strengthens only when the negative bank is diffuse."""
 

@@ -1030,6 +1030,142 @@ class FloorGatedSharpNegativeTailSupportAgreementMixturePrototypeDeferHead(
         return self.min_tail_gate + (1.0 - self.min_tail_gate) * base_gate
 
 
+class NegativeCleanupBlendSupportAgreementMixturePrototypeDeferHead(NegativeTailSupportAgreementMixturePrototypeDeferHead):
+    """Blend fixed and sharp negative-tail cleanup paths per state."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+        sharpness_center: float = 0.75,
+        sharpness_scale: float = 4.0,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+            tail_margin=tail_margin,
+            tail_shrink_scale=tail_shrink_scale,
+        )
+        self.sharpness_center = sharpness_center
+        self.sharpness_scale = sharpness_scale
+        self.cleanup_blend_gate = torch.nn.Sequential(
+            torch.nn.Linear(8, hidden_dim),
+            torch.nn.GELU(),
+            torch.nn.Linear(hidden_dim, 1),
+        )
+        self.cleanup_blend_bias = torch.nn.Parameter(torch.tensor(-0.5, dtype=torch.float32))
+
+    def _negative_gap(self, logits: torch.Tensor) -> torch.Tensor:
+        if logits.size(1) < 2:
+            return torch.zeros(logits.size(0), device=logits.device, dtype=logits.dtype)
+        top2 = logits.topk(k=2, dim=1).values
+        return top2[:, 0] - top2[:, 1]
+
+    def _negative_tail_gate(self, logits: torch.Tensor) -> torch.Tensor:
+        gap = self._negative_gap(logits)
+        return torch.sigmoid(self.sharpness_scale * (self.sharpness_center - gap)).unsqueeze(1)
+
+    def _adaptive_soft_tail_logits(self, logits: torch.Tensor, raw_strength: torch.Tensor) -> torch.Tensor:
+        lead = logits.max(dim=1, keepdim=True).values
+        gate = self._negative_tail_gate(logits)
+        penalty = gate * self._bounded_tail_strength(raw_strength) * torch.relu((lead - logits) - self.tail_margin)
+        return logits - penalty
+
+    def _shared_branch_scores(self, shared_encoded: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        fixed_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(neg_logits, self.shared_negative_tail),
+            dim=1,
+        )
+        sharp_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(neg_logits, self.shared_negative_tail),
+            dim=1,
+        )
+        return fixed_score, sharp_score, self._negative_gap(neg_logits)
+
+    def _dual_branch_scores(
+        self,
+        positive_encoded: torch.Tensor,
+        negative_encoded: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        fixed_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(neg_logits, self.dual_negative_tail),
+            dim=1,
+        )
+        sharp_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(neg_logits, self.dual_negative_tail),
+            dim=1,
+        )
+        return fixed_score, sharp_score, self._negative_gap(neg_logits)
+
+    def _mixture_logit(self, shared_score: torch.Tensor, dual_score: torch.Tensor) -> torch.Tensor:
+        gate_features = self._agreement_features(shared_score, dual_score)
+        gate = torch.sigmoid(self.agreement_gate(gate_features).squeeze(-1) + self.gate_bias)
+        return shared_score + gate * (dual_score - shared_score) + self.bias
+
+    def _cleanup_blend_features(
+        self,
+        fixed_logits: torch.Tensor,
+        sharp_logits: torch.Tensor,
+        shared_neg_gap: torch.Tensor,
+        dual_neg_gap: torch.Tensor,
+    ) -> torch.Tensor:
+        diff = sharp_logits - fixed_logits
+        mean_gap = 0.5 * (shared_neg_gap + dual_neg_gap)
+        return torch.stack(
+            [
+                fixed_logits,
+                sharp_logits,
+                diff.abs(),
+                fixed_logits * sharp_logits,
+                shared_neg_gap,
+                dual_neg_gap,
+                mean_gap,
+                (shared_neg_gap - dual_neg_gap).abs(),
+            ],
+            dim=1,
+        )
+
+    def forward(self, features: torch.Tensor, risk_features: torch.Tensor | None = None) -> torch.Tensor:
+        shared_encoded = self.encode_shared(features)
+        dual_pos_encoded = self.encode_dual_positive(features)
+        dual_neg_encoded = self.encode_dual_negative(features)
+
+        fixed_shared, sharp_shared, shared_neg_gap = self._shared_branch_scores(shared_encoded)
+        fixed_dual, sharp_dual, dual_neg_gap = self._dual_branch_scores(dual_pos_encoded, dual_neg_encoded)
+
+        fixed_logits = self._mixture_logit(fixed_shared, fixed_dual)
+        sharp_logits = self._mixture_logit(sharp_shared, sharp_dual)
+        blend_features = self._cleanup_blend_features(fixed_logits, sharp_logits, shared_neg_gap, dual_neg_gap)
+        blend = torch.sigmoid(self.cleanup_blend_gate(blend_features).squeeze(-1) + self.cleanup_blend_bias)
+        logits = fixed_logits + blend * (sharp_logits - fixed_logits)
+        if self.risk_branch is not None and risk_features is not None:
+            logits = logits + self.risk_branch(risk_features).squeeze(-1)
+        return logits
+
+
 class SharedSharpNegativeTailSupportAgreementMixturePrototypeDeferHead(NegativeTailSupportAgreementMixturePrototypeDeferHead):
     """Sharpness-gated negative cleanup only on the shared branch, fixed cleanup on the dual branch."""
 

@@ -1,0 +1,132 @@
+{
+  "variants": [
+    "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix",
+    "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix_hybrid"
+  ],
+  "budgets": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.5,
+    2.0
+  ],
+  "overall": [
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix",
+      "budget_pct": 0.1,
+      "coverage": 0.0005755064456721916,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix",
+      "budget_pct": 0.25,
+      "coverage": 0.0012661141804788214,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix",
+      "budget_pct": 0.5,
+      "coverage": 0.0025322283609576428,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix",
+      "budget_pct": 0.75,
+      "coverage": 0.003798342541436464,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix",
+      "budget_pct": 1.0,
+      "coverage": 0.0050644567219152855,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix",
+      "budget_pct": 1.5,
+      "coverage": 0.007596685082872928,
+      "target_match_rate": 0.9651026897677792,
+      "mean_delta_regret": 0.0,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix",
+      "budget_pct": 2.0,
+      "coverage": 0.010013812154696133,
+      "target_match_rate": 0.9652177910569137,
+      "mean_delta_regret": -0.0008149419261166623,
+      "mean_delta_miss": -0.00011510128913443831
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix_hybrid",
+      "budget_pct": 0.1,
+      "coverage": 0.0011516760700095966,
+      "target_match_rate": 0.965793828045518,
+      "mean_delta_regret": -0.005654669360112829,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix_hybrid",
+      "budget_pct": 0.25,
+      "coverage": 0.0025336873540211125,
+      "target_match_rate": 0.966024295895253,
+      "mean_delta_regret": -0.0070331566809207,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix_hybrid",
+      "budget_pct": 0.5,
+      "coverage": 0.005067374708042225,
+      "target_match_rate": 0.9668309333693255,
+      "mean_delta_regret": -0.011082030773945872,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix_hybrid",
+      "budget_pct": 0.75,
+      "coverage": 0.007601062062063337,
+      "target_match_rate": 0.9674071029936628,
+      "mean_delta_regret": -0.013074339282226961,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix_hybrid",
+      "budget_pct": 1.0,
+      "coverage": 0.01013474941608445,
+      "target_match_rate": 0.9680985065428677,
+      "mean_delta_regret": -0.015184523606429506,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix_hybrid",
+      "budget_pct": 1.5,
+      "coverage": 0.015202124124126673,
+      "target_match_rate": 0.9682137404677351,
+      "mean_delta_regret": -0.015444674267049617,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branchwise_margin_max_negative_cleanup_support_agree_mix_hybrid",
+      "budget_pct": 2.0,
+      "coverage": 0.020039163618166978,
+      "target_match_rate": 0.9686746761672052,
+      "mean_delta_regret": -0.016357801709932864,
+      "mean_delta_miss": -0.00023020257826887662
+    }
+  ],
+  "summary_csv": "reports/plots/prototype_branchwise_margin_max_negative_cleanup_support_agreement_mixture_defer_summary.csv",
+  "decisions_csv": "reports/plots/prototype_branchwise_margin_max_negative_cleanup_support_agreement_mixture_defer_decisions.csv",
+  "summary_png": "reports/plots/prototype_branchwise_margin_max_negative_cleanup_support_agreement_mixture_defer_summary.png"
+}

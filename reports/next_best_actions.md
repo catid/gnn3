@@ -169,6 +169,13 @@
    - the hybrid is better than the failed branch-strength lift: by `1.0%` overall coverage it recovered `50%` of held-out stable-positive-v2 and reached the weaker `90.53% -> 90.66%` hard-slice band
    - but it still loses to the branch-strength sharp base at matched coverage, still does not preserve the fixed negative-tail branch's `100%` / `90.80%` high-recall lane, and only reaches the full `75%` / `90.73%` frontier at `2.0%` overall coverage with overall mean delta regret `-0.0158`
    - so even with the improved branch-strength sharp base, hard max fusion remains a dominated compromise rather than a new live lane
+   - branchwise max fusion on top of that newer branch-strength sharp cleanup is now alive
+   - the plain branchwise-max head still collapsed fully to baseline, so the useful signal still depends on the hybrid risk path
+   - but the hybrid is the first successful fusion of the improved sharp branch and the fixed negative-tail branch
+   - at `1.00%` overall coverage it already reaches the full `75%` / `90.73%` frontier with overall mean delta regret `-0.0145`, only slightly behind the live sharp-negative branch at the same point
+   - at `1.50%` overall coverage it keeps that same `75%` / `90.73%` frontier and edges the older `prototype_support_weighted_agree_mix_hybrid` higher-budget reference on aggregate regret (`-0.0159` vs `-0.0158`)
+   - at `2.00%` overall coverage it becomes the new higher-budget max-recall lead, reaching `100%` held-out stable-positive-v2 recovery, `90.53% -> 90.80%` on hard near-tie, and overall mean delta regret `-0.0167`
+   - so the live interpretation is now split by budget: keep the older sharp-negative and fixed negative-tail lanes at lower coverage, and use branchwise max as the higher-budget matched-band and higher-budget max-recall leader
    - asymmetric positive-plus-negative tail cleanup over that same support-weighted agreement-mixture bank is now also closed
    - the plain asymmetric-tail head is inert, and `prototype_asymmetric_tail_support_agree_mix_hybrid @ 0.75%` only matches the full `75%` / `90.73%` frontier band with weaker overall mean delta regret (`-0.0085`) than the existing soft-tail branch
    - at `1.00%` overall coverage it still only recovers `75%` of held-out stable-positive-v2 and reaches overall mean delta regret `-0.0105`, so it also trails both the original support-weighted branch on aggregate quality and the negative-tail branch on held-out recall
@@ -213,10 +220,11 @@
    - keep the richer teacher-bank filters from round twelve
    - use the sharp-negative-tail support-weighted agreement-mixture hybrid as the primary sub-`1%` full-band contender
    - use the negative-tail support-weighted agreement-mixture hybrid as the high-recall contender around `1%` coverage
+   - use the branchwise-max negative-cleanup support-weighted agreement-mixture hybrid as the higher-budget matched-band and high-recall contender once coverage can rise to roughly `1.5–2.0%`
    - keep the original learnable prototype-memory plus risk-branch architecture as the lighter low-coverage reference behind it
    - use the memory-agreement blend hybrid as the micro-budget contender below roughly `0.5%` overall coverage
    - use the sharp-negative-tail support-weighted agreement-mixture head as the primary coverage-efficient matched-band contender around `0.75–1.0%`
-   - use the original support-weighted agreement-mixture head as the higher-budget matched-band contender once coverage can rise past roughly `1.5%`
+   - keep the original support-weighted agreement-mixture head only as the older higher-budget matched-band reference behind the newer branchwise-max result
    - keep the older agreement-gated geometry-mixture head only as the lighter pre-support-weighting reference
    - keep the support-weighted memory-agreement blend hybrid only as a supporting bank-weighting reference behind the newer agreement-mixture result
    - keep the evidence-calibrated agreement-mixture head only as an older aggregate-quality reference behind the newer support-weighted agreement-mixture branch

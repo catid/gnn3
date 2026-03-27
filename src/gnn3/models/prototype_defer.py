@@ -1641,6 +1641,129 @@ class BranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
         return logits
 
 
+class PrunedBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
+    BranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead
+):
+    """Branchwise max with suppression-only per-bank prototype pruning before pooling."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+        shared_tail_shrink_scale: float = 2.0,
+        dual_tail_shrink_scale: float = 2.0,
+        sharpness_center: float = 0.75,
+        sharpness_scale: float = 4.0,
+        keep_floor: float = 0.05,
+    ) -> None:
+        if keep_floor <= 0.0 or keep_floor >= 1.0:
+            raise ValueError("keep_floor must lie strictly between 0 and 1.")
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+            tail_margin=tail_margin,
+            tail_shrink_scale=tail_shrink_scale,
+            shared_tail_shrink_scale=shared_tail_shrink_scale,
+            dual_tail_shrink_scale=dual_tail_shrink_scale,
+            sharpness_center=sharpness_center,
+            sharpness_scale=sharpness_scale,
+        )
+        self.keep_floor = keep_floor
+        positive_init = torch.full((positive_prototypes,), -4.0, dtype=torch.float32)
+        negative_init = torch.full((negative_prototypes,), -4.0, dtype=torch.float32)
+        self.shared_positive_drop = torch.nn.Parameter(positive_init.clone())
+        self.shared_negative_drop = torch.nn.Parameter(negative_init.clone())
+        self.dual_positive_drop = torch.nn.Parameter(positive_init.clone())
+        self.dual_negative_drop = torch.nn.Parameter(negative_init.clone())
+
+    def _keep_probs(self, raw_drop: torch.Tensor) -> torch.Tensor:
+        drop = torch.sigmoid(raw_drop)
+        return self.keep_floor + (1.0 - self.keep_floor) * (1.0 - drop)
+
+    def _apply_keep_penalty(self, logits: torch.Tensor, raw_drop: torch.Tensor) -> torch.Tensor:
+        return logits + self._keep_probs(raw_drop).log()
+
+    def _shared_branch_scores(self, shared_encoded: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        pos_logits = self._apply_keep_penalty(pos_logits, self.shared_positive_drop)
+        neg_logits = self._apply_keep_penalty(neg_logits, self.shared_negative_drop)
+        fixed_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(neg_logits, self.shared_negative_tail),
+            dim=1,
+        )
+        sharp_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(
+                neg_logits,
+                self.shared_negative_tail,
+                raw_scale=self.shared_tail_scale,
+            ),
+            dim=1,
+        )
+        return fixed_score, sharp_score
+
+    def _dual_branch_scores(
+        self,
+        positive_encoded: torch.Tensor,
+        negative_encoded: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        pos_logits = self._apply_keep_penalty(pos_logits, self.dual_positive_drop)
+        neg_logits = self._apply_keep_penalty(neg_logits, self.dual_negative_drop)
+        fixed_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._soft_tail_logits(neg_logits, self.dual_negative_tail),
+            dim=1,
+        )
+        sharp_score = torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(
+            self._adaptive_soft_tail_logits(
+                neg_logits,
+                self.dual_negative_tail,
+                raw_scale=self.dual_tail_scale,
+            ),
+            dim=1,
+        )
+        return fixed_score, sharp_score
+
+    def keep_regularization(self) -> torch.Tensor:
+        keeps = torch.stack(
+            [
+                self._keep_probs(self.shared_positive_drop).mean(),
+                self._keep_probs(self.shared_negative_drop).mean(),
+                self._keep_probs(self.dual_positive_drop).mean(),
+                self._keep_probs(self.dual_negative_drop).mean(),
+            ]
+        )
+        return keeps.mean()
+
+    def keep_summary(self) -> dict[str, float]:
+        return {
+            "shared_positive_keep_mean": float(self._keep_probs(self.shared_positive_drop).mean().item()),
+            "shared_negative_keep_mean": float(self._keep_probs(self.shared_negative_drop).mean().item()),
+            "dual_positive_keep_mean": float(self._keep_probs(self.dual_positive_drop).mean().item()),
+            "dual_negative_keep_mean": float(self._keep_probs(self.dual_negative_drop).mean().item()),
+        }
+
+
 class BranchwiseLiftNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
     BranchStrengthSharpNegativeTailSupportAgreementMixturePrototypeDeferHead
 ):

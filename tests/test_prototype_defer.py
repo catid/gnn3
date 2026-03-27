@@ -45,6 +45,7 @@ from gnn3.models.prototype_defer import (
     PositiveLiftEvidenceAgreementPrototypeDeferHead,
     PrototypeMemoryDeferHead,
     PrototypeTriageDeferHead,
+    PrunedBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead,
     RegimeSplitEvidenceAgreementPrototypeDeferHead,
     RegimeSplitMemoryBlendPrototypeDeferHead,
     ResidualRegimeEvidenceAgreementPrototypeDeferHead,
@@ -1438,6 +1439,47 @@ def test_branchwise_max_negative_cleanup_support_agreement_mixture_prototype_def
     with torch.no_grad():
         logits = head(features, risk)
     assert float(logits[: len(positives)].mean()) > float(logits[len(positives) :].mean())
+
+
+def test_pruned_branchwise_max_negative_cleanup_support_agreement_mixture_prototype_defer_separates_toy_clusters() -> None:
+    torch.manual_seed(123)
+    positives = torch.randn(24, 2) * 0.15 + torch.tensor([1.0, 1.0])
+    negatives = torch.randn(24, 2) * 0.15 + torch.tensor([-1.0, -1.0])
+    features = torch.cat([positives, negatives], dim=0)
+    risk = features.clone()
+    labels = torch.cat([torch.ones(len(positives)), torch.zeros(len(negatives))], dim=0)
+    hard_negatives = torch.zeros(len(features), dtype=torch.bool)
+    hard_negatives[len(positives) :] = True
+    positive_mask = labels.bool()
+
+    head = PrunedBranchwiseMaxNegativeCleanupSupportAgreementMixturePrototypeDeferHead(
+        feature_dim=2,
+        risk_dim=2,
+        prototype_dim=4,
+        positive_prototypes=4,
+        negative_prototypes=4,
+        hidden_dim=8,
+        use_risk_branch=True,
+    )
+    optimizer = torch.optim.AdamW(head.parameters(), lr=2e-2, weight_decay=1e-4)
+    for _ in range(180):
+        optimizer.zero_grad(set_to_none=True)
+        logits = head(features, risk)
+        bce = F.binary_cross_entropy_with_logits(logits, labels)
+        reg = head.regularization(features, positive_mask=positive_mask, hard_negative_mask=hard_negatives)
+        support_reg = head.support_regularization()
+        tail_reg = head.tail_regularization()
+        keep_reg = head.keep_regularization()
+        loss = bce + 0.1 * reg + 0.01 * support_reg + 0.01 * tail_reg + 0.002 * keep_reg
+        loss.backward()
+        optimizer.step()
+
+    with torch.no_grad():
+        logits = head(features, risk)
+        keep_summary = head.keep_summary()
+    assert float(logits[: len(positives)].mean()) > float(logits[len(positives) :].mean())
+    assert keep_summary["shared_positive_keep_mean"] >= head.keep_floor
+    assert keep_summary["shared_negative_keep_mean"] >= head.keep_floor
 
 
 def test_branchwise_lift_negative_cleanup_support_agreement_mixture_prototype_defer_separates_toy_clusters() -> None:

@@ -198,6 +198,7 @@
 | X68-followup-prototype-branchwise-lift-negative-cleanup-support-agree-mix | explore | Test whether the positive branchwise-max result should be softened into separate positive-only fixed-cleanup lifts inside the shared and dual branches before the outer agreement mixture. | 0.02 | 0.0000 | completed | Closed positive: localizing the lift to branches improved clearly over the older global lift, but the hybrid still only reached `50%` held-out stable-positive-v2 recovery and the weaker `90.53% -> 90.66%` hard near-tie band at `1.0%`, only reached the full `75%` / `90.73%` frontier at `1.5%`, and still trailed both the older support-weighted higher-budget reference and the newer branchwise-max result. |
 | X69-followup-prototype-branchwise-margin-max-negative-cleanup-support-agree-mix | explore | Test whether the positive branchwise-max result improves if the fixed-cleanup path must beat the branch-strength sharp path by a learned shared/dual margin before taking over inside each branch. | 0.02 | 0.0000 | completed | Closed positive: the hybrid recovered the full `75%` / `90.73%` frontier by `1.0%` and clearly beat the softer branchwise-lift follow-up, but it still lost to the sharp-negative lane below `1%`, did not preserve the branchwise-max branch's `100%` / `90.80%` higher-budget recall lane, and still trailed both the older support-weighted higher-budget reference and the newer branchwise-max result once coverage rose above `1.0%`. |
 | X70-followup-prototype-joint-support-branchwise-negative-cleanup-support-agree-mix | explore | Test whether the positive branchwise-max result should only keep the fixed-cleanup gain that is jointly supported by both shared and dual branches, suppressing one-branch takeovers below `1%`. | 0.02 | 0.0000 | completed | Closed weak positive: the plain branch was inert, and the hybrid found only a tiny `25%` held-out stable-positive-v2 niche at ultra-low coverage before saturating completely at `0.68%` overall coverage, never improving beyond the weaker `90.53% -> 90.60%` hard near-tie band. |
+| X71-followup-prototype-pruned-branchwise-max-negative-cleanup-support-agree-mix | explore | Test whether the accepted branchwise-max family becomes more robust if each shared and dual prototype bank gets a suppression-only pruning mask before pooling. | 0.02 | 0.0000 | completed | Closed weak positive / unstable: the plain branch was dead, the hybrid only found tiny ultra-low-coverage aggregate gains in the official run, and a same-config rerun briefly looked stronger before collapsing back to the weaker `66.7%` / `90.53%` lane. Learned keep means stayed around `0.98`, so soft keep-mask pruning did not produce a real bank simplification. |
 
 Current cumulative GPU-hours:
 
@@ -256,5 +257,5 @@ Round-thirteen incremental GPU-hours:
 Updated cumulative GPU-hours:
 
 - Overall exploit: `8.7377`
-- Overall explore: `7.3831`
+- Overall explore: `7.4031`
 - Overall split: `54.2% / 45.8%`

@@ -330,5 +330,10 @@
    - there are `31` unstable positives, but they are not stable enough to support compression
 20. If another round opens, bias it toward branchwise-max stabilization only:
    - prototype pruning and deduplication inside the branchwise-max family
+     - but not via soft suppression-only keep masks, because the pruned
+       branchwise-max follow-up kept bank means around `0.98` and a same-config
+       rerun collapsed from a brief `83.3%` / `90.60%` point back to the weaker
+       `66.7%` / `90.53%` lane
+     - if pruning reopens, require explicit bank editing or hard deduplication
    - cleanup-threshold tuning against the `71` useful hard negatives from round 13
    - rerun robustness first, before any new composite or student work

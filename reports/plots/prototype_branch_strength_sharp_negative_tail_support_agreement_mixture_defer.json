@@ -1,0 +1,129 @@
+{
+  "variants": [
+    "prototype_branch_strength_sharp_negative_tail_support_agree_mix",
+    "prototype_branch_strength_sharp_negative_tail_support_agree_mix_hybrid"
+  ],
+  "budgets": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.5,
+    2.0
+  ],
+  "overall": [
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix",
+      "budget_pct": 0.1,
+      "coverage": 0.0011516760700095966,
+      "target_match_rate": 0.9648724871895104,
+      "mean_delta_regret": 0.0017004043796883543,
+      "mean_delta_miss": 0.0
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix",
+      "budget_pct": 0.25,
+      "coverage": 0.0025336873540211125,
+      "target_match_rate": 0.964757385900376,
+      "mean_delta_regret": 0.0030036453384062202,
+      "mean_delta_miss": 0.00011510128913443831
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix",
+      "budget_pct": 0.5,
+      "coverage": 0.005067374708042225,
+      "target_match_rate": 0.9646422846112415,
+      "mean_delta_regret": 0.00402094865591706,
+      "mean_delta_miss": 0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix",
+      "budget_pct": 0.75,
+      "coverage": 0.007601062062063337,
+      "target_match_rate": 0.9646422846112415,
+      "mean_delta_regret": 0.00402094865591706,
+      "mean_delta_miss": 0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix",
+      "budget_pct": 1.0,
+      "coverage": 0.01013474941608445,
+      "target_match_rate": 0.9644120820329726,
+      "mean_delta_regret": 0.005629788446162945,
+      "mean_delta_miss": 0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix",
+      "budget_pct": 1.5,
+      "coverage": 0.015202124124126673,
+      "target_match_rate": 0.9641818794547037,
+      "mean_delta_regret": 0.007473840897913137,
+      "mean_delta_miss": 0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix",
+      "budget_pct": 2.0,
+      "coverage": 0.020039163618166978,
+      "target_match_rate": 0.9639516768764349,
+      "mean_delta_regret": 0.009231809753080758,
+      "mean_delta_miss": 0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix_hybrid",
+      "budget_pct": 0.1,
+      "coverage": 0.0011516760700095966,
+      "target_match_rate": 0.965793828045518,
+      "mean_delta_regret": -0.005752809238821245,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix_hybrid",
+      "budget_pct": 0.25,
+      "coverage": 0.0025336873540211125,
+      "target_match_rate": 0.9661395298201205,
+      "mean_delta_regret": -0.007687936410963849,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix_hybrid",
+      "budget_pct": 0.5,
+      "coverage": 0.005067374708042225,
+      "target_match_rate": 0.9668309333693255,
+      "mean_delta_regret": -0.011082030773945872,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix_hybrid",
+      "budget_pct": 0.75,
+      "coverage": 0.007601062062063337,
+      "target_match_rate": 0.9676375708433977,
+      "mean_delta_regret": -0.013824096314408174,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix_hybrid",
+      "budget_pct": 1.0,
+      "coverage": 0.009213939103008943,
+      "target_match_rate": 0.9679832726180002,
+      "mean_delta_regret": -0.014866704332427427,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix_hybrid",
+      "budget_pct": 1.5,
+      "coverage": 0.011749085450093524,
+      "target_match_rate": 0.9682137404677351,
+      "mean_delta_regret": -0.015444674267049617,
+      "mean_delta_miss": -0.00023020257826887662
+    },
+    {
+      "variant": "prototype_branch_strength_sharp_negative_tail_support_agree_mix_hybrid",
+      "budget_pct": 2.0,
+      "coverage": 0.011864319374961005,
+      "target_match_rate": 0.9682137404677351,
+      "mean_delta_regret": -0.015444674267049617,
+      "mean_delta_miss": -0.00023020257826887662
+    }
+  ]
+}

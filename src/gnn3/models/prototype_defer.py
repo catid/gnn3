@@ -1262,6 +1262,110 @@ class BranchCalibratedSharpNegativeTailSupportAgreementMixturePrototypeDeferHead
         return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
 
 
+class BranchStrengthSharpNegativeTailSupportAgreementMixturePrototypeDeferHead(
+    SharpNegativeTailSupportAgreementMixturePrototypeDeferHead
+):
+    """Sharp negative-tail cleanup with separate learned shared and dual cleanup amplitudes."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        *,
+        risk_dim: int = 0,
+        prototype_dim: int = 32,
+        positive_prototypes: int = 8,
+        negative_prototypes: int = 8,
+        hidden_dim: int = 32,
+        use_risk_branch: bool = True,
+        support_scale: float = 2.0,
+        tail_margin: float = 0.5,
+        tail_shrink_scale: float = 2.0,
+        shared_tail_shrink_scale: float = 2.0,
+        dual_tail_shrink_scale: float = 2.0,
+        sharpness_center: float = 0.75,
+        sharpness_scale: float = 4.0,
+    ) -> None:
+        super().__init__(
+            feature_dim,
+            risk_dim=risk_dim,
+            prototype_dim=prototype_dim,
+            positive_prototypes=positive_prototypes,
+            negative_prototypes=negative_prototypes,
+            hidden_dim=hidden_dim,
+            use_risk_branch=use_risk_branch,
+            support_scale=support_scale,
+            tail_margin=tail_margin,
+            tail_shrink_scale=tail_shrink_scale,
+            sharpness_center=sharpness_center,
+            sharpness_scale=sharpness_scale,
+        )
+        self.shared_tail_scale = torch.nn.Parameter(
+            torch.tensor(math.log(shared_tail_shrink_scale), dtype=torch.float32)
+        )
+        self.dual_tail_scale = torch.nn.Parameter(
+            torch.tensor(math.log(dual_tail_shrink_scale), dtype=torch.float32)
+        )
+
+    def _bounded_branch_tail_scale(self, raw_scale: torch.Tensor) -> torch.Tensor:
+        return raw_scale.exp().clamp(min=0.1, max=16.0)
+
+    def _bounded_branch_tail_strength(
+        self,
+        raw_strength: torch.Tensor,
+        raw_scale: torch.Tensor,
+    ) -> torch.Tensor:
+        return self._bounded_branch_tail_scale(raw_scale) * torch.sigmoid(raw_strength)
+
+    def _adaptive_soft_tail_logits(
+        self,
+        logits: torch.Tensor,
+        raw_strength: torch.Tensor,
+        *,
+        raw_scale: torch.Tensor,
+    ) -> torch.Tensor:
+        lead = logits.max(dim=1, keepdim=True).values
+        gate = self._negative_tail_gate(logits)
+        penalty = (
+            gate
+            * self._bounded_branch_tail_strength(raw_strength, raw_scale)
+            * torch.relu((lead - logits) - self.tail_margin)
+        )
+        return logits - penalty
+
+    def _shared_score(self, shared_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.shared_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._shared_banks()
+        pos_logits = scale * shared_encoded @ pos.T + self._bounded_support(self.shared_positive_support)
+        neg_logits = scale * shared_encoded @ neg.T + self._bounded_support(self.shared_negative_support)
+        neg_logits = self._adaptive_soft_tail_logits(
+            neg_logits,
+            self.shared_negative_tail,
+            raw_scale=self.shared_tail_scale,
+        )
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def _dual_score(self, positive_encoded: torch.Tensor, negative_encoded: torch.Tensor) -> torch.Tensor:
+        scale = self.dual_logit_scale.exp().clamp(min=1.0, max=64.0)
+        pos, neg = self._dual_banks()
+        pos_logits = scale * positive_encoded @ pos.T + self._bounded_support(self.dual_positive_support)
+        neg_logits = scale * negative_encoded @ neg.T + self._bounded_support(self.dual_negative_support)
+        neg_logits = self._adaptive_soft_tail_logits(
+            neg_logits,
+            self.dual_negative_tail,
+            raw_scale=self.dual_tail_scale,
+        )
+        return torch.logsumexp(pos_logits, dim=1) - torch.logsumexp(neg_logits, dim=1)
+
+    def tail_regularization(self) -> torch.Tensor:
+        strengths = torch.stack(
+            [
+                self._bounded_branch_tail_strength(self.shared_negative_tail, self.shared_tail_scale),
+                self._bounded_branch_tail_strength(self.dual_negative_tail, self.dual_tail_scale),
+            ]
+        )
+        return strengths.mean()
+
+
 class LearnedGateNegativeTailSupportAgreementMixturePrototypeDeferHead(
     NegativeTailSupportAgreementMixturePrototypeDeferHead
 ):

@@ -1,0 +1,10 @@
+{
+  "prototype_negative_cleanup_max_support_agree_mix": {
+    "score_mean": -2.492255210876465,
+    "score_std": 1.0307332277297974
+  },
+  "prototype_negative_cleanup_max_support_agree_mix_hybrid": {
+    "score_mean": -2.850020408630371,
+    "score_std": 2.2630932331085205
+  }
+}

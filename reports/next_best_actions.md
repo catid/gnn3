@@ -238,7 +238,9 @@
    - keep the richer teacher-bank filters from round twelve
    - use the sharp-negative-tail support-weighted agreement-mixture hybrid as the primary sub-`1%` full-band contender
    - use the negative-tail support-weighted agreement-mixture hybrid as the high-recall contender around `1%` coverage
-   - use the branchwise-max negative-cleanup support-weighted agreement-mixture hybrid as the higher-budget matched-band and high-recall contender once coverage can rise to roughly `1.5–2.0%`
+   - use the max-dual-teacher-rebuilt rescue-weighted anchored dual-lift branchwise-max hybrid as the strongest branchwise-max-family matched-band contender through roughly `0.75–1.5%`
+   - keep the branchwise-max negative-cleanup support-weighted agreement-mixture hybrid as the `2.0%` higher-budget high-recall reference
+   - keep the dual-teacher-rebuilt rescue-weighted anchored dual lift as the narrow target-heavy companion around `0.50%`
    - use the rescue-weighted anchored dual lift as the branchwise-max-family micro-budget companion at `0.10–0.25%`
    - use the dual-teacher-rebuilt rescue-weighted anchored dual lift as a target-heavy companion around `0.50%` when stronger stable-positive / hard near-tie lift matters more than a tiny aggregate-regret trade against accepted branchwise-max
    - keep the original learnable prototype-memory plus risk-branch architecture as the lighter low-coverage reference behind it
@@ -420,6 +422,19 @@
        - but by `0.75%` it no longer improves the accepted frontier, and from
          `1.00%` upward it still trails accepted branchwise-max on held-out
          stable-positive-v2 and hard near-tie
+     - hard bankwise max between the learned and rebuilt dual negative banks
+       is the first clean way to stabilize that positive teacher-bank edit
+       across the matched-band regime
+       - it preserves the rescue-weighted `0.10%` micro-budget point
+       - it gives back the hard-swap `0.50%` target-heavy gain
+       - but at `0.75%` it jumps to `83.3%` held-out stable-positive-v2 with
+         `90.60%` hard near-tie and overall mean delta regret `-0.0137`
+       - at `1.00–1.50%` it keeps the accepted `83.3%` / `90.60%` target slice
+         while slightly improving overall mean delta regret to `-0.0148` and
+         `-0.0159`
+       - at `2.00%` it still gives back the accepted branchwise-max endpoint,
+         because it only reaches `83.3%` / `90.60%` / `-0.0165` instead of
+         `100%` / `90.68%` / `-0.0167`
      - and not via a rescue-sensitive learned blend between the learned and
        rebuilt dual negative banks either, because the gated dual-teacher
        follow-up learned only a weak blend (`scale ~ 0.12–0.14`, `bias ~ -0.86`)
